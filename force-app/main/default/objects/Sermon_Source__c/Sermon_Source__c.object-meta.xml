@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Stores sermon video sources for the Wisdom Discovery pipeline. Each record tracks a video by its external ID, URL, transcript storage key, rights clearance, and ingestion status. Commonly used for sermon ingestion, rights management, and transcript processing.</description>
+    <label>Sermon Source</label>
+    <pluralLabel>Sermon Sources</pluralLabel>
+    <nameField>
+        <label>Sermon Source Name</label>
+        <type>Text</type>
+    </nameField>
+    <sharingModel>ReadWrite</sharingModel>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <visibility>Public</visibility>
+    <enableSearch>true</enableSearch>
+    <enableReports>true</enableReports>
+    <enableActivities>true</enableActivities>
+    <enableHistory>true</enableHistory>
+</CustomObject>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Transcript_Storage_Key__c</fullName>
+    <label>Transcript Storage Key</label>
+    <description>Reference key or path pointing to the transcript stored in secure external storage. Salesforce holds the key only; raw transcript content is never stored here.</description>
+    <inlineHelpText>Enter the storage key or path returned by the ingestion service (e.g. transcripts/4SPC0Ke1Eyg.json).</inlineHelpText>
+    <type>Text</type>
+    <length>255</length>
+</CustomField>

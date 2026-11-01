@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Video_URL__c</fullName>
+    <label>Video URL</label>
+    <description>Full URL of the sermon video on the external platform (e.g. YouTube watch link).</description>
+    <inlineHelpText>Paste the full video URL, e.g. https://www.youtube.com/watch?v=4SPC0Ke1Eyg</inlineHelpText>
+    <type>Url</type>
+</CustomField>

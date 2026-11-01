@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Represents a directional relationship between two Wisdom Concepts. Stores the relation key, source and target concept lookups, relation type, and a short reason. Commonly used for wisdom graph edges, concept mapping, and insight lineage tracking.</description>
+    <label>Wisdom Relation</label>
+    <pluralLabel>Wisdom Relations</pluralLabel>
+    <nameField>
+        <label>Relation Number</label>
+        <type>AutoNumber</type>
+        <displayFormat>REL-{0000}</displayFormat>
+        <startingNumber>1</startingNumber>
+    </nameField>
+    <sharingModel>ReadWrite</sharingModel>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <visibility>Public</visibility>
+    <enableSearch>false</enableSearch>
+    <enableReports>true</enableReports>
+    <enableActivities>false</enableActivities>
+    <enableHistory>false</enableHistory>
+</CustomObject>

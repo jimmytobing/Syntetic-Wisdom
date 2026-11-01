@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Junction object linking Wisdom Insights to Wisdom Concepts for many-to-many concept provenance. Used internally for audit, revision, deletion requests, and attribution tracing — not for public display.</description>
+    <label>Wisdom Insight Concept</label>
+    <pluralLabel>Wisdom Insight Concepts</pluralLabel>
+    <nameField>
+        <label>Link Number</label>
+        <type>AutoNumber</type>
+        <displayFormat>WIC-{0000}</displayFormat>
+        <startingNumber>1</startingNumber>
+    </nameField>
+    <sharingModel>ReadWrite</sharingModel>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <visibility>Public</visibility>
+    <enableSearch>false</enableSearch>
+    <enableReports>true</enableReports>
+    <enableActivities>false</enableActivities>
+    <enableHistory>false</enableHistory>
+</CustomObject>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Rights_Status__c</fullName>
+    <label>Rights Status</label>
+    <description>Copyright clearance state for this sermon source. Only records with PermissionGranted may proceed through the ingestion pipeline.</description>
+    <inlineHelpText>Set to PermissionGranted only after obtaining explicit rights from the content owner. Unknown is the safe default.</inlineHelpText>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Unknown</fullName>
+                <default>true</default>
+                <label>Unknown</label>
+            </value>
+            <value>
+                <fullName>PermissionGranted</fullName>
+                <default>false</default>
+                <label>Permission Granted</label>
+            </value>
+            <value>
+                <fullName>Restricted</fullName>
+                <default>false</default>
+                <label>Restricted</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
