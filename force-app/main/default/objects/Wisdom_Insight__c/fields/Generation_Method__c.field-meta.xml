@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Generation_Method__c</fullName>
+    <label>Generation Method</label>
+    <description>Records how this insight was generated (e.g. editorial:manual, lexical:v1, llm:gpt4o). Supports audit and model versioning.</description>
+    <inlineHelpText>Set by the pipeline or manually for editorial entries. Max 100 characters.</inlineHelpText>
+    <type>Text</type>
+    <length>100</length>
+</CustomField>

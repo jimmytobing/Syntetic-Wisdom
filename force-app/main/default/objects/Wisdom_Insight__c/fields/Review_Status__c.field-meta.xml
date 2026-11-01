@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Review_Status__c</fullName>
+    <label>Review Status</label>
+    <description>Editorial review outcome for this insight. Only Approved insights with Safe safety status may be published.</description>
+    <inlineHelpText>Set via the Insight Review Flow. Approved + Safe = eligible for Publication Flow.</inlineHelpText>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Draft</fullName>
+                <default>true</default>
+                <label>Draft</label>
+            </value>
+            <value>
+                <fullName>Approved</fullName>
+                <default>false</default>
+                <label>Approved</label>
+            </value>
+            <value>
+                <fullName>Rejected</fullName>
+                <default>false</default>
+                <label>Rejected</label>
+            </value>
+            <value>
+                <fullName>NeedsEdit</fullName>
+                <default>false</default>
+                <label>Needs Edit</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sermon_Source__c</fullName>
+    <label>Sermon Source</label>
+    <description>The Sermon Source record that initiated this transcript job. Each job belongs to exactly one source.</description>
+    <inlineHelpText>Populated automatically when the Record-Triggered Flow creates this job from a Sermon Source.</inlineHelpText>
+    <type>Lookup</type>
+    <referenceTo>Sermon_Source__c</referenceTo>
+    <relationshipLabel>Transcript Jobs</relationshipLabel>
+    <relationshipName>TranscriptJobs</relationshipName>
+    <required>true</required>
+    <deleteConstraint>Restrict</deleteConstraint>
+</CustomField>

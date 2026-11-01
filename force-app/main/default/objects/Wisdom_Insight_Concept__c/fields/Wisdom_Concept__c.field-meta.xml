@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Wisdom_Concept__c</fullName>
+    <label>Wisdom Concept</label>
+    <description>Link to the Wisdom Concept that contributed to the associated insight. Maintains many-to-many concept provenance for internal audit.</description>
+    <inlineHelpText>Select the concept that informed the linked insight.</inlineHelpText>
+    <type>Lookup</type>
+    <referenceTo>Wisdom_Concept__c</referenceTo>
+    <relationshipLabel>Concept Insights</relationshipLabel>
+    <relationshipName>ConceptInsights</relationshipName>
+    <required>false</required>
+    <deleteConstraint>SetNull</deleteConstraint>
+</CustomField>

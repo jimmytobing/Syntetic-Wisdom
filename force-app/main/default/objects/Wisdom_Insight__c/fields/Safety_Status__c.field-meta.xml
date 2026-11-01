@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Safety_Status__c</fullName>
+    <label>Safety Status</label>
+    <description>Safety screening result for this insight. Flags insights containing harmful advice, unverified promises, or sensitive counseling content.</description>
+    <inlineHelpText>Unchecked until safety review is complete. Flagged or Removed insights must not be published.</inlineHelpText>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Unchecked</fullName>
+                <default>true</default>
+                <label>Unchecked</label>
+            </value>
+            <value>
+                <fullName>Safe</fullName>
+                <default>false</default>
+                <label>Safe</label>
+            </value>
+            <value>
+                <fullName>Flagged</fullName>
+                <default>false</default>
+                <label>Flagged</label>
+            </value>
+            <value>
+                <fullName>Removed</fullName>
+                <default>false</default>
+                <label>Removed</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

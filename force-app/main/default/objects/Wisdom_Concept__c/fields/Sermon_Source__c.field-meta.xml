@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sermon_Source__c</fullName>
+    <label>Sermon Source</label>
+    <description>Optional link to the Sermon Source from which this concept was extracted. Used for audit and provenance tracking.</description>
+    <inlineHelpText>Populated by the extraction pipeline. May be blank if concept spans multiple sources.</inlineHelpText>
+    <type>Lookup</type>
+    <referenceTo>Sermon_Source__c</referenceTo>
+    <relationshipLabel>Wisdom Concepts</relationshipLabel>
+    <relationshipName>WisdomConcepts</relationshipName>
+    <required>false</required>
+    <deleteConstraint>SetNull</deleteConstraint>
+</CustomField>

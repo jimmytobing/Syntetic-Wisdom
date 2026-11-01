@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Wisdom_Insight__c</fullName>
+    <label>Wisdom Insight</label>
+    <description>Link to the Wisdom Insight in this many-to-many provenance record. Used for internal lineage, audit, and attribution.</description>
+    <inlineHelpText>Select the insight this concept contributed to.</inlineHelpText>
+    <type>Lookup</type>
+    <referenceTo>Wisdom_Insight__c</referenceTo>
+    <relationshipLabel>Insight Concepts</relationshipLabel>
+    <relationshipName>InsightConcepts</relationshipName>
+    <required>false</required>
+    <deleteConstraint>SetNull</deleteConstraint>
+</CustomField>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>From_Concept__c</fullName>
+    <label>From Concept</label>
+    <description>The source concept in this directional relationship (the concept that supports, relates to, or illustrates another).</description>
+    <inlineHelpText>Select the concept this relationship originates from.</inlineHelpText>
+    <type>Lookup</type>
+    <referenceTo>Wisdom_Concept__c</referenceTo>
+    <relationshipLabel>Relations From</relationshipLabel>
+    <relationshipName>RelationsFrom</relationshipName>
+    <required>false</required>
+    <deleteConstraint>SetNull</deleteConstraint>
+</CustomField>

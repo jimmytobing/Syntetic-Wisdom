@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Concept_Type__c</fullName>
+    <label>Concept Type</label>
+    <description>Semantic classification of the concept derived from transcript analysis (e.g. Topic, Principle, Practice, Testimony, Metaphor, Worship).</description>
+    <inlineHelpText>Select the type that best describes how this concept functions in the sermon content.</inlineHelpText>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Topic</fullName>
+                <default>true</default>
+                <label>Topic</label>
+            </value>
+            <value>
+                <fullName>Principle</fullName>
+                <default>false</default>
+                <label>Principle</label>
+            </value>
+            <value>
+                <fullName>Practice</fullName>
+                <default>false</default>
+                <label>Practice</label>
+            </value>
+            <value>
+                <fullName>Testimony</fullName>
+                <default>false</default>
+                <label>Testimony</label>
+            </value>
+            <value>
+                <fullName>Metaphor</fullName>
+                <default>false</default>
+                <label>Metaphor</label>
+            </value>
+            <value>
+                <fullName>Worship</fullName>
+                <default>false</default>
+                <label>Worship</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

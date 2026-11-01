@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Relation_Type__c</fullName>
+    <label>Relation Type</label>
+    <description>Semantic type of the directional edge between two concepts in the wisdom graph.</description>
+    <inlineHelpText>Choose the type that best describes how the From Concept relates to the To Concept.</inlineHelpText>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>RelatesTo</fullName>
+                <default>true</default>
+                <label>Relates To</label>
+            </value>
+            <value>
+                <fullName>Supports</fullName>
+                <default>false</default>
+                <label>Supports</label>
+            </value>
+            <value>
+                <fullName>Contradicts</fullName>
+                <default>false</default>
+                <label>Contradicts</label>
+            </value>
+            <value>
+                <fullName>Exemplifies</fullName>
+                <default>false</default>
+                <label>Exemplifies</label>
+            </value>
+            <value>
+                <fullName>Illustrates</fullName>
+                <default>false</default>
+                <label>Illustrates</label>
+            </value>
+            <value>
+                <fullName>Precedes</fullName>
+                <default>false</default>
+                <label>Precedes</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

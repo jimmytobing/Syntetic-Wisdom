@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Theme__c</fullName>
+    <label>Theme</label>
+    <description>Short human-readable theme label for this concept (e.g. Doa Pribadi, Iman dan Ketakutan).</description>
+    <inlineHelpText>Enter the theme in Indonesian as it should appear in the UI (max 80 characters).</inlineHelpText>
+    <type>Text</type>
+    <length>80</length>
+</CustomField>

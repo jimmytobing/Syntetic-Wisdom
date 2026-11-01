@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <description>Screen Flow for reviewing Wisdom Concept candidates. Loads up to 50 concepts with Review_Status = Pending and presents each one to the reviewer in sequence. Reviewer selects Approved, Rejected, or Needs Edit for each concept. Updates are saved immediately per concept.</description>
+    <interviewLabel>Wisdom Concept Review {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Wisdom Concept Review</label>
+    <processType>Flow</processType>
+    <runInMode>DefaultMode</runInMode>
+    <start>
+        <locationX>176</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>GetPendingConcepts</targetReference>
+        </connector>
+    </start>
+    <choices>
+        <name>choiceApproved</name>
+        <choiceText>Approved</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Approved</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>choiceRejected</name>
+        <choiceText>Rejected</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Rejected</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>choiceNeedsEdit</name>
+        <choiceText>Needs Edit</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>NeedsEdit</stringValue>
+        </value>
+    </choices>
+    <decisions>
+        <name>CheckHasConcepts</name>
+        <label>Has Pending Concepts?</label>
+        <locationX>176</locationX>
+        <locationY>240</locationY>
+        <defaultConnector>
+            <targetReference>ScreenNoConcepts</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Concepts</defaultConnectorLabel>
+        <rules>
+            <name>HasConcepts</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetPendingConcepts</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>ReviewLoop</targetReference>
+            </connector>
+            <label>Has Concepts</label>
+        </rules>
+    </decisions>
+    <loops>
+        <name>ReviewLoop</name>
+        <label>Review Loop</label>
+        <locationX>176</locationX>
+        <locationY>360</locationY>
+        <collectionReference>GetPendingConcepts</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>ScreenReviewConcept</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>ScreenAllDone</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <recordLookups>
+        <name>GetPendingConcepts</name>
+        <label>Get Pending Concepts</label>
+        <locationX>176</locationX>
+        <locationY>120</locationY>
+        <connector>
+            <targetReference>CheckHasConcepts</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Review_Status__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Pending</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Wisdom_Concept__c</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <queriedFields>Theme__c</queriedFields>
+        <queriedFields>Concept_Type__c</queriedFields>
+        <queriedFields>Candidate_Summary__c</queriedFields>
+        <queriedFields>Review_Status__c</queriedFields>
+        <limit>50</limit>
+        <sortField>Theme__c</sortField>
+        <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>UpdateConceptDecision</name>
+        <label>Save Review Decision</label>
+        <locationX>176</locationX>
+        <locationY>600</locationY>
+        <connector>
+            <targetReference>ReviewLoop</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>ReviewLoop.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Review_Status__c</field>
+            <value>
+                <elementReference>ScreenReviewConcept.inputDecision</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Wisdom_Concept__c</object>
+    </recordUpdates>
+    <screens>
+        <name>ScreenNoConcepts</name>
+        <label>No Pending Concepts</label>
+        <locationX>440</locationX>
+        <locationY>360</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>displayNoConcepts</name>
+            <fieldText>&lt;p&gt;There are no Wisdom Concept candidates pending review at this time.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>ScreenReviewConcept</name>
+        <label>Review Concept</label>
+        <locationX>176</locationX>
+        <locationY>480</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>false</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>UpdateConceptDecision</targetReference>
+        </connector>
+        <fields>
+            <name>displayConceptHeader</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Concept Review&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Theme: {!ReviewLoop.Theme__c} | Type: {!ReviewLoop.Concept_Type__c}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>displayCandidateSummary</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Candidate Summary&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!ReviewLoop.Candidate_Summary__c}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>inputDecision</name>
+            <choiceReferences>choiceApproved</choiceReferences>
+            <choiceReferences>choiceRejected</choiceReferences>
+            <choiceReferences>choiceNeedsEdit</choiceReferences>
+            <dataType>String</dataType>
+            <defaultSelectedChoiceReference>choiceApproved</defaultSelectedChoiceReference>
+            <fieldType>RadioButtons</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>ScreenAllDone</name>
+        <label>Review Complete</label>
+        <locationX>176</locationX>
+        <locationY>720</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>displayAllDone</name>
+            <fieldText>&lt;p&gt;All pending Wisdom Concepts have been reviewed. Thank you.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <status>Draft</status>
+</Flow>

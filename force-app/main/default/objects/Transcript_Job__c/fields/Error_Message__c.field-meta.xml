@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Error_Message__c</fullName>
+    <label>Error Message</label>
+    <description>Stores the error detail when Stage is Error. Used for troubleshooting and retry logic.</description>
+    <inlineHelpText>Populated automatically by the integration layer. Review and clear before retrying the job.</inlineHelpText>
+    <type>LongTextArea</type>
+    <length>32768</length>
+    <visibleLines>5</visibleLines>
+</CustomField>

@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <description>Screen Flow for reviewing Wisdom Insights before publication. Loads insights with Review_Status = Draft and presents each one to the reviewer. Reviewer evaluates the Analogy and Practical Step for helpfulness, coherence, originality, and safety (no promises of healing, wealth, or guaranteed spiritual outcomes). Sets Review_Status and Safety_Status per insight.</description>
+    <interviewLabel>Wisdom Insight Review {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Wisdom Insight Review</label>
+    <processType>Flow</processType>
+    <runInMode>DefaultMode</runInMode>
+    <start>
+        <locationX>176</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>GetDraftInsights</targetReference>
+        </connector>
+    </start>
+    <choices>
+        <name>choiceInsightApproved</name>
+        <choiceText>Approved – ready for publication</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Approved</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>choiceInsightRejected</name>
+        <choiceText>Rejected – do not publish</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Rejected</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>choiceInsightNeedsEdit</name>
+        <choiceText>Needs Edit – return for revision</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>NeedsEdit</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>choiceSafetySafe</name>
+        <choiceText>Safe – no harmful advice or unverified promises</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Safe</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>choiceSafetyFlagged</name>
+        <choiceText>Flagged – contains content requiring further review</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Flagged</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>choiceSafetyRemoved</name>
+        <choiceText>Removed – content must not be published</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Removed</stringValue>
+        </value>
+    </choices>
+    <decisions>
+        <name>CheckHasInsights</name>
+        <label>Has Draft Insights?</label>
+        <locationX>176</locationX>
+        <locationY>240</locationY>
+        <defaultConnector>
+            <targetReference>ScreenNoInsights</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Insights</defaultConnectorLabel>
+        <rules>
+            <name>HasInsights</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetDraftInsights</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>InsightLoop</targetReference>
+            </connector>
+            <label>Has Insights</label>
+        </rules>
+    </decisions>
+    <loops>
+        <name>InsightLoop</name>
+        <label>Insight Loop</label>
+        <locationX>176</locationX>
+        <locationY>360</locationY>
+        <collectionReference>GetDraftInsights</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>ScreenReviewInsight</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>ScreenInsightsDone</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <recordLookups>
+        <name>GetDraftInsights</name>
+        <label>Get Draft Insights</label>
+        <locationX>176</locationX>
+        <locationY>120</locationY>
+        <connector>
+            <targetReference>CheckHasInsights</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Review_Status__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Draft</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Wisdom_Insight__c</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <queriedFields>Analogy__c</queriedFields>
+        <queriedFields>Practical_Step__c</queriedFields>
+        <queriedFields>Generation_Method__c</queriedFields>
+        <queriedFields>Review_Status__c</queriedFields>
+        <queriedFields>Safety_Status__c</queriedFields>
+        <limit>50</limit>
+        <sortField>Name</sortField>
+        <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>UpdateInsightDecision</name>
+        <label>Save Insight Review Decision</label>
+        <locationX>176</locationX>
+        <locationY>640</locationY>
+        <connector>
+            <targetReference>InsightLoop</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>InsightLoop.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Review_Status__c</field>
+            <value>
+                <elementReference>ScreenReviewInsight.inputReviewStatus</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Safety_Status__c</field>
+            <value>
+                <elementReference>ScreenReviewInsight.inputSafetyStatus</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Wisdom_Insight__c</object>
+    </recordUpdates>
+    <screens>
+        <name>ScreenNoInsights</name>
+        <label>No Draft Insights</label>
+        <locationX>440</locationX>
+        <locationY>360</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>displayNoInsights</name>
+            <fieldText>&lt;p&gt;There are no Wisdom Insights pending review at this time.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>ScreenReviewInsight</name>
+        <label>Review Insight</label>
+        <locationX>176</locationX>
+        <locationY>480</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>false</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>UpdateInsightDecision</targetReference>
+        </connector>
+        <fields>
+            <name>displayInsightHeader</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Insight Review&lt;/strong&gt; | {!InsightLoop.Name}&lt;/p&gt;&lt;p&gt;Generation Method: {!InsightLoop.Generation_Method__c}&lt;/p&gt;&lt;hr/&gt;&lt;p&gt;&lt;em&gt;Check: no promises of healing, wealth, or guaranteed spiritual outcomes.&lt;/em&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>displayAnalogy</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Analogy&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!InsightLoop.Analogy__c}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>displayPracticalStep</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Practical Step&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!InsightLoop.Practical_Step__c}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>inputReviewStatus</name>
+            <choiceReferences>choiceInsightApproved</choiceReferences>
+            <choiceReferences>choiceInsightRejected</choiceReferences>
+            <choiceReferences>choiceInsightNeedsEdit</choiceReferences>
+            <dataType>String</dataType>
+            <defaultSelectedChoiceReference>choiceInsightApproved</defaultSelectedChoiceReference>
+            <fieldType>RadioButtons</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <fields>
+            <name>inputSafetyStatus</name>
+            <choiceReferences>choiceSafetySafe</choiceReferences>
+            <choiceReferences>choiceSafetyFlagged</choiceReferences>
+            <choiceReferences>choiceSafetyRemoved</choiceReferences>
+            <dataType>String</dataType>
+            <defaultSelectedChoiceReference>choiceSafetySafe</defaultSelectedChoiceReference>
+            <fieldType>RadioButtons</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>ScreenInsightsDone</name>
+        <label>Insight Review Complete</label>
+        <locationX>176</locationX>
+        <locationY>760</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>displayInsightsDone</name>
+            <fieldText>&lt;p&gt;All draft Wisdom Insights have been reviewed. Insights marked Approved + Safe are now eligible for publication via the Publication Flow.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <status>Draft</status>
+</Flow>
