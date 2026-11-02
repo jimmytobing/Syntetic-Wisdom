@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalServiceRegistration xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>WDESupadataTranscript</label>
+    <namedCredential>WDE_Supadata_API</namedCredential>
+    <operations>
+        <active>true</active>
+        <name>getTranscript</name>
+    </operations>
+    <registrationProviderType>Custom</registrationProviderType>
+    <schema>{"openapi":"3.0.0","info":{"title":"WDE Supadata Transcript","version":"1.0.0"},"servers":[{"url":"https://api.supadata.ai"}],"paths":{"/v1/transcript":{"get":{"operationId":"getTranscript","parameters":[{"name":"url","in":"query","required":true,"schema":{"type":"string"}},{"name":"lang","in":"query","required":false,"schema":{"type":"string"}},{"name":"mode","in":"query","required":false,"schema":{"type":"string"}},{"name":"text","in":"query","required":false,"schema":{"type":"boolean"}}],"responses":{"200":{"description":"Transcript","content":{"application/json":{"schema":{"type":"object","properties":{"lang":{"type":"string"},"content":{"type":"array","items":{"type":"object","properties":{"text":{"type":"string"},"offset":{"type":"integer"},"duration":{"type":"integer"},"lang":{"type":"string"}}}}}}}}},"202":{"description":"Accepted","content":{"application/json":{"schema":{"type":"object","properties":{"jobId":{"type":"string"}}}}}}}}}}}</schema>
+    <schemaType>OpenApi</schemaType>
+    <status>Complete</status>
+</ExternalServiceRegistration>
