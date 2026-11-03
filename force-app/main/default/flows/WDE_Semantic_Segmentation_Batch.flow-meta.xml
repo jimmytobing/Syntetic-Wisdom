@@ -209,14 +209,14 @@
             <assignToReference>varA_GroqRequest.maxx5fcompletionx5ftokens</assignToReference>
             <operator>Assign</operator>
             <value>
-                <numberValue>2200.0</numberValue>
+                <numberValue>4000.0</numberValue>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>varA_GroqRequest.reasoningx5feffort</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>medium</stringValue>
+                <stringValue>low</stringValue>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -948,7 +948,7 @@
             <label>Source Ready</label>
         </rules>
     </decisions>
-    <description>ganti prompt</description>
+    <description>Build_Groq_Request ganti</description>
     <ends>
         <name>END_FAILURE</name>
         <locationX>0</locationX>

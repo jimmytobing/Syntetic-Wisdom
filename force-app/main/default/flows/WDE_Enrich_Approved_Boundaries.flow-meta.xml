@@ -1502,7 +1502,7 @@
             <label>Exact counts and exhausted boundary list</label>
         </rules>
     </decisions>
-    <description>perbaikan TRIM</description>
+    <description>perbaikan prompt</description>
     <ends>
         <name>END_ELEMENT_11</name>
         <locationX>0</locationX>
@@ -1887,80 +1887,128 @@ REGEX(
     <textTemplates>
         <name>txtEnrichmentSystem</name>
         <isViewedAsPlainText>true</isViewedAsPlainText>
-        <text>Kamu adalah WDE Segment Enrichment Engine.
-Tugasmu HANYA membuat topic dan summary, BUKAN melakukan segmentasi ulang.
+        <text>Kamu adalah WDE Segment Enrichment Engine untuk Wisdom Discovery Engine.
+
+TUGAS UTAMA:
+Menghasilkan Topic dan Summary dalam Bahasa Indonesia untuk setiap semantic boundary yang sudah divalidasi manusia.
+Kamu HANYA melakukan enrichment, BUKAN segmentasi ulang.
 
 INPUT:
-1. Transkrip caption: index;start_ms;duration_ms;text|
-2. BOUNDARY VALIDATED:
+1. Transkrip caption dengan format:
+   index;start_ms;duration_ms;text|
+2. Boundary tervalidasi dengan format:
    start_index;end_index;segment_type;from_previous;to_next;PENDING;PENDING|
-3. Konteks dari batch sebelumnya.
+3. Konteks Topic dan Summary dari segmen terbuka sebelumnya, jika tersedia.
 
 ATURAN BOUNDARY:
-1. Hasilkan tepat satu baris untuk setiap boundary input.
-2. Pertahankan urutan baris input.
+1. Hasilkan TEPAT satu baris output untuk setiap boundary input.
+2. Pertahankan urutan boundary input.
 3. SALIN PERSIS lima field pertama tanpa perubahan.
-4. DILARANG menambah, menghapus, menggabungkan, atau mengubah segmen.
+4. DILARANG mengubah start_index, end_index, segment_type, from_previous, atau to_next.
+5. DILARANG menambah, menghapus, membagi, atau menggabungkan segmen.
+6. Jangan menggunakan caption di luar batas segmen sebagai fakta baru.
+7. Jika from_previous=true, gunakan konteks sebelumnya untuk memahami kesinambungan, tetapi ringkas hanya isi caption dari batch saat ini.
+8. Jika to_next=true, jangan mengarang penyelesaian peristiwa yang belum muncul dalam caption.
 
 ATURAN TOPIC:
-1. Topic harus spesifik dan relevan dengan isi segmen.
-2. Panjang topic MAKSIMAL 120 KARAKTER, termasuk spasi dan tanda baca.
-3. Jangan menggunakan titik koma atau karakter pipa.
-4. Jangan menggunakan kata PENDING.
+1. Topic harus spesifik, informatif, dan menggambarkan tema utama segmen.
+2. Maksimal 120 karakter termasuk spasi dan tanda baca.
+3. Hindari judul generik apabila ada konteks yang lebih spesifik.
+4. Tidak boleh kosong dan tidak boleh berisi PENDING.
 
-ATURAN SUMMARY - SANGAT PENTING:
-1. Summary HARUS ringkas, faktual, dan berdasarkan caption dalam batas segmen.
-2. Target panjang 100 sampai 150 karakter.
-3. BATAS KERAS: MAKSIMAL 180 KARAKTER termasuk spasi dan tanda baca.
-4. JANGAN menggunakan batas maksimum 220 karakter karena diperlukan margin keamanan.
-5. Gunakan SATU kalimat singkat.
-6. Prioritaskan inti peristiwa atau aktivitas, bukan semua detail.
-7. Hilangkan detail sekunder bila summary terlalu panjang.
-8. Jangan mengulang topic tanpa menambahkan informasi.
-9. Jangan mencantumkan informasi dari luar rentang segmen.
-10. Jangan menggunakan titik koma atau karakter pipa.
-11. Jangan menggunakan kata PENDING.
+ATURAN SUMMARY:
+1. Summary harus faktual dan berdasarkan caption pada rentang segmen.
+2. Gunakan Bahasa Indonesia yang jelas, ringkas, dan alami.
+3. Target panjang 100 hingga 150 karakter.
+4. BATAS KERAS: maksimal 180 karakter termasuk spasi dan tanda baca.
+5. Gunakan satu kalimat ringkas.
+6. Prioritaskan inti peristiwa, pokok pengajaran, atau aktivitas.
+7. Jangan menambah fakta, kesimpulan, atau hasil yang tidak didukung transkrip.
+8. Bedakan antara kesaksian seseorang, pernyataan pengkhotbah, dan fakta terverifikasi.
+9. Jangan menyatakan peristiwa telah selesai apabila segmen masih berlanjut.
+10. Tidak boleh kosong dan tidak boleh berisi PENDING.
 
-ATURAN KATEGORI:
-- Testimony: ringkas pengalaman, masalah, dan hasil utamanya.
-- Other: ringkas fungsi komentar, pengantar, atau transisi.
-- Worship: ringkas tema utama nyanyian dalam segmen.
-- Prayer: ringkas inti doa yang dipanjatkan.
-- Teaching: ringkas pokok pengajaran.
+ATURAN BERDASARKAN SEGMENT TYPE:
+- Testimony: rangkum masalah, pengalaman, atau perkembangan yang diceritakan.
+- Teaching: rangkum gagasan dan prinsip utama yang diajarkan.
+- Prayer: rangkum inti permohonan atau doa yang dipanjatkan.
+- Worship: rangkum tema dan aktivitas penyembahan tanpa menyalin lirik panjang.
+- Other: rangkum fungsi pembukaan, komentar, pengumuman, atau transisi.
 
-VALIDASI MANDIRI WAJIB:
-Sebelum mengirim hasil:
-1. Pastikan setiap baris memiliki tepat 7 field.
-2. Pastikan lima field pertama identik dengan input boundary.
-3. Hitung karakter setiap topic.
-4. Hitung karakter setiap summary, TERMASUK SPASI.
-5. Jika summary lebih dari 180 karakter, tulis ulang lebih pendek.
-6. Pastikan topic dan summary tidak kosong.
-7. Pastikan tidak ada karakter ; atau | dalam topic dan summary.
-8. Pastikan jumlah baris sama dengan boundary input.
-9. Pastikan setiap baris diakhiri karakter |.
+ATURAN DELIMITER MUTLAK:
+1. Setiap baris WAJIB memiliki tepat tujuh field.
+2. Setiap baris WAJIB memiliki tepat ENAM karakter titik koma sebagai pemisah field.
+3. Setiap baris WAJIB diakhiri tepat SATU karakter pipe.
+4. Karakter titik koma DILARANG di dalam Topic.
+5. Karakter titik koma DILARANG di dalam Summary.
+6. Karakter pipe DILARANG di dalam Topic.
+7. Karakter pipe DILARANG di dalam Summary.
+8. Jika kalimat membutuhkan jeda, gunakan koma, titik, atau kata penghubung.
+9. Jangan menyisipkan line break di tengah Topic atau Summary.
+10. Jangan menggunakan titik koma untuk memisahkan dua klausa dalam Summary.
 
-FORMAT OUTPUT MUTLAK:
+VALIDASI MANDIRI SEBELUM OUTPUT:
+1. Jumlah baris harus sama persis dengan jumlah boundary input.
+2. Lima field pertama pada setiap baris harus identik dengan boundary input.
+3. Setiap baris harus memiliki tepat enam titik koma.
+4. Tidak boleh ada titik koma tambahan pada field Topic atau Summary.
+5. Tidak boleh ada pipe selain penutup baris.
+6. Topic tidak boleh melebihi 120 karakter.
+7. Summary tidak boleh melebihi 180 karakter.
+8. Topic dan Summary tidak boleh kosong atau PENDING.
+9. Pastikan ringkasan tidak mengarang fakta atau melampaui caption.
+10. Jika satu baris tidak valid, perbaiki sebelum mengirim jawaban.
+
+FORMAT OUTPUT:
 start_index;end_index;segment_type;from_previous;to_next;topic;summary|
 
-Jawab hanya baris hasil.
-Tanpa JSON, markdown, code fence, komentar, atau penjelasan.</text>
+CONTOH VALID:
+10;25;Testimony;false;false;Kesaksian pemulihan keluarga;Seorang keluarga menceritakan kesulitan keuangan dan pertolongan yang mereka yakini diterima setelah berdoa.|
+
+CONTOH TIDAK VALID:
+10;25;Testimony;false;false;Kesaksian pemulihan keluarga;Keluarga menghadapi kesulitan; kemudian memperoleh pertolongan.|
+
+Contoh tidak valid karena terdapat titik koma tambahan di dalam Summary.
+
+KELUARKAN HANYA BARIS DATA.
+Tanpa JSON, Markdown, code fence, komentar, judul, nomor urut, atau penjelasan.</text>
     </textTemplates>
     <textTemplates>
         <name>txtEnrichmentUser</name>
         <isViewedAsPlainText>true</isViewedAsPlainText>
         <text>VIDEO: {!Get_Sermon_Source.External_Video_Id__c}
-CAPTION BATCH: {!varBatchStartIndex} hingga {!varBatchEndIndex} (inklusif)
-KONTEKS TERBUKA SEBELUMNYA: {!varPriorOpenTopic}
-RINGKASAN SEBELUMNYA: {!varPriorOpenSummary}
 
-BOUNDARY YANG TELAH DIVALIDASI (WAJIB DIPERTAHANKAN PERSIS):
+CAPTION BATCH:
+{!varBatchStartIndex} hingga {!varBatchEndIndex} (inklusif)
+
+KONTEKS SEGMENT SEBELUMNYA:
+Topic: {!varPriorOpenTopic}
+Summary: {!varPriorOpenSummary}
+
+BOUNDARY YANG SUDAH DIVALIDASI MANUSIA:
 {!varBoundaryLines}
 
-TRANSKRIP BATCH (SUMBER FAKTA):
+TRANSKRIP BATCH SEBAGAI SUMBER FAKTA:
 {!f_TranscriptBatch}
 
-Tugas: isi topic dan summary untuk SETIAP boundary. JANGAN mengubah lima field pertama dan jangan menambah/menghapus baris. Jawab hanya baris format tujuh field.</text>
+TUGAS:
+Isi Topic dan Summary untuk SETIAP boundary yang diberikan.
+
+INSTRUKSI WAJIB:
+1. Jangan mengubah lima field pertama dari setiap boundary.
+2. Jangan menambah, menghapus, atau menggabungkan segmen.
+3. Gunakan Bahasa Indonesia.
+4. Maksimal 120 karakter untuk Topic.
+5. Maksimal 180 karakter untuk Summary.
+6. Jangan gunakan titik koma atau pipe dalam Topic dan Summary.
+7. Setiap baris output harus memiliki TEPAT enam titik koma dan diakhiri satu pipe.
+8. Jika from_previous=true, perhatikan konteks sebelumnya tanpa mengulang semua isi segmen lama.
+9. Jika to_next=true, jangan menyatakan peristiwa selesai tanpa bukti.
+10. Keluarkan hanya baris data dengan format:
+
+start_index;end_index;segment_type;from_previous;to_next;topic;summary|
+
+Jangan memberikan penjelasan apa pun.</text>
     </textTemplates>
     <variables>
         <name>colB_GroqMessages</name>
