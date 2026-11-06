@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Wisdom_Concept__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Wisdom Concept</label>
+    <referenceTo>Wisdom_Concept__c</referenceTo>
+    <relationshipLabel>Wisdom_Concept_Evidences</relationshipLabel>
+    <relationshipName>Wisdom_Concept_Evidences</relationshipName>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

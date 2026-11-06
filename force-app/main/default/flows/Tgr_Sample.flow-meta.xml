@@ -3,34 +3,50 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <name>test_assignment</name>
-        <label>test assignment</label>
+        <name>async</name>
+        <label>async</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignmentItems>
-            <assignToReference>var_Test</assignToReference>
+            <assignToReference>var_Sample</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>Sukses</stringValue>
+                <stringValue>OK</stringValue>
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>END_ELEMENT_3</targetReference>
+            <targetReference>END_ELEMENT_4</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>sync_cth</name>
+        <label>sync cth</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>var_Sample</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>woke</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>END_ELEMENT_2</targetReference>
         </connector>
     </assignments>
     <ends>
-        <name>END_ELEMENT_1</name>
+        <name>END_ELEMENT_2</name>
         <locationX>0</locationX>
         <locationY>0</locationY>
     </ends>
     <ends>
-        <name>END_ELEMENT_3</name>
+        <name>END_ELEMENT_4</name>
         <locationX>0</locationX>
         <locationY>0</locationY>
     </ends>
     <environments>Default</environments>
-    <interviewLabel>[Tgr] Contoh {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>[Tgr] Contoh</label>
+    <interviewLabel>[Tgr] Sample {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>[Tgr] Sample</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -54,22 +70,21 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>END_ELEMENT_1</targetReference>
+            <targetReference>sync_cth</targetReference>
         </connector>
-        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>
         <filters>
-            <field>Sermon_Source__c</field>
-            <operator>IsNull</operator>
+            <field>LastModifiedDate</field>
+            <operator>IsChanged</operator>
             <value>
-                <booleanValue>false</booleanValue>
+                <booleanValue>true</booleanValue>
             </value>
         </filters>
-        <object>Sermon_Segment__c</object>
+        <object>WDE_Batch_Run_Create_Object__c</object>
         <recordTriggerType>CreateAndUpdate</recordTriggerType>
         <scheduledPaths>
             <connector>
-                <targetReference>test_assignment</targetReference>
+                <targetReference>async</targetReference>
             </connector>
             <pathType>AsyncAfterCommit</pathType>
         </scheduledPaths>
@@ -77,7 +92,7 @@
     </start>
     <status>Draft</status>
     <variables>
-        <name>var_Test</name>
+        <name>var_Sample</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>

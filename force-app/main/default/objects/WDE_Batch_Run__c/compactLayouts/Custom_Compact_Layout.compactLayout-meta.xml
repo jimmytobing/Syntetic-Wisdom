@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Custom_Compact_Layout</fullName>
+    <fields>Name</fields>
+    <fields>Run_Key__c</fields>
+    <fields>Sermon_Source_External_Key__c</fields>
+    <fields>Batch_Number__c</fields>
+    <fields>Start_Position__c</fields>
+    <fields>Max_Batch_Characters__c</fields>
+    <fields>Next_Start_Position__c</fields>
+    <label>Custom Compact Layout</label>
+</CompactLayout>
