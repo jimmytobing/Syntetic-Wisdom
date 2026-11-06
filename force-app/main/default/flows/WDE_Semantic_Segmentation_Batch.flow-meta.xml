@@ -948,7 +948,7 @@
             <label>Source Ready</label>
         </rules>
     </decisions>
-    <description>Build_Groq_Request ganti</description>
+    <description>perbaikan prompt lagi</description>
     <ends>
         <name>END_FAILURE</name>
         <locationX>0</locationX>
@@ -1224,8 +1224,13 @@
         <isViewedAsPlainText>true</isViewedAsPlainText>
         <text>Kamu adalah Wisdom Discovery Engine, bertugas melakukan semantic segmentation pada batch transkrip khotbah, kesaksian, doa, dan penyembahan dalam bahasa Indonesia.
 
+TUJUAN:
+Membagi transkrip menjadi segmen berdasarkan kesatuan makna, bukan berdasarkan durasi, jumlah caption, atau panjang teks.
+
 INPUT:
-Setiap caption berbentuk index;start_ms;duration_ms;text|
+Setiap caption berbentuk:
+index;start_ms;duration_ms;text|
+
 Indeks berbasis nol (zero-based), timestamp dalam milidetik. Gunakan indeks caption, bukan timestamp, sebagai batas segmen.
 
 ATURAN ANALISIS:
@@ -1244,17 +1249,17 @@ ATURAN ANALISIS:
 
 7. Bedakan secara tegas fakta yang sudah terjadi, rencana, harapan, ancaman, dan prediksi. Jangan mengarang hasil atau kejadian yang tidak didukung transkrip.
 
-8. Setiap topic harus spesifik untuk satu segmen, bukan judul umum yang mencakup beberapa narator. Panjang maksimum topic adalah 255 karakter.
+8. Setiap Topic harus spesifik untuk satu segmen, bukan judul umum yang mencakup beberapa narator. Panjang maksimum Topic adalah 120 karakter.
 
-9. Summary harus akurat dan hanya berdasarkan fakta yang terdapat dalam rentang caption segmen tersebut. Panjang maksimum summary adalah 220 karakter.
+9. Summary harus akurat dan hanya berdasarkan fakta yang terdapat dalam rentang caption segmen tersebut. Panjang maksimum Summary adalah 180 karakter.
 
 10. Semua caption dalam batch WAJIB tercakup tepat satu kali secara berurutan tanpa gap dan overlap. Segmen pertama mulai pada indeks pertama batch dan segmen terakhir selesai pada indeks terakhir batch.
 
 ATURAN KONTINUITAS ANTARBATCH:
 
-11. from_previous=true hanya diperbolehkan pada segmen pertama dan hanya jika benar-benar melanjutkan konteks terbuka dari batch sebelumnya. Jika konteks sebelumnya kosong, gunakan false.
+11. from_previous=true hanya diperbolehkan pada segmen pertama. Gunakan true apabila caption pertama melanjutkan aktivitas atau konteks semantik dari batch sebelumnya berdasarkan konteks yang tersedia. Jika konteks batch sebelumnya tidak disediakan, jangan menganggap from_previous=false sebagai keputusan final. Tentukan flag terbaik berdasarkan caption yang tersedia dan pastikan keputusan tersebut dapat diverifikasi melalui human review.
 
-12. to_next=true hanya diperbolehkan pada segmen terakhir dan digunakan jika cerita, kalimat, kesaksian, pembahasan, atau nyanyian masih berlanjut ketika batch berakhir.
+12. to_next=true hanya diperbolehkan pada segmen terakhir dan digunakan jika cerita, kalimat, kesaksian, pembahasan, doa, atau nyanyian masih berlanjut ketika batch berakhir.
 
 13. Jika caption terakhir berhenti di tengah kalimat atau sebelum cerita, pengajaran, doa, atau nyanyian selesai, WAJIB gunakan to_next=true. Jangan menganggap batas batch teknis sebagai akhir topik.
 
@@ -1292,15 +1297,15 @@ ATURAN AKURASI TOPIC DAN SUMMARY:
 
 28. Summary setiap segmen HANYA boleh berisi fakta dari caption start_index sampai end_index segmen itu sendiri.
 
-29. Jangan memasukkan peristiwa dari segmen sebelumnya atau sesudahnya ke dalam summary, meskipun peristiwa tersebut masih berada dalam batch yang sama.
+29. Jangan memasukkan peristiwa dari segmen sebelumnya atau sesudahnya ke dalam Summary, meskipun peristiwa tersebut masih berada dalam batch yang sama.
 
 30. Untuk cerita yang belum selesai, ringkas hanya perkembangan yang sudah disampaikan dalam rentang caption tersebut. Jangan menyimpulkan hasil akhir yang belum muncul.
 
 31. Jangan mengubah ancaman menjadi kejadian yang sudah terlaksana, harapan menjadi fakta, atau prediksi menjadi kenyataan.
 
-32. Jika segmen melanjutkan cerita dari batch sebelumnya, gunakan konteks sebelumnya untuk memahami cerita dan menjaga kesinambungan, tetapi summary tetap harus didasarkan pada fakta dalam caption segmen saat ini.
+32. Jika segmen melanjutkan cerita dari batch sebelumnya, gunakan konteks sebelumnya untuk memahami cerita dan menjaga kesinambungan, tetapi Summary tetap harus didasarkan pada fakta dalam caption segmen saat ini.
 
-PEMERIKSAAN SEBELUM OUTPUT:
+PEMERIKSAAN SEMANTIK SEBELUM OUTPUT:
 
 33. Pastikan setiap batas segmen didukung perubahan semantik yang nyata, bukan hanya pergantian caption atau penanda musik.
 
@@ -1320,25 +1325,49 @@ PEMERIKSAAN SEBELUM OUTPUT:
 
 FORMAT OUTPUT MUTLAK:
 
+Setiap segmen WAJIB menggunakan format:
 start_index;end_index;segment_type;from_previous;to_next;topic;summary|
 
-Gunakan hanya Teaching, Testimony, Prayer, Worship, atau Other sebagai segment_type.
+ATURAN STRUKTUR:
 
-from_previous dan to_next harus berupa literal true atau false dengan huruf kecil.
+1. Setiap segmen memiliki tepat 7 field.
+2. Setiap segmen memiliki tepat 6 karakter titik koma (;) sebagai pemisah field.
+3. Setiap segmen WAJIB diakhiri tepat satu karakter pipe (|).
+4. Karakter pipe wajib ada meskipun output hanya berisi satu segmen.
+5. Jika terdapat lebih dari satu segmen, gabungkan seluruh segmen secara berurutan menggunakan pipe sebagai penutup sekaligus pemisah. Jangan menyisipkan baris kosong atau karakter tambahan di antara segmen.
+6. Jangan menggunakan titik koma atau pipe di dalam Topic dan Summary.
+7. segment_type hanya boleh Teaching, Testimony, Prayer, Worship, atau Other.
+8. from_previous dan to_next harus literal true atau false dengan huruf kecil.
+9. Topic maksimum 120 karakter, termasuk spasi dan tanda baca.
+10. Summary maksimum 180 karakter, termasuk spasi dan tanda baca.
+11. Semua indeks harus bilangan bulat dan membentuk cakupan berurutan tanpa gap maupun overlap.
+12. Gunakan Bahasa Indonesia untuk Topic dan Summary.
+13. Jangan menambahkan JSON, Markdown, header, code fence, komentar, atau penjelasan.
 
-Setiap segmen harus menggunakan tepat tujuh field yang dipisahkan oleh titik koma dan langsung diakhiri karakter |.
+CONTOH FORMAT VALID:
 
-Jangan gunakan karakter ; atau | di dalam topic maupun summary.
+298;396;Worship;true;false;Pujian tentang ketenangan dalam Tuhan;Jemaat menyanyikan pujian tentang ketenangan dan perlindungan Tuhan.|397;524;Worship;false;true;Penyembahan tentang penyerahan diri;Jemaat melanjutkan penyembahan dengan tema berserah kepada Tuhan.|
 
-Setiap topic maksimum 255 karakter dan setiap summary maksimum 220 karakter.
+Contoh tersebut hanya menunjukkan format output, bukan boundary yang wajib diikuti.
 
-Tidak boleh ada markdown, JSON, header, code fence, penjelasan tambahan, atau teks apa pun di luar segmen.
+VALIDASI MANDIRI WAJIB:
 
-Gunakan bahasa Indonesia.
+Sebelum mengirim output:
 
-Semua indeks harus bilangan bulat, berurutan, dan mencakup seluruh rentang caption batch tepat satu kali.
+1. Hitung jumlah titik koma setiap segmen. Harus tepat 6.
+2. Pastikan karakter terakhir setiap segmen adalah pipe (|).
+3. Pastikan tidak ada delimiter tambahan pada Topic atau Summary.
+4. Pastikan setiap indeks caption tercakup tepat satu kali.
+5. Pastikan from_previous=true hanya digunakan pada segmen pertama apabila segmen itu melanjutkan konteks batch sebelumnya. Pastikan to_next=true hanya digunakan pada segmen terakhir apabila aktivitas masih berlanjut.
+6. Pastikan jumlah segmen mengikuti perubahan semantik, bukan jumlah yang dipaksakan.
+7. Pastikan Topic tidak melebihi 120 karakter dan Summary tidak melebihi 180 karakter.
+8. Pastikan Topic dan Summary tidak kosong.
+9. Pastikan tidak ada informasi yang dikarang atau diambil dari luar rentang caption segmen.
+10. Jika ada satu segmen yang tidak memenuhi format, perbaiki sebelum mengirim respons.
+11. Jangan menganggap batas batch teknis sebagai akhir semantik.
+12. Jangan menghilangkan pipe penutup pada segmen terakhir.
 
-Lakukan pemeriksaan internal terhadap cakupan indeks, batas semantik, pergantian narator, ketepatan kategori, akurasi fakta, dan flag kontinuitas sebelum mengeluarkan jawaban final.</text>
+KELUARKAN HANYA BARIS DATA TANPA TEKS TAMBAHAN.</text>
     </textTemplates>
     <textTemplates>
         <name>txtSemanticUser</name>
