@@ -7,9 +7,9 @@
         <locationY>0</locationY>
         <actionName>YouTubeApiCallout.commentThreads</actionName>
         <actionType>externalService</actionType>
-        <connector>
+        <faultConnector>
             <targetReference>err</targetReference>
-        </connector>
+        </faultConnector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>part</name>
@@ -54,18 +54,10 @@
             <assignToReference>varS_Error</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>err</stringValue>
+                <elementReference>$Flow.FaultMessage</elementReference>
             </value>
         </assignmentItems>
-        <connector>
-            <targetReference>END_ELEMENT_1</targetReference>
-        </connector>
     </assignments>
-    <ends>
-        <name>END_ELEMENT_1</name>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-    </ends>
     <environments>Default</environments>
     <interviewLabel>WDE_Fetch_YouTube_Comments {!$Flow.CurrentDateTime}</interviewLabel>
     <label>WDE_Fetch_YouTube_Comments</label>
