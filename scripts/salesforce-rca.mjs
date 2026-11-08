@@ -1,11 +1,25 @@
 #!/usr/bin/env node
 
 import { writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 const API_VERSION = "v68.0";
 const MAX_RESPONSE_BYTES = 1_000_000;
 const EXPECTED_ORG_ID = "00Dfj00000eVCOVEA4";
 const EXPECTED_INSTANCE = "https://hdbsf-dev-ed.develop.my.salesforce.com";
+
+export function summarizeCount(body) {
+  if (!Object.hasOwn(body, "totalSize")) {
+    throw new Error("Respons COUNT() tidak memiliki totalSize.");
+  }
+  if (!Number.isInteger(body.totalSize) || body.totalSize < 0) {
+    throw new Error("totalSize COUNT() harus integer non-negatif.");
+  }
+  return {
+    object: "WDE_Audience_Trend__c",
+    recordCount: body.totalSize,
+  };
+}
 
 const OPERATIONS = Object.freeze({
   schema_wde_trend: {
@@ -23,11 +37,7 @@ const OPERATIONS = Object.freeze({
     path: `/services/data/${API_VERSION}/query?q=${encodeURIComponent(
       "SELECT COUNT() FROM WDE_Audience_Trend__c LIMIT 200"
     )}`,
-    summarize: (body) => ({
-      object: "WDE_Audience_Trend__c",
-      recordCount: Number(body.records?.[0]?.expr0 ?? 0),
-      limitApplied: 200,
-    }),
+    summarize: summarizeCount,
   },
   tooling_wde_metadata: {
     api: "Tooling",
@@ -50,7 +60,7 @@ const MOCKS = Object.freeze({
     queryable: true,
     fields: [{ name: "Id" }, { name: "Name" }],
   },
-  query_wde_trend_count: { records: [{ expr0: 7 }] },
+  query_wde_trend_count: { totalSize: 7, done: true, records: [] },
   tooling_wde_metadata: {
     totalSize: 1,
     records: [
@@ -128,7 +138,7 @@ async function authenticate() {
   return { accessToken: token.access_token, instance };
 }
 
-async function execute(operation, mock) {
+export async function execute(operation, mock) {
   const definition = OPERATIONS[operation];
   if (mock) return definition.summarize(MOCKS[operation]);
 
@@ -176,7 +186,9 @@ async function main() {
   process.stdout.write(`RCA selesai: ${args.operation} (${args.mock ? "MOCK" : "LIVE"})\n`);
 }
 
-main().catch((error) => {
-  process.stderr.write(`RCA gagal: ${error.message}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    process.stderr.write(`RCA gagal: ${error.message}\n`);
+    process.exitCode = 1;
+  });
+}

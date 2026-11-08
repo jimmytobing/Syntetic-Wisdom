@@ -19,14 +19,25 @@ Repository Variable:
   nilainya hanya `jimmytobing`. Workflow gagal tertutup jika variable kosong.
 - `RCA_MODE`: `mock` selama PoC. Nilai selain `mock` atau `live` ditolak.
 
+`RCA_MODE=mock` selalu memaksa mode mock, termasuk jika input manual dispatch
+meminta non-mock. Live baru dapat dipilih jika `RCA_MODE=live`, request lolos
+actor/author/label/operation gate, dan job memperoleh approval dari GitHub
+Environment `salesforce-hdbsf-rca`. Environment juga wajib menyediakan marker
+secret `SF_RCA_ENVIRONMENT_READY=salesforce-hdbsf-rca`; tanpa marker ini job live
+gagal tertutup sebelum checkout atau autentikasi Salesforce.
+
 GitHub Actions Secrets yang akan dibutuhkan untuk mode live, tetapi belum dibuat:
 
 - `SF_RCA_CLIENT_ID`
 - `SF_RCA_CLIENT_SECRET`
 - `SF_RCA_LOGIN_URL`
+- `SF_RCA_ENVIRONMENT_READY` khusus Environment sebagai fail-closed marker
 
 Permission workflow dibatasi ke `contents: read` dan `issues: write`. Hak tulis
 Issue hanya digunakan untuk menambahkan hasil diagnostik tersanitasi.
+
+Semua Salesforce Secrets harus menjadi Environment Secrets, bukan repository
+secrets. Job mock tidak mereferensikan Salesforce Secrets.
 
 ## Format request Issue
 
@@ -39,6 +50,12 @@ Gunakan template **Salesforce RCA Read-Only**, lalu pilih tepat satu operasi:
 
 Request baru tidak langsung berjalan. Actor yang terdaftar di
 `RCA_ALLOWED_ACTORS` harus menambahkan label `salesforce-rca-approved`.
+
+Untuk `COUNT()`, REST mengembalikan jumlah melalui `totalSize` dan `records`
+kosong. Implementasi memvalidasi `totalSize` sebagai integer non-negatif.
+`LIMIT 200` tetap ada karena sintaks tersebut didukung pada bentuk khusus
+`COUNT()`, tetapi output tidak mengklaim `limitApplied` atau jumlah total di luar
+batas query.
 
 ## External Client App yang direncanakan
 

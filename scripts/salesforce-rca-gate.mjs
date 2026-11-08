@@ -1,0 +1,94 @@
+#!/usr/bin/env node
+
+import { appendFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+
+export const ALLOWED_OPERATIONS = Object.freeze([
+  "schema_wde_trend",
+  "query_wde_trend_count",
+  "tooling_wde_metadata",
+]);
+
+function parseActors(value) {
+  return value
+    .split(",")
+    .map((actor) => actor.trim())
+    .filter(Boolean);
+}
+
+function parseIssueOperation(body) {
+  const lines = body.split(/\r?\n/);
+  const heading = lines.findIndex((line) => line.trim() === "### Operasi RCA");
+  if (heading < 0) return "";
+  for (const line of lines.slice(heading + 1)) {
+    const value = line.trim();
+    if (value.startsWith("### ")) break;
+    if (value) return value;
+  }
+  return "";
+}
+
+export function authorizeRequest({
+  allowedActors,
+  repositoryMode,
+  actor,
+  eventName,
+  issueAuthor = "",
+  issueBody = "",
+  dispatchOperation = "",
+  dispatchMock = true,
+}) {
+  const allowed = parseActors(allowedActors);
+  if (allowed.length === 0) throw new Error("RCA_ALLOWED_ACTORS belum dikonfigurasi.");
+  if (!allowed.includes(actor)) throw new Error("Actor tidak diizinkan.");
+  if (!new Set(["mock", "live"]).has(repositoryMode)) {
+    throw new Error("RCA_MODE harus mock atau live.");
+  }
+
+  let operation;
+  let mode;
+  if (eventName === "issues") {
+    if (!allowed.includes(issueAuthor)) throw new Error("Pembuat Issue tidak diizinkan.");
+    operation = parseIssueOperation(issueBody);
+    mode = repositoryMode;
+  } else if (eventName === "workflow_dispatch") {
+    operation = dispatchOperation;
+    const liveRequested = dispatchMock === false || dispatchMock === "false";
+    mode = repositoryMode === "live" && liveRequested ? "live" : "mock";
+  } else {
+    throw new Error("Event tidak didukung.");
+  }
+
+  if (!ALLOWED_OPERATIONS.includes(operation)) {
+    throw new Error("Operasi di luar allowlist.");
+  }
+  return { operation, mode };
+}
+
+function main() {
+  const result = authorizeRequest({
+    allowedActors: process.env.ALLOWED_ACTORS ?? "",
+    repositoryMode: process.env.REPOSITORY_MODE ?? "",
+    actor: process.env.ACTOR ?? "",
+    eventName: process.env.EVENT_NAME ?? "",
+    issueAuthor: process.env.ISSUE_AUTHOR ?? "",
+    issueBody: process.env.ISSUE_BODY ?? "",
+    dispatchOperation: process.env.DISPATCH_OPERATION ?? "",
+    dispatchMock: process.env.DISPATCH_MOCK ?? "true",
+  });
+  if (!process.env.GITHUB_OUTPUT) throw new Error("GITHUB_OUTPUT tidak tersedia.");
+  appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    `operation=${result.operation}\nmode=${result.mode}\n`,
+    "utf8"
+  );
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    main();
+  } catch (error) {
+    process.stderr.write(`Otorisasi RCA gagal: ${error.message}\n`);
+    process.exitCode = 1;
+  }
+}
