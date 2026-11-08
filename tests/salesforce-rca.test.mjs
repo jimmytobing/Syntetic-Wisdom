@@ -7,6 +7,7 @@ import {
   summarizeCount,
   summarizeResponse,
   validateOAuthToken,
+  safeLoginUrl,
 } from "../scripts/salesforce-rca.mjs";
 
 test("COUNT totalSize=7 menghasilkan recordCount 7", () => {
@@ -44,13 +45,59 @@ for (const operation of [
 const validOAuth = {
   access_token: "unit-test-token-never-logged",
   instance_url: "https://hdbsf-dev-ed.develop.my.salesforce.com",
-  id: "https://hdbsf-dev-ed.develop.my.salesforce.com/id/00Dfj00000eVCOVEA4/005000000000001",
+  id: "https://hdbsf-dev-ed.develop.my.salesforce.com/id/00Dfj00000eVCOVEA4/005fj00000SF7fRAAT",
 };
+
+
+test("OAuth login URL hanya menerima Developer Org RCA", () => {
+  assert.equal(
+    safeLoginUrl("https://hdbsf-dev-ed.develop.my.salesforce.com"),
+    "https://hdbsf-dev-ed.develop.my.salesforce.com"
+  );
+
+  for (const url of [
+    "https://login.salesforce.com",
+    "https://test.salesforce.com",
+    "https://another-org.my.salesforce.com",
+    "http://hdbsf-dev-ed.develop.my.salesforce.com",
+    "https://hdbsf-dev-ed.develop.my.salesforce.com/other",
+    "https://hdbsf-dev-ed.develop.my.salesforce.com/?x=1",
+  ]) {
+    assert.throws(() => safeLoginUrl(url));
+  }
+});
 
 test("OAuth mock menerima org dan instance yang diizinkan", () => {
   const result = validateOAuthToken(validOAuth);
   assert.equal(result.instance, validOAuth.instance_url);
   assert.equal(result.accessToken, validOAuth.access_token);
+});
+
+
+test("OAuth mock menerima Identity URL login.salesforce.com", () => {
+  const result = validateOAuthToken({
+    ...validOAuth,
+    id: validOAuth.id.replace(
+      "hdbsf-dev-ed.develop.my.salesforce.com",
+      "login.salesforce.com"
+    ),
+  });
+
+  assert.equal(result.instance, validOAuth.instance_url);
+});
+
+test("OAuth mock menolak User ID yang salah", () => {
+  assert.throws(
+    () =>
+      validateOAuthToken({
+        ...validOAuth,
+        id: validOAuth.id.replace(
+          "005fj00000SF7fRAAT",
+          "005000000000001"
+        ),
+      }),
+    /integration user yang diizinkan/
+  );
 });
 
 test("OAuth mock menolak Org ID lain", () => {
@@ -72,7 +119,7 @@ test("OAuth mock menolak instance lain", () => {
         instance_url: "https://example.my.salesforce.com",
         id: "https://example.my.salesforce.com/id/00Dfj00000eVCOVEA4/005000000000001",
       }),
-    /bukan milik Developer Org/
+    /Developer Org RCA yang diizinkan/
   );
 });
 
