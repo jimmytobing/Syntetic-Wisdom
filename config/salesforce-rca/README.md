@@ -32,3 +32,7 @@ Urutan deployment yang direncanakan:
    consumer key atau secret di repository.
 6. Retrieve metadata hasil platform untuk memastikan `oauthLink` dan nama policy
    yang dihasilkan, lalu review sebelum perubahan lanjutan.
+
+Untuk GitHub Free private repository, credential live nantinya disimpan sebagai
+Repository Secrets, bukan Environment Secrets. LIVE hanya boleh dijalankan manual
+oleh `jimmytobing` dari `refs/heads/main` ketika `RCA_MODE=live`; Issue tetap mock.

@@ -8,6 +8,8 @@ export const ALLOWED_OPERATIONS = Object.freeze([
   "query_wde_trend_count",
   "tooling_wde_metadata",
 ]);
+const LIVE_ACTOR = "jimmytobing";
+const LIVE_REF = "refs/heads/main";
 
 function parseActors(value) {
   return value
@@ -37,6 +39,7 @@ export function authorizeRequest({
   issueBody = "",
   dispatchOperation = "",
   dispatchMock = true,
+  ref = "",
 }) {
   const allowed = parseActors(allowedActors);
   if (allowed.length === 0) throw new Error("RCA_ALLOWED_ACTORS belum dikonfigurasi.");
@@ -50,11 +53,21 @@ export function authorizeRequest({
   if (eventName === "issues") {
     if (!allowed.includes(issueAuthor)) throw new Error("Pembuat Issue tidak diizinkan.");
     operation = parseIssueOperation(issueBody);
-    mode = repositoryMode;
+    mode = "mock";
   } else if (eventName === "workflow_dispatch") {
     operation = dispatchOperation;
     const liveRequested = dispatchMock === false || dispatchMock === "false";
-    mode = repositoryMode === "live" && liveRequested ? "live" : "mock";
+    if (!liveRequested || repositoryMode !== "live") {
+      mode = "mock";
+    } else {
+      if (actor !== LIVE_ACTOR) {
+        throw new Error("Live ditolak: actor bukan pemilik yang diizinkan.");
+      }
+      if (ref !== LIVE_REF) {
+        throw new Error("Live ditolak: workflow harus dijalankan dari main.");
+      }
+      mode = "live";
+    }
   } else {
     throw new Error("Event tidak didukung.");
   }
@@ -75,6 +88,7 @@ function main() {
     issueBody: process.env.ISSUE_BODY ?? "",
     dispatchOperation: process.env.DISPATCH_OPERATION ?? "",
     dispatchMock: process.env.DISPATCH_MOCK ?? "true",
+    ref: process.env.GITHUB_REF ?? "",
   });
   if (!process.env.GITHUB_OUTPUT) throw new Error("GITHUB_OUTPUT tidak tersedia.");
   appendFileSync(

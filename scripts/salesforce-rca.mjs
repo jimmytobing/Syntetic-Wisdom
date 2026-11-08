@@ -85,7 +85,7 @@ function parseArgs(argv) {
   return result;
 }
 
-function safeLoginUrl(value) {
+export function safeLoginUrl(value) {
   const parsed = new URL(value);
   if (parsed.protocol !== "https:") throw new Error("SF_RCA_LOGIN_URL wajib HTTPS.");
   const allowed = ["login.salesforce.com", "test.salesforce.com"];
@@ -94,6 +94,25 @@ function safeLoginUrl(value) {
     throw new Error("SF_RCA_LOGIN_URL bukan domain Salesforce yang diizinkan.");
   }
   return parsed.origin;
+}
+
+export function validateOAuthToken(token) {
+  if (!token.access_token || !token.instance_url || !token.id) {
+    throw new Error("Respons OAuth tidak lengkap.");
+  }
+  const instance = safeLoginUrl(token.instance_url);
+  const identity = new URL(token.id);
+  const identityParts = identity.pathname.split("/").filter(Boolean);
+  const identityOrgId = identityParts.at(-2);
+  if (
+    identity.protocol !== "https:" ||
+    identity.origin !== instance ||
+    identityOrgId !== EXPECTED_ORG_ID ||
+    instance !== EXPECTED_INSTANCE
+  ) {
+    throw new Error("OAuth ditolak: token bukan milik Developer Org RCA yang diizinkan.");
+  }
+  return { accessToken: token.access_token, instance };
 }
 
 async function readJsonResponse(response) {
@@ -125,22 +144,18 @@ async function authenticate() {
     redirect: "error",
   });
   const token = await readJsonResponse(response);
-  if (!token.access_token || !token.instance_url || !token.id) {
-    throw new Error("Respons OAuth tidak lengkap.");
-  }
-  const instance = safeLoginUrl(token.instance_url);
-  const identity = new URL(token.id);
-  const identityParts = identity.pathname.split("/").filter(Boolean);
-  const identityOrgId = identityParts.at(-2);
-  if (identityOrgId !== EXPECTED_ORG_ID || instance !== EXPECTED_INSTANCE) {
-    throw new Error("OAuth ditolak: token bukan milik Developer Org RCA yang diizinkan.");
-  }
-  return { accessToken: token.access_token, instance };
+  return validateOAuthToken(token);
+}
+
+export function summarizeResponse(operation, body) {
+  const definition = OPERATIONS[operation];
+  if (!definition) throw new Error("Operasi tidak ada dalam allowlist RCA.");
+  return definition.summarize(body);
 }
 
 export async function execute(operation, mock) {
   const definition = OPERATIONS[operation];
-  if (mock) return definition.summarize(MOCKS[operation]);
+  if (mock) return summarizeResponse(operation, MOCKS[operation]);
 
   const auth = await authenticate();
   const response = await fetch(`${auth.instance}${definition.path}`, {
@@ -148,10 +163,10 @@ export async function execute(operation, mock) {
     headers: { authorization: `Bearer ${auth.accessToken}`, accept: "application/json" },
     redirect: "error",
   });
-  return definition.summarize(await readJsonResponse(response));
+  return summarizeResponse(operation, await readJsonResponse(response));
 }
 
-function markdown(operation, api, summary, mock) {
+export function markdown(operation, api, summary, mock) {
   const rows = Object.entries(summary)
     .map(([key, value]) => `| ${key} | ${String(value).replaceAll("|", "\\|")} |`)
     .join("\n");
