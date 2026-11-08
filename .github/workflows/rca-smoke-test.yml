@@ -1,0 +1,19 @@
+
+name: Salesforce RCA - Connection Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  connection-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify GitHub Actions
+        run: |
+          echo "SUCCESS: GitHub Actions is working!"
+          echo "Project: Salesforce AI RCA"
+          echo "Target Org: hdbsf"
+          echo "Salesforce API: Not connected yet"
