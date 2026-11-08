@@ -1,0 +1,131 @@
+name: Salesforce RCA Read-Only
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Operasi RCA yang telah diizinkan
+        required: true
+        type: choice
+        options:
+          - schema_wde_trend
+          - query_wde_trend_count
+          - tooling_wde_metadata
+      mock:
+        description: Gunakan respons mock tanpa credential Salesforce
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salesforce-rca-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issues' && github.event.label.name == 'salesforce-rca-approved')
+    runs-on: ubuntu-latest
+    outputs:
+      operation: ${{ steps.gate.outputs.operation }}
+      mode: ${{ steps.gate.outputs.mode }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Validasi actor dan request
+        id: gate
+        env:
+          ALLOWED_ACTORS: ${{ vars.RCA_ALLOWED_ACTORS }}
+          REPOSITORY_MODE: ${{ vars.RCA_MODE }}
+          ACTOR: ${{ github.actor }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          DISPATCH_OPERATION: ${{ inputs.operation }}
+          DISPATCH_MOCK: ${{ inputs.mock }}
+        shell: bash
+        run: node scripts/salesforce-rca-gate.mjs
+
+  mock:
+    needs: authorize
+    if: needs.authorize.outputs.mode == 'mock'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Jalankan diagnostik mock
+        env:
+          OPERATION: ${{ needs.authorize.outputs.operation }}
+        shell: bash
+        run: node scripts/salesforce-rca.mjs --operation "$OPERATION" --output "$RUNNER_TEMP/rca-result.md" --mock
+
+      - name: Kirim ringkasan ke Issue
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/rca-result.md"
+
+      - name: Tampilkan hasil mock di summary
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: cat "$RUNNER_TEMP/rca-result.md" >> "$GITHUB_STEP_SUMMARY"
+
+  live:
+    needs: authorize
+    if: needs.authorize.outputs.mode == 'live'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salesforce-hdbsf-rca
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Fail closed jika Environment belum siap
+        env:
+          ENVIRONMENT_READY: ${{ secrets.SF_RCA_ENVIRONMENT_READY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$ENVIRONMENT_READY" == "salesforce-hdbsf-rca" ]] || {
+            echo "Environment live belum dikonfigurasi lengkap"
+            exit 1
+          }
+
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Jalankan diagnostik live read-only
+        env:
+          SF_RCA_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID }}
+          SF_RCA_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET }}
+          SF_RCA_LOGIN_URL: ${{ secrets.SF_RCA_LOGIN_URL }}
+          OPERATION: ${{ needs.authorize.outputs.operation }}
+        shell: bash
+        run: node scripts/salesforce-rca.mjs --operation "$OPERATION" --output "$RUNNER_TEMP/rca-result.md"
+
+      - name: Kirim ringkasan ke Issue
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/rca-result.md"
+
+      - name: Tampilkan hasil live di summary
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: cat "$RUNNER_TEMP/rca-result.md" >> "$GITHUB_STEP_SUMMARY"

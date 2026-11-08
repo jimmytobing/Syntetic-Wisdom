@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtlClntAppOauthConfigurablePolicies xmlns="http://soap.sforce.com/2006/04/metadata">
+    <clientCredentialsFlowUser>__DEDICATED_RUN_AS_USERNAME__</clientCredentialsFlowUser>
+    <commaSeparatedPermissionSet>__RCA_PERMISSION_SET_ID__</commaSeparatedPermissionSet>
+    <externalClientApplication>Salesforce_AI_RCA</externalClientApplication>
+    <isClientCredentialsFlowEnabled>true</isClientCredentialsFlowEnabled>
+    <label>Salesforce AI RCA OAuth Policies</label>
+    <permittedUsersPolicyType>AdminApprovedPreAuthorized</permittedUsersPolicyType>
+</ExtlClntAppOauthConfigurablePolicies>

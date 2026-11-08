@@ -1,0 +1,37 @@
+name: Salesforce RCA Read-Only
+description: Meminta diagnostik Salesforce yang terbatas pada allowlist read-only.
+title: "[Salesforce RCA] "
+labels:
+  - salesforce-rca-request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request hanya diproses setelah actor yang diizinkan menambahkan label `salesforce-rca-approved`.
+        Jangan menulis credential, access token, data pribadi, SOQL, atau perintah shell.
+  - type: dropdown
+    id: operation
+    attributes:
+      label: Operasi RCA
+      description: Pilih satu operasi read-only yang telah ditetapkan di repository.
+      options:
+        - schema_wde_trend
+        - query_wde_trend_count
+        - tooling_wde_metadata
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Konteks non-sensitif
+      description: Jelaskan gejala tanpa memasukkan data record, credential, SOQL, atau perintah.
+      placeholder: "Contoh: validasi apakah metadata WDE Audience Trend tersedia."
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Konfirmasi keamanan
+      options:
+        - label: Saya memastikan request ini tidak memuat credential atau data Salesforce sensitif.
+          required: true
