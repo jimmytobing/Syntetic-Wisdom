@@ -19,25 +19,32 @@ Repository Variable:
   nilainya hanya `jimmytobing`. Workflow gagal tertutup jika variable kosong.
 - `RCA_MODE`: `mock` selama PoC. Nilai selain `mock` atau `live` ditolak.
 
-`RCA_MODE=mock` selalu memaksa mode mock, termasuk jika input manual dispatch
-meminta non-mock. Live baru dapat dipilih jika `RCA_MODE=live`, request lolos
-actor/author/label/operation gate, dan job memperoleh approval dari GitHub
-Environment `salesforce-hdbsf-rca`. Environment juga wajib menyediakan marker
-secret `SF_RCA_ENVIRONMENT_READY=salesforce-hdbsf-rca`; tanpa marker ini job live
-gagal tertutup sebelum checkout atau autentikasi Salesforce.
+GitHub Issue selalu dipaksa ke mode mock, termasuk ketika `RCA_MODE=live`.
+Live hanya dapat dipilih melalui `workflow_dispatch` jika `RCA_MODE=live`, actor
+tepat `jimmytobing`, ref tepat `refs/heads/main`, dan operasi lolos allowlist.
+Input manual atau teks Issue tidak dapat mengubah actor, ref, mode repository,
+atau daftar operasi.
 
 GitHub Actions Secrets yang akan dibutuhkan untuk mode live, tetapi belum dibuat:
 
 - `SF_RCA_CLIENT_ID`
 - `SF_RCA_CLIENT_SECRET`
 - `SF_RCA_LOGIN_URL`
-- `SF_RCA_ENVIRONMENT_READY` khusus Environment sebagai fail-closed marker
 
 Permission workflow dibatasi ke `contents: read` dan `issues: write`. Hak tulis
 Issue hanya digunakan untuk menambahkan hasil diagnostik tersanitasi.
 
-Semua Salesforce Secrets harus menjadi Environment Secrets, bukan repository
-secrets. Job mock tidak mereferensikan Salesforce Secrets.
+Karena GitHub Free tidak menyediakan Environment Secrets atau required reviewers
+untuk private repository, ketiga nilai tersebut akan menjadi Repository Secrets
+setelah kode live di-review dan di-merge. Job mock tidak mereferensikan Salesforce
+Secrets. Job live gagal tertutup jika salah satu secret kosong.
+
+Repository Secrets dapat direferensikan oleh workflow tepercaya mana pun di
+repository yang sama. Karena itu, siapa pun yang efektif dapat mengubah atau
+mengeksekusi workflow pada branch tepercaya juga berpotensi menggunakan secrets.
+Saat audit terakhir, hanya `jimmytobing` yang tercatat sebagai collaborator dan
+admin. Penambahan collaborator atau perubahan aturan branch wajib memicu review
+ulang sebelum LIVE diaktifkan.
 
 ## Format request Issue
 

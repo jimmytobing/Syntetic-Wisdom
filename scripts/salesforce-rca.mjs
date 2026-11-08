@@ -35,20 +35,20 @@ const OPERATIONS = Object.freeze({
   query_wde_trend_count: {
     api: "REST",
     path: `/services/data/${API_VERSION}/query?q=${encodeURIComponent(
-      "SELECT COUNT() FROM WDE_Audience_Trend__c LIMIT 200"
+      "SELECT COUNT() FROM WDE_Audience_Trend__c"
     )}`,
     summarize: summarizeCount,
   },
   tooling_wde_metadata: {
-    api: "Tooling",
-    path: `/services/data/${API_VERSION}/tooling/query?q=${encodeURIComponent(
-      "SELECT QualifiedApiName, Label FROM EntityDefinition WHERE QualifiedApiName = 'WDE_Audience_Trend__c' LIMIT 1"
+    api: "REST",
+    path: `/services/data/${API_VERSION}/query?q=${encodeURIComponent(
+      "SELECT QualifiedApiName, Label FROM EntityDefinition WHERE QualifiedApiName = 'WDE_Audience_Trend__c'"
     )}`,
     summarize: (body) => ({
       found: body.totalSize === 1,
       object: body.records?.[0]?.QualifiedApiName ?? "tidak ditemukan",
       label: body.records?.[0]?.Label ?? "tidak ditemukan",
-      limitApplied: 1,
+      limitApplied: false,
     }),
   },
 });
@@ -85,15 +85,61 @@ function parseArgs(argv) {
   return result;
 }
 
-function safeLoginUrl(value) {
+export function safeLoginUrl(value) {
   const parsed = new URL(value);
-  if (parsed.protocol !== "https:") throw new Error("SF_RCA_LOGIN_URL wajib HTTPS.");
-  const allowed = ["login.salesforce.com", "test.salesforce.com"];
-  const isSalesforceDomain = parsed.hostname.endsWith(".my.salesforce.com");
-  if (!allowed.includes(parsed.hostname) && !isSalesforceDomain) {
-    throw new Error("SF_RCA_LOGIN_URL bukan domain Salesforce yang diizinkan.");
+
+  if (
+    parsed.origin !== EXPECTED_INSTANCE ||
+    parsed.username !== "" ||
+    parsed.password !== "" ||
+    parsed.pathname !== "/" ||
+    parsed.search !== "" ||
+    parsed.hash !== ""
+  ) {
+    throw new Error(
+      "SF_RCA_LOGIN_URL harus tepat pada Developer Org RCA yang diizinkan."
+    );
   }
-  return parsed.origin;
+
+  return EXPECTED_INSTANCE;
+}
+
+export function validateOAuthToken(token) {
+  if (!token.access_token || !token.instance_url || !token.id) {
+    throw new Error("Respons OAuth tidak lengkap.");
+  }
+
+  const instance = safeLoginUrl(token.instance_url);
+  const identity = new URL(token.id);
+
+  const allowedHosts = new Set([
+    "login.salesforce.com",
+    "test.salesforce.com",
+    new URL(EXPECTED_INSTANCE).hostname,
+  ]);
+
+  const parts = identity.pathname.split("/").filter(Boolean);
+
+  if (
+    instance !== EXPECTED_INSTANCE ||
+    identity.protocol !== "https:" ||
+    identity.port !== "" ||
+    identity.username !== "" ||
+    identity.password !== "" ||
+    identity.search !== "" ||
+    identity.hash !== "" ||
+    !allowedHosts.has(identity.hostname) ||
+    parts.length !== 3 ||
+    parts[0] !== "id" ||
+    parts[1].slice(0, 15) !== EXPECTED_ORG_ID.slice(0, 15) ||
+    parts[2].slice(0, 15) !== "005fj00000SF7fRAAT".slice(0, 15)
+  ) {
+    throw new Error(
+      "OAuth ditolak: token bukan milik Developer Org RCA atau integration user yang diizinkan."
+    );
+  }
+
+  return { accessToken: token.access_token, instance };
 }
 
 async function readJsonResponse(response) {
@@ -125,22 +171,18 @@ async function authenticate() {
     redirect: "error",
   });
   const token = await readJsonResponse(response);
-  if (!token.access_token || !token.instance_url || !token.id) {
-    throw new Error("Respons OAuth tidak lengkap.");
-  }
-  const instance = safeLoginUrl(token.instance_url);
-  const identity = new URL(token.id);
-  const identityParts = identity.pathname.split("/").filter(Boolean);
-  const identityOrgId = identityParts.at(-2);
-  if (identityOrgId !== EXPECTED_ORG_ID || instance !== EXPECTED_INSTANCE) {
-    throw new Error("OAuth ditolak: token bukan milik Developer Org RCA yang diizinkan.");
-  }
-  return { accessToken: token.access_token, instance };
+  return validateOAuthToken(token);
+}
+
+export function summarizeResponse(operation, body) {
+  const definition = OPERATIONS[operation];
+  if (!definition) throw new Error("Operasi tidak ada dalam allowlist RCA.");
+  return definition.summarize(body);
 }
 
 export async function execute(operation, mock) {
   const definition = OPERATIONS[operation];
-  if (mock) return definition.summarize(MOCKS[operation]);
+  if (mock) return summarizeResponse(operation, MOCKS[operation]);
 
   const auth = await authenticate();
   const response = await fetch(`${auth.instance}${definition.path}`, {
@@ -148,10 +190,10 @@ export async function execute(operation, mock) {
     headers: { authorization: `Bearer ${auth.accessToken}`, accept: "application/json" },
     redirect: "error",
   });
-  return definition.summarize(await readJsonResponse(response));
+  return summarizeResponse(operation, await readJsonResponse(response));
 }
 
-function markdown(operation, api, summary, mock) {
+export function markdown(operation, api, summary, mock) {
   const rows = Object.entries(summary)
     .map(([key, value]) => `| ${key} | ${String(value).replaceAll("|", "\\|")} |`)
     .join("\n");
