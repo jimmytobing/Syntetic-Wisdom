@@ -1,0 +1,114 @@
+name: Salesforce RCA Read-Only
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Operasi RCA yang telah diizinkan
+        required: true
+        type: choice
+        options:
+          - schema_wde_trend
+          - query_wde_trend_count
+          - tooling_wde_metadata
+      mock:
+        description: Gunakan respons mock tanpa credential Salesforce
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salesforce-rca-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issues' && github.event.label.name == 'salesforce-rca-approved')
+    runs-on: ubuntu-latest
+    outputs:
+      operation: ${{ steps.gate.outputs.operation }}
+      mode: ${{ steps.gate.outputs.mode }}
+    steps:
+      - name: Validasi actor dan request
+        id: gate
+        env:
+          ALLOWED_ACTORS: ${{ vars.RCA_ALLOWED_ACTORS }}
+          REPOSITORY_MODE: ${{ vars.RCA_MODE }}
+          ACTOR: ${{ github.actor }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          DISPATCH_OPERATION: ${{ inputs.operation }}
+          DISPATCH_MOCK: ${{ inputs.mock }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          allowed=",${ALLOWED_ACTORS// /},"
+          [[ -n "${ALLOWED_ACTORS}" ]] || { echo "RCA_ALLOWED_ACTORS belum dikonfigurasi"; exit 1; }
+          [[ "$allowed" == *",${ACTOR},"* ]] || { echo "Actor tidak diizinkan"; exit 1; }
+          if [[ "$EVENT_NAME" == "issues" ]]; then
+            [[ "$allowed" == *",${ISSUE_AUTHOR},"* ]] || { echo "Pembuat Issue tidak diizinkan"; exit 1; }
+            operation="$(printf '%s' "$ISSUE_BODY" | sed -n '/^### Operasi RCA$/,/^### /{/^### /d;/^[[:space:]]*$/d;p;}' | head -n 1)"
+            mode="$REPOSITORY_MODE"
+          else
+            operation="$DISPATCH_OPERATION"
+            if [[ "$DISPATCH_MOCK" == "true" ]]; then mode="mock"; else mode="live"; fi
+          fi
+          case "$operation" in
+            schema_wde_trend|query_wde_trend_count|tooling_wde_metadata) ;;
+            *) echo "Operasi di luar allowlist"; exit 1 ;;
+          esac
+          case "$mode" in
+            mock|live) ;;
+            *) echo "RCA_MODE harus mock atau live"; exit 1 ;;
+          esac
+          echo "operation=$operation" >> "$GITHUB_OUTPUT"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
+  diagnose:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Jalankan diagnostik mock
+        if: needs.authorize.outputs.mode == 'mock'
+        env:
+          OPERATION: ${{ needs.authorize.outputs.operation }}
+        shell: bash
+        run: node scripts/salesforce-rca.mjs --operation "$OPERATION" --output "$RUNNER_TEMP/rca-result.md" --mock
+
+      - name: Jalankan diagnostik live read-only
+        if: needs.authorize.outputs.mode == 'live'
+        env:
+          SF_RCA_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID }}
+          SF_RCA_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET }}
+          SF_RCA_LOGIN_URL: ${{ secrets.SF_RCA_LOGIN_URL }}
+          OPERATION: ${{ needs.authorize.outputs.operation }}
+        shell: bash
+        run: node scripts/salesforce-rca.mjs --operation "$OPERATION" --output "$RUNNER_TEMP/rca-result.md"
+
+      - name: Kirim ringkasan ke Issue
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/rca-result.md"
+
+      - name: Tampilkan hasil mock di summary
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: cat "$RUNNER_TEMP/rca-result.md" >> "$GITHUB_STEP_SUMMARY"
