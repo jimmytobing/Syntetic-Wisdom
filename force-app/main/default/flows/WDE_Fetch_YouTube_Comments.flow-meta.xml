@@ -1,53 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <description>ok</description>
         <name>Comment_Threads</name>
         <label>Comment Threads</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <actionName>YouTubeApi.commentThreads</actionName>
+        <actionName>YouTubeApiCallout.commentThreads</actionName>
         <actionType>externalService</actionType>
         <connector>
-            <targetReference>END_ELEMENT_1</targetReference>
+            <targetReference>err</targetReference>
         </connector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>part</name>
             <value>
+                <inputConfiguratorMode>Resource</inputConfiguratorMode>
                 <stringValue>snippet</stringValue>
             </value>
         </inputParameters>
         <inputParameters>
             <name>videoId</name>
             <value>
+                <inputConfiguratorMode>Resource</inputConfiguratorMode>
                 <stringValue>4SPC0Ke1Eyg</stringValue>
             </value>
         </inputParameters>
         <inputParameters>
             <name>maxResults</name>
             <value>
-                <numberValue>10.0</numberValue>
+                <inputConfiguratorMode>Resource</inputConfiguratorMode>
+                <numberValue>2.0</numberValue>
             </value>
         </inputParameters>
         <inputParameters>
             <name>order</name>
             <value>
+                <inputConfiguratorMode>Resource</inputConfiguratorMode>
                 <stringValue>time</stringValue>
             </value>
         </inputParameters>
-        <inputParameters>
-            <name>key</name>
-            <value>
-                <stringValue>AIzaSyDz8r16fB-pZE6rukIn8dYmp1Vyj9HKIAs</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>YouTubeApi.commentThreads</nameSegment>
+        <nameSegment>YouTubeApiCallout.commentThreads</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>err</name>
+        <label>err</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varS_Error</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>err</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>END_ELEMENT_1</targetReference>
+        </connector>
+    </assignments>
     <ends>
         <name>END_ELEMENT_1</name>
         <locationX>0</locationX>
@@ -83,4 +96,11 @@
         </connector>
     </start>
     <status>Draft</status>
+    <variables>
+        <name>varS_Error</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
 </Flow>

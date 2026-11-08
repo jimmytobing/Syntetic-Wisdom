@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Custom_Compact_Layout</fullName>
+    <fields>Name</fields>
+    <fields>Trend_Key__c</fields>
+    <fields>Audience_Need_ExternalKey__c</fields>
+    <fields>Snapshot_Date__c</fields>
+    <fields>Window_Days__c</fields>
+    <fields>Matched_Comments__c</fields>
+    <fields>Analyzed_Comments__c</fields>
+    <fields>Human_Need_Score__c</fields>
+    <fields>Interest_Score__c</fields>
+    <fields>Velocity_Score__c</fields>
+    <label>Custom Compact Layout</label>
+</CompactLayout>

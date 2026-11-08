@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalServiceRegistration xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>YouTubeApiCallout</label>
+    <namedCredentialReference>GoogleApiNmCred</namedCredentialReference>
+    <operations>
+        <active>true</active>
+        <name>commentthreads</name>
+    </operations>
+    <registrationProviderType>Custom</registrationProviderType>
+    <schema>{
+  &quot;openapi&quot;: &quot;3.0.1&quot;,
+  &quot;info&quot;: {
+    &quot;title&quot;: &quot;YouTubeApi&quot;,
+    &quot;description&quot;: &quot;&quot;
+  },
+  &quot;paths&quot;: {
+    &quot;/youtube/v3/commentThreads&quot;: {
+      &quot;get&quot;: {
+        &quot;description&quot;: &quot;&quot;,
+        &quot;operationId&quot;: &quot;commentThreads&quot;,
+        &quot;parameters&quot;: [{
+            &quot;name&quot;: &quot;part&quot;,
+            &quot;in&quot;: &quot;query&quot;,
+            &quot;description&quot;: &quot;part=snippet&quot;,
+            &quot;required&quot;: true,
+            &quot;allowEmptyValue&quot;: false,
+            &quot;schema&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            }
+          },
+          {
+            &quot;name&quot;: &quot;videoId&quot;,
+            &quot;in&quot;: &quot;query&quot;,
+            &quot;description&quot;: &quot;videoId=4SPC0Ke1Eyg&quot;,
+            &quot;required&quot;: true,
+            &quot;allowEmptyValue&quot;: false,
+            &quot;schema&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            }
+          },
+          {
+            &quot;name&quot;: &quot;maxResults&quot;,
+            &quot;in&quot;: &quot;query&quot;,
+            &quot;description&quot;: &quot;maxResults=10&quot;,
+            &quot;required&quot;: true,
+            &quot;allowEmptyValue&quot;: false,
+            &quot;schema&quot;: {
+              &quot;type&quot;: &quot;integer&quot;,
+              &quot;format&quot;: &quot;int32&quot;
+            }
+          },
+          {
+            &quot;name&quot;: &quot;order&quot;,
+            &quot;in&quot;: &quot;query&quot;,
+            &quot;description&quot;: &quot;order=time&quot;,
+            &quot;required&quot;: true,
+            &quot;allowEmptyValue&quot;: false,
+            &quot;schema&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            }
+          }
+        ],
+        &quot;responses&quot;: {
+          &quot;2XX&quot;: {
+            &quot;description&quot;: &quot;&quot;,
+            &quot;content&quot;: {
+              &quot;application/json&quot;: {
+                &quot;schema&quot;: {
+                  &quot;type&quot;: &quot;object&quot;,
+                  &quot;properties&quot;: {
+                    &quot;kind&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;nextPageToken&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;pageInfo&quot;: {
+                      &quot;type&quot;: &quot;object&quot;,
+                      &quot;properties&quot;: {
+                        &quot;totalResults&quot;: {
+                          &quot;type&quot;: &quot;integer&quot;,
+                          &quot;format&quot;: &quot;int64&quot;
+                        },
+                        &quot;resultsPerPage&quot;: {
+                          &quot;type&quot;: &quot;integer&quot;,
+                          &quot;format&quot;: &quot;int64&quot;
+                        }
+                      }
+                    },
+                    &quot;etag&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;items&quot;: {
+                      &quot;type&quot;: &quot;array&quot;,
+                      &quot;items&quot;: {
+                        &quot;type&quot;: &quot;object&quot;,
+                        &quot;properties&quot;: {
+                          &quot;snippet&quot;: {
+                            &quot;type&quot;: &quot;object&quot;,
+                            &quot;properties&quot;: {
+                              &quot;canReply&quot;: {
+                                &quot;type&quot;: &quot;boolean&quot;
+                              },
+                              &quot;totalReplyCount&quot;: {
+                                &quot;type&quot;: &quot;integer&quot;,
+                                &quot;format&quot;: &quot;int64&quot;
+                              },
+                              &quot;topLevelComment&quot;: {
+                                &quot;type&quot;: &quot;object&quot;,
+                                &quot;properties&quot;: {
+                                  &quot;snippet&quot;: {
+                                    &quot;type&quot;: &quot;object&quot;,
+                                    &quot;properties&quot;: {
+                                      &quot;textDisplay&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;
+                                      },
+                                      &quot;authorProfileImageUrl&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;
+                                      },
+                                      &quot;publishedAt&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;,
+                                        &quot;format&quot;: &quot;date-time&quot;
+                                      },
+                                      &quot;authorChannelId&quot;: {
+                                        &quot;type&quot;: &quot;object&quot;,
+                                        &quot;properties&quot;: {
+                                          &quot;value&quot;: {
+                                            &quot;type&quot;: &quot;string&quot;
+                                          }
+                                        }
+                                      },
+                                      &quot;videoId&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;
+                                      },
+                                      &quot;likeCount&quot;: {
+                                        &quot;type&quot;: &quot;integer&quot;,
+                                        &quot;format&quot;: &quot;int64&quot;
+                                      },
+                                      &quot;textOriginal&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;
+                                      },
+                                      &quot;authorDisplayName&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;
+                                      },
+                                      &quot;canRate&quot;: {
+                                        &quot;type&quot;: &quot;boolean&quot;
+                                      },
+                                      &quot;authorChannelUrl&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;
+                                      },
+                                      &quot;channelId&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;
+                                      },
+                                      &quot;viewerRating&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;
+                                      },
+                                      &quot;updatedAt&quot;: {
+                                        &quot;type&quot;: &quot;string&quot;,
+                                        &quot;format&quot;: &quot;date-time&quot;
+                                      }
+                                    }
+                                  },
+                                  &quot;kind&quot;: {
+                                    &quot;type&quot;: &quot;string&quot;
+                                  },
+                                  &quot;etag&quot;: {
+                                    &quot;type&quot;: &quot;string&quot;
+                                  },
+                                  &quot;id&quot;: {
+                                    &quot;type&quot;: &quot;string&quot;
+                                  }
+                                }
+                              },
+                              &quot;isPublic&quot;: {
+                                &quot;type&quot;: &quot;boolean&quot;
+                              },
+                              &quot;videoId&quot;: {
+                                &quot;type&quot;: &quot;string&quot;
+                              },
+                              &quot;channelId&quot;: {
+                                &quot;type&quot;: &quot;string&quot;
+                              }
+                            }
+                          },
+                          &quot;kind&quot;: {
+                            &quot;type&quot;: &quot;string&quot;
+                          },
+                          &quot;etag&quot;: {
+                            &quot;type&quot;: &quot;string&quot;
+                          },
+                          &quot;id&quot;: {
+                            &quot;type&quot;: &quot;string&quot;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}</schema>
+    <schemaType>OpenApi3</schemaType>
+    <serviceBinding>{&quot;host&quot;:&quot;&quot;,&quot;basePath&quot;:&quot;/&quot;,&quot;allowedSchemes&quot;:[],&quot;requestMediaTypes&quot;:[],&quot;responseMediaTypes&quot;:[],&quot;compatibleMediaTypes&quot;:{},&quot;integrationFlags&quot;:null,&quot;extensions&quot;:{}}</serviceBinding>
+    <status>Complete</status>
+    <systemVersion>9</systemVersion>
+</ExternalServiceRegistration>
