@@ -3,6 +3,7 @@ import { safeLoginUrl, validateOAuthToken } from "./salesforce-rca.mjs";
 
 const BASE = "https://hdbsf-dev-ed.develop.my.salesforce.com";
 const OUTPUT = process.env.RUNNER_TEMP + "/sf-raw-evidence.md";
+const OPERATION = process.env.OPERATION;
 const MAX_COMMENT_CHARS = 50000;
 
 async function main() {
@@ -25,8 +26,12 @@ async function main() {
   if (!tokenResponse.ok) throw new Error("OAuth gagal");
   const auth = validateOAuthToken(await tokenResponse.json());
 
-  const soql = "SELECT COUNT() FROM WDE_Audience_Trend__c";
-  const path = "/services/data/v68.0/query?q=" + encodeURIComponent(soql);
+  const operations = {
+    query_wde_trend_count: "/services/data/v68.0/query?q=" + encodeURIComponent("SELECT COUNT() FROM WDE_Audience_Trend__c"),
+    schema_wde_trend: "/services/data/v68.0/sobjects/WDE_Audience_Trend__c/describe",
+  };
+  if (!Object.hasOwn(operations, OPERATION)) throw new Error("Operasi RAW tidak diizinkan");
+  const path = operations[OPERATION];
 
   const response = await fetch(auth.instance + path, {
     method: "GET",
@@ -44,22 +49,22 @@ async function main() {
   }
 
   const parsed = JSON.parse(raw);
-  if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    !Number.isInteger(parsed.totalSize) ||
-    parsed.totalSize < 0 ||
-    parsed.done !== true ||
-    !Array.isArray(parsed.records)
-  ) {
-    throw new Error("Struktur respons COUNT tidak sesuai");
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("Respons Salesforce JSON bukan object");
   }
+  if (OPERATION === "query_wde_trend_count" && (
+    !Number.isInteger(parsed.totalSize) || parsed.totalSize < 0 ||
+    parsed.done !== true || !Array.isArray(parsed.records)
+  )) throw new Error("Struktur respons COUNT tidak sesuai");
+  if (OPERATION === "schema_wde_trend" && (
+    parsed.name !== "WDE_Audience_Trend__c" || !Array.isArray(parsed.fields)
+  )) throw new Error("Struktur respons Describe tidak sesuai");
 
   const comment = [
     "## Salesforce LIVE — RAW Evidence",
     "",
     "- Mode: **LIVE**",
-    "- Operation: `query_wde_trend_count`",
+    `- Operation: \`${OPERATION}\``,
     "- API: Salesforce REST v68.0",
     "- Method: GET (read-only)",
     "- Evidence: respons JSON asli Salesforce",
@@ -70,7 +75,7 @@ async function main() {
     "",
   ].join("\n");
 
-  if (comment.length > MAX_COMMENT_CHARS) {
+  if (Buffer.byteLength(comment, "utf8") > MAX_COMMENT_CHARS) {
     throw new Error("RAW response terlalu besar untuk single-comment test");
   }
 

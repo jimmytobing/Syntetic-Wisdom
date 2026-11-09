@@ -118,12 +118,13 @@ jobs:
         run: cat "$RUNNER_TEMP/rca-result.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: RAW LIVE Salesforce to Issue 9
-        if: github.event_name == 'workflow_dispatch' && inputs.operation == 'query_wde_trend_count'
+        if: github.event_name == 'workflow_dispatch' && (inputs.operation == 'query_wde_trend_count' || inputs.operation == 'schema_wde_trend')
         env:
           SF_RCA_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID }}
           SF_RCA_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET }}
           SF_RCA_LOGIN_URL: ${{ secrets.SF_RCA_LOGIN_URL }}
           GH_TOKEN: ${{ github.token }}
+          OPERATION: ${{ needs.authorize.outputs.operation }}
         shell: bash
         run: |
           set -euo pipefail
