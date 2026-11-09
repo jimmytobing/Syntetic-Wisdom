@@ -4,6 +4,61 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>Salesforce AI RCA Read Only</label>
     <license>SalesforceAPIIntegrationPsl</license>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Analyzed_Comments__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Audience_Need_ExternalKey__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Confidence_Score__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Evidence_Score__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Human_Need_Score__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Interest_Score__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Matched_Comments__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Snapshot_Date__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Trend_Key__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Velocity_Score__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Audience_Trend__c.Window_Days__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>
