@@ -114,7 +114,9 @@ export async function retrieveMetadata(req,outputDir) {
     "- Files: "+entries.length,"- Types: "+req.types.map(t=>t.name).join(", "),"",""].join("\n");
   let text=header,shown=0;
   for(const entry of entries.filter(x=>/\.(xml|flow|object|permissionset|profile|cls|trigger|page|json)$/.test(x))){
-    const buf=execFileSync("unzip",["-p",file,entry],{maxBuffer:51000});
+    let buf;
+    try { buf=execFileSync("unzip",["-p",file,entry],{maxBuffer:51000,stdio:["ignore","pipe","ignore"]}); }
+    catch { continue; } // large/binary entries remain in the ZIP artifact
     const section="### "+entry+"\n\n"+String.fromCharCode(96).repeat(3)+"xml\n"+buf.toString("utf8")+
       "\n"+String.fromCharCode(96).repeat(3)+"\n\n";
     if(Buffer.byteLength(text+section)>48000)break;
