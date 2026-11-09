@@ -137,9 +137,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          status=0
           if [[ "$OPERATION" == "universal_read" ]]; then
-            node scripts/salesforce-rca-universal.mjs
+            node scripts/salesforce-rca-universal.mjs || status=$?
           else
-            node scripts/salesforce-rca-raw-live.mjs
+            node scripts/salesforce-rca-raw-live.mjs || status=$?
           fi
-          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-raw-evidence.md"
+          if [[ -f "$RUNNER_TEMP/sf-raw-evidence.md" ]]; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-raw-evidence.md"
+          fi
+          exit "$status"
