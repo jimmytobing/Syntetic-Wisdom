@@ -42,7 +42,7 @@ jobs:
 
       - name: Unit test keamanan universal gateway
         shell: bash
-        run: node --test tests/salesforce-rca-universal.test.mjs
+        run: node --test tests/salesforce-rca-universal.test.mjs tests/salesforce-rca-metadata.test.mjs
 
       - name: Validasi actor dan request
         id: gate
