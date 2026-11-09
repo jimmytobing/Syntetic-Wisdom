@@ -7,6 +7,7 @@ export const ALLOWED_OPERATIONS = Object.freeze([
   "schema_wde_trend",
   "query_wde_trend_count",
   "tooling_wde_metadata",
+  "universal_read",
 ]);
 const LIVE_ACTOR = "jimmytobing";
 const LIVE_REF = "refs/heads/main";
