@@ -10,6 +10,8 @@ export const ALLOWED_OPERATIONS = Object.freeze([
 ]);
 const LIVE_ACTOR = "jimmytobing";
 const LIVE_REF = "refs/heads/main";
+const LIVE_REPO = "jimmytobing/Syntetic-Wisdom";
+const APPROVAL_LABEL = "salesforce-rca-approved";
 
 function parseActors(value) {
   return value
@@ -18,9 +20,9 @@ function parseActors(value) {
     .filter(Boolean);
 }
 
-function parseIssueOperation(body) {
+function parseIssueSection(body, section) {
   const lines = body.split(/\r?\n/);
-  const heading = lines.findIndex((line) => line.trim() === "### Operasi RCA");
+  const heading = lines.findIndex((line) => line.trim() === `### ${section}`);
   if (heading < 0) return "";
   for (const line of lines.slice(heading + 1)) {
     const value = line.trim();
@@ -37,6 +39,8 @@ export function authorizeRequest({
   eventName,
   issueAuthor = "",
   issueBody = "",
+  issueLabel = "",
+  repository = "",
   dispatchOperation = "",
   dispatchMock = true,
   ref = "",
@@ -52,8 +56,18 @@ export function authorizeRequest({
   let mode;
   if (eventName === "issues") {
     if (!allowed.includes(issueAuthor)) throw new Error("Pembuat Issue tidak diizinkan.");
-    operation = parseIssueOperation(issueBody);
-    mode = "mock";
+    if (issueLabel !== APPROVAL_LABEL) throw new Error("Label persetujuan tidak sesuai.");
+    operation = parseIssueSection(issueBody, "Operasi RCA");
+    const requestedMode = parseIssueSection(issueBody, "Mode RCA").toUpperCase();
+    if (!["", "MOCK", "LIVE"].includes(requestedMode)) throw new Error("Mode Issue tidak didukung.");
+    if (requestedMode === "LIVE") {
+      if (actor !== LIVE_ACTOR || issueAuthor !== LIVE_ACTOR || ref !== LIVE_REF || repository !== LIVE_REPO) {
+        throw new Error("LIVE Issue ditolak: perlu owner, main, dan repository yang tepat.");
+      }
+      mode = "live";
+    } else {
+      mode = "mock";
+    }
   } else if (eventName === "workflow_dispatch") {
     operation = dispatchOperation;
     const liveRequested = dispatchMock === false || dispatchMock === "false";
@@ -86,6 +100,8 @@ function main() {
     eventName: process.env.EVENT_NAME ?? "",
     issueAuthor: process.env.ISSUE_AUTHOR ?? "",
     issueBody: process.env.ISSUE_BODY ?? "",
+    issueLabel: process.env.ISSUE_LABEL ?? "",
+    repository: process.env.GITHUB_REPOSITORY ?? "",
     dispatchOperation: process.env.DISPATCH_OPERATION ?? "",
     dispatchMock: process.env.DISPATCH_MOCK ?? "true",
     ref: process.env.GITHUB_REF ?? "",
