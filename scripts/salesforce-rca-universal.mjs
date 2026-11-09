@@ -29,9 +29,9 @@ export function readRequest(issueBody) {
   if (!match || Buffer.byteLength(match[1]) > 12000) throw new Error("Request harus satu code fence JSON <=12 KB");
   const request = JSON.parse(match[1]);
   if (!request || typeof request !== "object" || Array.isArray(request)) throw new Error("Request bukan object JSON");
-  const allowed = new Set(["describe_global","describe_object","query","tooling_query","tooling_describe","tooling_record"]);
+  const allowed = new Set(["describe_global","describe_object","query","tooling_query","tooling_describe","tooling_record","metadata_retrieve"]);
   if (!allowed.has(request.action)) throw new Error("Action tidak diizinkan");
-  const requiredKeys = {describe_global:["action"],describe_object:["action","object"],query:["action","soql"],tooling_query:["action","soql"],tooling_describe:["action","object"],tooling_record:["action","object","id"]};
+  const requiredKeys = {describe_global:["action"],describe_object:["action","object"],query:["action","soql"],tooling_query:["action","soql"],tooling_describe:["action","object"],tooling_record:["action","object","id"],metadata_retrieve:["action","types"]};
   const keys = requiredKeys[request.action];
   if (Object.keys(request).some(k => !keys.includes(k)) || keys.some(k => !(k in request))) {
     throw new Error("Parameter request tidak cocok dengan action");
@@ -80,6 +80,12 @@ export function buildPath(request) {
 async function main() {
   if (!process.env.RUNNER_TEMP) throw new Error("RUNNER_TEMP tidak tersedia");
   const request = readRequest(process.env.ISSUE_BODY ?? "");
+  if (request.action === "metadata_retrieve") {
+    const {retrieveMetadata} = await import("./salesforce-rca-metadata.mjs");
+    const result = await retrieveMetadata(request,process.env.RUNNER_TEMP);
+    console.log("PASS: Metadata SOAP retrieve completed",result);
+    return;
+  }
   const url = buildPath(request);
   const login = safeLoginUrl(process.env.SF_RCA_LOGIN_URL ?? "");
   if (login !== BASE) throw new Error("Org tidak diizinkan");

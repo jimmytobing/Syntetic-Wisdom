@@ -42,7 +42,7 @@ jobs:
 
       - name: Unit test keamanan universal gateway
         shell: bash
-        run: node --test tests/salesforce-rca-universal.test.mjs
+        run: node --test tests/salesforce-rca-universal.test.mjs tests/salesforce-rca-metadata.test.mjs
 
       - name: Validasi actor dan request
         id: gate
@@ -130,6 +130,10 @@ jobs:
           SF_RCA_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID }}
           SF_RCA_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET }}
           SF_RCA_LOGIN_URL: ${{ secrets.SF_RCA_LOGIN_URL }}
+          SF_META_CLIENT_ID: ${{ secrets.SF_META_CLIENT_ID }}
+          SF_META_CLIENT_SECRET: ${{ secrets.SF_META_CLIENT_SECRET }}
+          SF_META_LOGIN_URL: ${{ secrets.SF_META_LOGIN_URL }}
+          SF_META_USER_ID: ${{ vars.SF_META_USER_ID }}
           GH_TOKEN: ${{ github.token }}
           OPERATION: ${{ needs.authorize.outputs.operation }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -147,3 +151,12 @@ jobs:
             gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-raw-evidence.md"
           fi
           exit "$status"
+
+      - name: Upload Metadata ZIP artifact (private, short retention)
+        if: github.event_name == 'issues' && needs.authorize.outputs.operation == 'universal_read'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: salesforce-metadata-${{ github.run_id }}
+          path: ${{ runner.temp }}/sf-metadata-retrieve.zip
+          if-no-files-found: ignore
+          retention-days: 1
