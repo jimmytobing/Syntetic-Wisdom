@@ -4,11 +4,9 @@ import {writeFile} from "node:fs/promises";
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
 import {join} from "node:path";
-import {safeLoginUrl} from "./salesforce-rca.mjs";
+import {safeLoginUrl,validateOAuthToken} from "./salesforce-rca.mjs";
 
 const BASE="https://hdbsf-dev-ed.develop.my.salesforce.com";
-const ORG="00Dfj00000eVCOVEA4";
-const OLD_USER="005fj00000SF7fRAAT";
 const NS="http://soap.sforce.com/2006/04/metadata";
 const xml=x=>String(x).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
 const tag=(body,key)=>new RegExp("<(?:[A-Za-z0-9_.-]+:)?"+key+"(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[A-Za-z0-9_.-]+:)?"+key+">").exec(body)?.[1]??null;
@@ -57,24 +55,17 @@ async function soap(base,token,method,body) {
   return content;
 }
 async function login(){
-  const user=process.env.SF_META_USER_ID||"";
-  if(!/^005[A-Za-z0-9]{12}([A-Za-z0-9]{3})?$/.test(user)||user.slice(0,15)===OLD_USER.slice(0,15))
-    throw Error("SF_META_USER_ID must identify a different dedicated metadata user");
-  const origin=safeLoginUrl(process.env.SF_META_LOGIN_URL||"");
-  if(!process.env.SF_META_CLIENT_ID||!process.env.SF_META_CLIENT_SECRET)throw Error("Metadata credentials not configured");
+  const origin=safeLoginUrl(process.env.SF_RCA_LOGIN_URL||"");
+  if(!process.env.SF_RCA_CLIENT_ID||!process.env.SF_RCA_CLIENT_SECRET)
+    throw Error("Existing RCA OAuth secrets are not configured");
   const response=await fetch(origin+"/services/oauth2/token",{method:"POST",redirect:"error",
     headers:{"content-type":"application/x-www-form-urlencoded"},
-    body:new URLSearchParams({grant_type:"client_credentials",client_id:process.env.SF_META_CLIENT_ID,client_secret:process.env.SF_META_CLIENT_SECRET}),
+    body:new URLSearchParams({grant_type:"client_credentials",client_id:process.env.SF_RCA_CLIENT_ID,client_secret:process.env.SF_RCA_CLIENT_SECRET}),
     signal:AbortSignal.timeout(20000)});
   if(!response.ok)throw Error("Metadata OAuth HTTP "+response.status);
-  const auth=await response.json();
-  if(!auth.access_token||safeLoginUrl(auth.instance_url||"")!==BASE)throw Error("Unexpected metadata OAuth instance");
-  const identity=new URL(auth.id||"");
-  const parts=identity.pathname.split("/").filter(Boolean);
-  if(identity.protocol!=="https:"||!["login.salesforce.com","test.salesforce.com",new URL(BASE).hostname].includes(identity.hostname)||
-    parts.length!==3||parts[0]!=="id"||parts[1].slice(0,15)!==ORG.slice(0,15)||parts[2].slice(0,15)!==user.slice(0,15))
-    throw Error("Unexpected Metadata OAuth identity");
-  return {base:BASE,token:auth.access_token};
+  const identity=validateOAuthToken(await response.json());
+  if(identity.instance!==BASE)throw Error("Metadata OAuth unexpected instance");
+  return {base:identity.instance,token:identity.accessToken};
 }
 
 export async function retrieveMetadata(req,outputDir) {
