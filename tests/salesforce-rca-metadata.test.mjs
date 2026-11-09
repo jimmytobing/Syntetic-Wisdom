@@ -26,3 +26,13 @@ test("enforces retrieval request size",()=>{
   assert.throws(()=>validateMetadataRequest({action:"metadata_retrieve",types:[]}));
   assert.throws(()=>validateMetadataRequest({action:"metadata_retrieve",types:[{name:"Flow",members:Array(21).fill("A")}]}));
 });
+
+test("metadata transport reuses existing RCA OAuth credential names",async()=>{
+  const {readFileSync}=await import("node:fs");
+  const source=readFileSync(new URL("../scripts/salesforce-rca-metadata.mjs",import.meta.url),"utf8");
+  assert.match(source,/SF_RCA_CLIENT_ID/);
+  assert.match(source,/SF_RCA_CLIENT_SECRET/);
+  assert.match(source,/validateOAuthToken/);
+  assert.doesNotMatch(source,/SF_META_/);
+  assert.doesNotMatch(source,/<m:deploy>|<m:updateMetadata>|<m:deleteMetadata>/);
+});
