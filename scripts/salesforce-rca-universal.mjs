@@ -114,13 +114,14 @@ async function main() {
     chunks.push(value);
   }
   const raw = Buffer.concat(chunks).toString("utf8");
-  if (!response.ok) throw new Error("Salesforce GET HTTP " + response.status + " (periksa permission/API)");
   const data = JSON.parse(raw);
   if (!data || typeof data !== "object") throw new Error("JSON Salesforce invalid");
+  const apiFailed = !response.ok;
   const comment = [
     "## Salesforce RCA F.4 — RAW LIVE Evidence",
     "",
     "- Mode: **LIVE**",
+    "- Result: **" + (apiFailed ? "FAILED (Salesforce API)" : "SUCCESS") + "**",
     "- Action: `" + request.action + "`",
     "- API: Salesforce REST v68.0",
     "- Method: GET (read-only)",
@@ -133,7 +134,12 @@ async function main() {
     throw new Error("RAW JSON melebihi 50 KB single-comment; request lebih sempit diperlukan");
   }
   await writeFile(process.env.RUNNER_TEMP + "/sf-raw-evidence.md",comment,{mode:0o600});
-  console.log("PASS: Universal Salesforce read-only RAW evidence siap");
+  if (apiFailed) {
+    console.error("FAIL: Salesforce GET HTTP " + response.status + " (RAW error evidence telah disiapkan)");
+    process.exitCode = 1;
+  } else {
+    console.log("PASS: Universal Salesforce read-only RAW evidence siap");
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
