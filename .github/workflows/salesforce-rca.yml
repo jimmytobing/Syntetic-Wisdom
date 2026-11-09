@@ -13,6 +13,7 @@ on:
           - schema_wde_trend
           - query_wde_trend_count
           - tooling_wde_metadata
+          - universal_read
       mock:
         description: Gunakan respons mock tanpa credential Salesforce
         required: true
@@ -57,7 +58,7 @@ jobs:
 
   mock:
     needs: authorize
-    if: needs.authorize.outputs.mode == 'mock'
+    if: needs.authorize.outputs.mode == 'mock' && needs.authorize.outputs.operation != 'universal_read'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -99,6 +100,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Jalankan diagnostik live read-only dari main
+        if: needs.authorize.outputs.operation != 'universal_read'
         env:
           SF_RCA_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID }}
           SF_RCA_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET }}
@@ -114,7 +116,7 @@ jobs:
           node scripts/salesforce-rca.mjs --operation "$OPERATION" --output "$RUNNER_TEMP/rca-result.md"
 
       - name: Tampilkan hasil live di summary
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && needs.authorize.outputs.operation != 'universal_read'
         shell: bash
         run: cat "$RUNNER_TEMP/rca-result.md" >> "$GITHUB_STEP_SUMMARY"
 
@@ -126,9 +128,14 @@ jobs:
           SF_RCA_LOGIN_URL: ${{ secrets.SF_RCA_LOGIN_URL }}
           GH_TOKEN: ${{ github.token }}
           OPERATION: ${{ needs.authorize.outputs.operation }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number || '9' }}
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/salesforce-rca-raw-live.mjs
+          if [[ "$OPERATION" == "universal_read" ]]; then
+            node scripts/salesforce-rca-universal.mjs
+          else
+            node scripts/salesforce-rca-raw-live.mjs
+          fi
           gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-raw-evidence.md"
