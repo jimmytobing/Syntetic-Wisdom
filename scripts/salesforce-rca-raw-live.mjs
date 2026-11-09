@@ -29,6 +29,7 @@ async function main() {
   const operations = {
     query_wde_trend_count: "/services/data/v68.0/query?q=" + encodeURIComponent("SELECT COUNT() FROM WDE_Audience_Trend__c"),
     schema_wde_trend: "/services/data/v68.0/sobjects/WDE_Audience_Trend__c/describe",
+    tooling_wde_metadata: "/services/data/v68.0/query?q=" + encodeURIComponent("SELECT QualifiedApiName, Label FROM EntityDefinition WHERE QualifiedApiName = 'WDE_Audience_Trend__c'"),
   };
   if (!Object.hasOwn(operations, OPERATION)) throw new Error("Operasi RAW tidak diizinkan");
   const path = operations[OPERATION];
@@ -59,6 +60,9 @@ async function main() {
   if (OPERATION === "schema_wde_trend" && (
     parsed.name !== "WDE_Audience_Trend__c" || !Array.isArray(parsed.fields)
   )) throw new Error("Struktur respons Describe tidak sesuai");
+  if (OPERATION === "tooling_wde_metadata" && (
+    !Number.isInteger(parsed.totalSize) || !Array.isArray(parsed.records) || parsed.done !== true
+  )) throw new Error("Struktur respons EntityDefinition tidak sesuai");
 
   const comment = [
     "## Salesforce LIVE — RAW Evidence",
