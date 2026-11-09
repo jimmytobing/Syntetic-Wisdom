@@ -1,37 +1,30 @@
-# F.4 Metadata API — Dedicated Identity Setup (Developer Org Only)
+# F.4 Metadata API — Single RCA Integration User
 
-Target Salesforce org: `00Dfj00000eVCOVEA4` / `hdbsf-dev-ed.develop.my.salesforce.com`. This workflow **does not** configure an identity or grant privileges automatically.
+## Confirmed decision
 
-## Important permission boundary
+Use only the existing Salesforce integration user `sfai.rca.hdbsf@hdbsf.dev` (ID `005fj00000SF7fRAAT`) in Developer Org `00Dfj00000eVCOVEA4`. Metadata API uses the same OAuth client credentials already stored as GitHub Actions Secrets:
+- `SF_RCA_CLIENT_ID`
+- `SF_RCA_CLIENT_SECRET`
+- `SF_RCA_LOGIN_URL`
 
-Salesforce Metadata API `retrieve()` requires `API Enabled` plus **Modify Metadata Through Metadata API Functions** or **Modify All Data**. The former still grants metadata *write* capability at the Salesforce authorization layer; this is NOT a truly Salesforce-enforced read-only user. Do not grant `Modify All Data` for this use case. Our GitHub gateway enforces the narrower behavior through code: it calls only `retrieve` and `checkRetrieveStatus`. A stolen OAuth token could bypass that application-level limitation. Use a distinct identity and rotate credentials on suspicion of compromise.
+**Do not create `SF_META_*` credentials or a second Salesforce user.**
 
-Salesforce documentation:
-- https://developer.salesforce.com/docs/platform/api-metadata/guide/meta-quickstart-prereqs.html
-- https://developer.salesforce.com/docs/platform/api-metadata/references/file-based-calls/meta-retrieve.html
+The gateway validates the exact expected OAuth Org, instance URL and integration user identity before making Metadata SOAP calls, and exposes only `retrieve` and `checkRetrieveStatus` (SOAP POST operations that retrieve, not deploy).
 
-## Salesforce admin setup (UI)
+## Salesforce Permission Set (already assigned by administrator)
 
-1. In Developer Org Setup → Users, provision a **distinct dedicated user** for metadata diagnostics. Confirm a compatible Salesforce license and available license seat. Do not reuse `sfai.rca.hdbsf@hdbsf.dev` or the admin daily user. The Salesforce Integration license might not support the required metadata permission; check the effective license before continuing.
-2. Create/assign a dedicated permission set with `API Enabled`, `View Setup and Configuration`, and `Modify Metadata Through Metadata API Functions` where the license permits. Add only extra feature permissions needed for particular metadata types. Do not grant `Modify All Data`.
-3. Create a separate Salesforce External Client App / Connected App with OAuth **client credentials**, with the dedicated metadata user as its run-as user. Configure restrictive connected-app policy and allow only its intended integration identity.
-4. Verify the user's Salesforce ID and the app's client ID/secret. Never put any client secret or OAuth bearer token into a GitHub Issue, source code, or logs.
+Permission Set `Salesforce_AI_RCA_Metadata_Access` assigned to `sfai.rca.hdbsf@hdbsf.dev`, with:
+- API Enabled
+- View Setup and Configuration
+- Modify Metadata Through Metadata API Functions
 
-## GitHub configuration (Settings → Secrets and variables → Actions)
+Check these permissions really take effect before diagnosing authorization failures. **Do not grant Modify All Data unless separately justified.**
 
-Repository Secrets:
-- `SF_META_CLIENT_ID`: metadata app OAuth client ID
-- `SF_META_CLIENT_SECRET`: metadata app OAuth client secret
-- `SF_META_LOGIN_URL`: `https://hdbsf-dev-ed.develop.my.salesforce.com`
+**Security notice:** Even with a read-only gateway, Salesforce's `Modify Metadata Through Metadata API Functions` permission can enable write operations if the OAuth credentials are used outside the gateway. GitHub code controls are not a Salesforce-enforced read-only permission boundary. Rotate/separate credentials if this risk becomes unacceptable.
 
-Repository Variable:
-- `SF_META_USER_ID`: the dedicated metadata run-as user's 15- or 18-character Salesforce ID
+## Live request
 
-The implementation verifies the exact Developer Org ID/domain and intended user ID and rejects reuse of the original RCA integration user.
-
-## Issue request format
-
-Create an Issue owned by `jimmytobing`, then apply `salesforce-rca-approved` through GitHub Connector:
+Use an Issue created by the allowed GitHub actor, with label `salesforce-rca-approved` and this body:
 
     ### Operasi RCA
     universal_read
@@ -44,16 +37,10 @@ Create an Issue owned by `jimmytobing`, then apply `salesforce-rca-approved` thr
     {"action":"metadata_retrieve","types":[{"name":"Flow","members":["Tgr_WDE_Auto_Finalize_Summary"]}]}
     ```
 
-Possible metadata type/member combinations are dynamic, subject to Salesforce Metadata API support and effective permissions.
+Metadata types and names are dynamic; supported names depend on Salesforce API and effective permissions. Keep requests targeted. The gateway rejects deployment and metadata mutations. Metadata ZIP size must be <=5 MB, with a 1-day GitHub Actions artifact and SHA-256. Only XML files fitting the bounded Issue comment are included inline; do not confuse partial inline content with the full ZIP.
 
-## Evidence handling
+## Metadata retrieve failure analysis
 
-- Only Metadata SOAP `retrieve` and `checkRetrieveStatus` are invoked (SOAP POST for read operation).
-- No `deploy`, `createMetadata`, `updateMetadata`, or `deleteMetadata` endpoint is exposed.
-- At most five types / forty members per request. Wildcard `*` is accepted, but responses above 5 MB compressed fail explicitly.
-- Up to 48 KB of XML is included in a **single Issue comment**; the complete ZIP archive is stored in a private GitHub Actions artifact for **one day** with SHA-256 in the comment. Never claim the Issue comment is the full raw evidence when the ZIP contains more files.
-- Do not use this path to retrieve credentials, secrets, or unnecessary personal data. Restrict GitHub repository and artifact access.
+Inspect `Salesforce RCA Read-Only` GitHub Actions job logs. Verify OAuth token identity, user permissions and SOAP fault. Permission Set assignment does not guarantee every metadata family is accessible. Do not publish Salesforce client secrets, access tokens or personal/private records in GitHub comments.
 
-## Rollout
-
-Before the credentials exist, only request validation and existing REST read-only gateway can be tested. Run the first metadata LIVE issue only after provisioning the new user/app/secrets; inspect the workflow's actual SOAP response and compare with admin metadata. Do not claim LIVE Metadata API is successful before that evidence exists.
+GitHub OAuth access is shared across REST and Metadata paths; no CLI or manual toggling of `RCA_MODE` is required for owner-approved LIVE Issues.

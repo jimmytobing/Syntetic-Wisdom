@@ -130,10 +130,6 @@ jobs:
           SF_RCA_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID }}
           SF_RCA_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET }}
           SF_RCA_LOGIN_URL: ${{ secrets.SF_RCA_LOGIN_URL }}
-          SF_META_CLIENT_ID: ${{ secrets.SF_META_CLIENT_ID }}
-          SF_META_CLIENT_SECRET: ${{ secrets.SF_META_CLIENT_SECRET }}
-          SF_META_LOGIN_URL: ${{ secrets.SF_META_LOGIN_URL }}
-          SF_META_USER_ID: ${{ vars.SF_META_USER_ID }}
           GH_TOKEN: ${{ github.token }}
           OPERATION: ${{ needs.authorize.outputs.operation }}
           ISSUE_BODY: ${{ github.event.issue.body }}
