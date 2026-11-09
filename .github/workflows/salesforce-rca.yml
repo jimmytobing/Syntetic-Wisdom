@@ -92,6 +92,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -115,3 +116,16 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: cat "$RUNNER_TEMP/rca-result.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: RAW LIVE Salesforce to Issue 9
+        if: github.event_name == 'workflow_dispatch' && inputs.operation == 'query_wde_trend_count'
+        env:
+          SF_RCA_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID }}
+          SF_RCA_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET }}
+          SF_RCA_LOGIN_URL: ${{ secrets.SF_RCA_LOGIN_URL }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/salesforce-rca-raw-live.mjs
+          gh issue comment 9 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-raw-evidence.md"
