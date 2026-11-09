@@ -40,6 +40,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Unit test keamanan universal gateway
+        shell: bash
+        run: node --test tests/salesforce-rca-universal.test.mjs
+
       - name: Validasi actor dan request
         id: gate
         env:
