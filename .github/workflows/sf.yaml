@@ -99,6 +99,16 @@ jobs:
             npm install --global @salesforce/cli@2.159.5
           fi
           sf --version
+      - name: Authenticate Salesforce CLI to WDE (hdbsf)
+        if: steps.route.outputs.valid == 'true'
+        shell: bash
+        env:
+          SF_INSTANCE_URL: ${{ vars.SF_INSTANCE_URL }}
+          SF_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID || secrets.SF_CLIENT_ID }}
+          SF_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          node scripts/sf-cli-auth.mjs
       - name: Execute isolated Sf Bash
         id: bash
         if: steps.route.outputs.valid == 'true'
