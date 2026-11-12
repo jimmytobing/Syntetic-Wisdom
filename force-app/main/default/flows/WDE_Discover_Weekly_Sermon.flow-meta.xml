@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion>
+<description>Every Wednesday 23:59 WIB (Thursday 00:59 org Asia/Singapore), discover the first five entries of the configured YouTube playlist. Create only missing Sermon_Source rows. Rights remain Unknown; no publication. Source writes are collected outside loop.</description>
+<interviewLabel>WDE Discover Weekly Sermon {!$Flow.CurrentDateTime}</interviewLabel>
+<label>WDE Discover Weekly Sermon</label>
+<processType>AutoLaunchedFlow</processType>
+<status>Draft</status>
+<variables><name>varA_PlaylistResponse</name><apexClass>ExternalService__WDEYouTubePlaylist_playlistItems_OUT_2XX</apexClass><dataType>Apex</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
+<variables><name>varN_ResponseCode</name><dataType>Number</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput><scale>0</scale></variables>
+<variables><name>varS_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
+<variables><name>varR_NewSource</name><dataType>SObject</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput><objectType>Sermon_Source__c</objectType></variables>
+<variables><name>colR_NewSources</name><dataType>SObject</dataType><isCollection>true</isCollection><isInput>false</isInput><isOutput>false</isOutput><objectType>Sermon_Source__c</objectType></variables>
+<variables><name>varR_BlankSource</name><dataType>SObject</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput><objectType>Sermon_Source__c</objectType></variables>
+<formulas><name>f_SourceName</name><dataType>String</dataType><expression>LEFT({!Loop_Playlist_Items.snippet.title},80)</expression></formulas>
+<formulas><name>f_VideoUrl</name><dataType>String</dataType><expression>&quot;https://www.youtube.com/watch?v=&quot; &amp; {!Loop_Playlist_Items.contentDetails.videoId}</expression></formulas>
+<actionCalls>
+<name>Get_Playlist_Items</name><label>Fetch latest playlist items</label><locationX>0</locationX><locationY>0</locationY>
+<actionName>WDEYouTubePlaylist.playlistItems</actionName><actionType>externalService</actionType>
+<connector><targetReference>Check_Playlist_Response</targetReference></connector>
+<faultConnector><targetReference>Capture_Fault</targetReference></faultConnector>
+<flowTransactionModel>Automatic</flowTransactionModel>
+<inputParameters><name>part</name><value><stringValue>snippet,contentDetails</stringValue></value></inputParameters>
+<inputParameters><name>playlistId</name><value><stringValue>PLVe7xQpfOlypjR6GOS5ShaBBke5T8YziB</stringValue></value></inputParameters>
+<inputParameters><name>maxResults</name><value><numberValue>5.0</numberValue></value></inputParameters>
+<nameSegment>WDEYouTubePlaylist.playlistItems</nameSegment><offset>0</offset>
+<outputParameters><assignToReference>varA_PlaylistResponse</assignToReference><name>2XX</name></outputParameters>
+<outputParameters><assignToReference>varN_ResponseCode</assignToReference><name>responseCode</name></outputParameters>
+<outputParameters><assignToReference>varS_Error</assignToReference><name>defaultExc</name></outputParameters>
+</actionCalls>
+<decisions>
+<name>Check_Playlist_Response</name><label>Require successful playlist response</label><locationX>0</locationX><locationY>0</locationY>
+<defaultConnector><targetReference>Set_Api_Error</targetReference></defaultConnector>
+<rules><name>HTTP_OK</name><conditionLogic>and</conditionLogic>
+<conditions><leftValueReference>varN_ResponseCode</leftValueReference><operator>GreaterThanOrEqualTo</operator><rightValue><numberValue>200.0</numberValue></rightValue></conditions>
+<conditions><leftValueReference>varN_ResponseCode</leftValueReference><operator>LessThan</operator><rightValue><numberValue>300.0</numberValue></rightValue></conditions>
+<connector><targetReference>Loop_Playlist_Items</targetReference></connector><label>OK</label></rules>
+</decisions>
+<decisions>
+<name>Video_Id_Valid</name><label>Skip empty or unavailable video ID</label><locationX>0</locationX><locationY>0</locationY>
+<defaultConnector><targetReference>Loop_Playlist_Items</targetReference></defaultConnector>
+<rules><name>Has_Video_Id</name><conditionLogic>and</conditionLogic>
+<conditions><leftValueReference>Loop_Playlist_Items.contentDetails.videoId</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+<connector><targetReference>Get_Existing_Source</targetReference></connector><label>Valid</label></rules>
+</decisions>
+<decisions><name>Source_Exists</name><label>Idempotency check</label><locationX>0</locationX><locationY>0</locationY>
+<defaultConnector><targetReference>Prepare_New_Source</targetReference></defaultConnector>
+<rules><name>Already_Exists</name><conditionLogic>and</conditionLogic>
+<conditions><leftValueReference>Get_Existing_Source.Id</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+<connector><targetReference>Loop_Playlist_Items</targetReference></connector><label>Existing</label></rules>
+</decisions>
+<decisions><name>Has_New_Sources</name><label>Only create when new videos detected</label><locationX>0</locationX><locationY>0</locationY>
+<defaultConnectorLabel>No new video</defaultConnectorLabel>
+<rules><name>New_Videos</name><conditionLogic>and</conditionLogic>
+<conditions><leftValueReference>colR_NewSources</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+<connector><targetReference>Create_New_Sources</targetReference></connector><label>New</label></rules>
+</decisions>
+<loops><name>Loop_Playlist_Items</name><label>Process up to five playlist items</label><locationX>0</locationX><locationY>0</locationY>
+<collectionReference>varA_PlaylistResponse.items</collectionReference><iterationOrder>Asc</iterationOrder>
+<nextValueConnector><targetReference>Video_Id_Valid</targetReference></nextValueConnector>
+<noMoreValuesConnector><targetReference>Has_New_Sources</targetReference></noMoreValuesConnector></loops>
+<recordLookups><name>Get_Existing_Source</name><label>Find existing Video ID</label><locationX>0</locationX><locationY>0</locationY>
+<assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+<connector><targetReference>Source_Exists</targetReference></connector>
+<filterLogic>and</filterLogic><filters><field>External_Video_Id__c</field><operator>EqualTo</operator>
+<value><elementReference>Loop_Playlist_Items.contentDetails.videoId</elementReference></value></filters>
+<getFirstRecordOnly>true</getFirstRecordOnly><object>Sermon_Source__c</object>
+<storeOutputAutomatically>true</storeOutputAutomatically></recordLookups>
+<assignments><name>Prepare_New_Source</name><label>Build new source without changing rights</label><locationX>0</locationX><locationY>0</locationY>
+<assignmentItems><assignToReference>varR_NewSource</assignToReference><operator>Assign</operator><value><elementReference>varR_BlankSource</elementReference></value></assignmentItems>
+<assignmentItems><assignToReference>varR_NewSource.Name</assignToReference><operator>Assign</operator><value><elementReference>f_SourceName</elementReference></value></assignmentItems>
+<assignmentItems><assignToReference>varR_NewSource.External_Video_Id__c</assignToReference><operator>Assign</operator><value><elementReference>Loop_Playlist_Items.contentDetails.videoId</elementReference></value></assignmentItems>
+<assignmentItems><assignToReference>varR_NewSource.Video_URL__c</assignToReference><operator>Assign</operator><value><elementReference>f_VideoUrl</elementReference></value></assignmentItems>
+<assignmentItems><assignToReference>varR_NewSource.Rights_Status__c</assignToReference><operator>Assign</operator><value><stringValue>Unknown</stringValue></value></assignmentItems>
+<assignmentItems><assignToReference>varR_NewSource.Ingest_Status__c</assignToReference><operator>Assign</operator><value><stringValue>Pending</stringValue></value></assignmentItems>
+<assignmentItems><assignToReference>colR_NewSources</assignToReference><operator>Add</operator><value><elementReference>varR_NewSource</elementReference></value></assignmentItems>
+<connector><targetReference>Loop_Playlist_Items</targetReference></connector></assignments>
+<assignments><name>Capture_Fault</name><label>Record error</label><locationX>0</locationX><locationY>0</locationY>
+<assignmentItems><assignToReference>varS_Error</assignToReference><operator>Assign</operator><value><elementReference>$Flow.FaultMessage</elementReference></value></assignmentItems></assignments>
+<assignments><name>Set_Api_Error</name><label>Stop on non-2xx response</label><locationX>0</locationX><locationY>0</locationY>
+<assignmentItems><assignToReference>varS_Error</assignToReference><operator>Assign</operator><value><stringValue>Playlist API call returned non-success status</stringValue></value></assignmentItems></assignments>
+<recordCreates><name>Create_New_Sources</name><label>Bulk create new sermon sources</label><locationX>0</locationX><locationY>0</locationY><faultConnector><targetReference>Capture_Fault</targetReference></faultConnector><inputReference>colR_NewSources</inputReference></recordCreates>
+<start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Get_Playlist_Items</targetReference></connector>
+<schedule><frequency>Weekly</frequency><daysOfWeekToRun>5</daysOfWeekToRun><startDate>2026-11-19</startDate><startTime>00:59:00.000Z</startTime></schedule>
+<triggerType>Scheduled</triggerType></start>
+</Flow>
