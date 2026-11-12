@@ -130,13 +130,6 @@
         <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>
         <filters>
-            <field>Rights_Status__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>PermissionGranted</stringValue>
-            </value>
-        </filters>
-        <filters>
             <field>Ingest_Status__c</field>
             <operator>EqualTo</operator>
             <value>
