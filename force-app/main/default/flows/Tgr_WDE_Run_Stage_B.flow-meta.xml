@@ -121,7 +121,7 @@
     </recordUpdates>
     <recordUpdates>
         <name>Set_B_Review</name>
-        <label>Store B enrichment for review</label>
+        <label>Auto-validate Stage B and advance to persistence</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
@@ -144,7 +144,7 @@
         <inputAssignments>
             <field>Status__c</field>
             <value>
-                <stringValue>NeedsCommitReview</stringValue>
+                <stringValue>CommitApproved</stringValue>
             </value>
         </inputAssignments>
         <object>WDE_Batch_Run__c</object>
@@ -220,12 +220,7 @@
                 <elementReference>$Record.Approved_Boundaries__c</elementReference>
             </value>
         </inputAssignments>
-        <inputAssignments>
-            <name>varHumanApproved</name>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </inputAssignments>
+        
         <outputAssignments>
             <assignToReference>bResult</assignToReference>
             <name>varResultStatus</name>
