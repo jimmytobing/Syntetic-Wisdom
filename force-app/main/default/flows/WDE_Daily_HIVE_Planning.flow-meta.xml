@@ -18,6 +18,13 @@
         <outputAssignments><assignToReference>varB_RecalcSuccess</assignToReference><name>varB_Success</name></outputAssignments>
         <outputAssignments><assignToReference>varS_RecalcError</assignToReference><name>varS_Error</name></outputAssignments>
     </subflows>
+    <subflows>
+        <name>Propose_If_Eligible</name>
+        <label>Upsert weekly original Shorts proposal only when Ready above threshold</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <flowName>WDE_Propose_Content_Plan</flowName>
+        <inputAssignments><name>varS_NeedId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments>
+    </subflows>
     <decisions>
         <name>Recalc_Was_Successful</name>
         <label>Do not propose if HIVE update failed</label>
@@ -30,13 +37,6 @@
             <label>HIVE persisted</label>
         </rules>
     </decisions>
-    <subflows>
-        <name>Propose_If_Eligible</name>
-        <label>Upsert weekly original Shorts proposal only when Ready above threshold</label>
-        <locationX>0</locationX><locationY>0</locationY>
-        <flowName>WDE_Propose_Content_Plan</flowName>
-        <inputAssignments><name>varS_NeedId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments>
-    </subflows>
     <start>
         <locationX>0</locationX><locationY>0</locationY>
         <connector><targetReference>Recalculate_HIVE</targetReference></connector>
