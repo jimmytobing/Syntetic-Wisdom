@@ -10,6 +10,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>WDE_Audience_Signal__c.HIVE_Evidence_Codes__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>WDE_Audience_Signal__c.Signal_Date__c</field>
         <readable>true</readable>
     </fieldPermissions>
