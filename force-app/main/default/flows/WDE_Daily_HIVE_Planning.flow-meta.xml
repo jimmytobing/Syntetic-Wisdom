@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <description>Daily per-Audience-Need orchestration. Recalculate HIVE from verified anonymous comments and propose only eligible YouTube Shorts. No DML in loop, no callout, no auto-publish.</description>
+    <interviewLabel>WDE Daily HIVE Planning {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>WDE Daily HIVE Planning</label>
+    <processType>AutoLaunchedFlow</processType>
+    <status>Draft</status>
+    <variables><name>varB_RecalcSuccess</name><dataType>Boolean</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
+    <variables><name>varS_RecalcError</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
+    <subflows>
+        <name>Recalculate_HIVE</name>
+        <label>Calculate evidence-backed HIVE for this Need</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <connector><targetReference>Recalc_Was_Successful</targetReference></connector>
+        <flowName>WDE_Recalculate_HIVE</flowName>
+        <inputAssignments><name>varS_NeedId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments>
+        <outputAssignments><assignToReference>varB_RecalcSuccess</assignToReference><name>varB_Success</name></outputAssignments>
+        <outputAssignments><assignToReference>varS_RecalcError</assignToReference><name>varS_Error</name></outputAssignments>
+    </subflows>
+    <decisions>
+        <name>Recalc_Was_Successful</name>
+        <label>Do not propose if HIVE update failed</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <defaultConnectorLabel>Do not create content</defaultConnectorLabel>
+        <rules>
+            <name>Success</name><conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>varB_RecalcSuccess</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
+            <connector><targetReference>Propose_If_Eligible</targetReference></connector>
+            <label>HIVE persisted</label>
+        </rules>
+    </decisions>
+    <subflows>
+        <name>Propose_If_Eligible</name>
+        <label>Upsert weekly original Shorts proposal only when Ready above threshold</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <flowName>WDE_Propose_Content_Plan</flowName>
+        <inputAssignments><name>varS_NeedId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments>
+    </subflows>
+    <start>
+        <locationX>0</locationX><locationY>0</locationY>
+        <connector><targetReference>Recalculate_HIVE</targetReference></connector>
+        <object>WDE_Audience_Need__c</object>
+        <schedule>
+            <frequency>Daily</frequency>
+            <startDate>2026-11-13</startDate>
+            <startTime>02:00:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+</Flow>
