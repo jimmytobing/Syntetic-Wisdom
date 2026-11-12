@@ -80,6 +80,8 @@ test('content plan has stable unique External ID and human review status',()=>{
   assert.match(key, /<unique>true<\/unique>/);
   assert.match(key, /<externalId>true<\/externalId>/);
   assert.match(flow, /<name>Get_Existing_Plan<\/name>/);
+  assert.match(flow, /\{!Get_Audience_Need\.Id\} &amp; &quot;\|YOUTUBE_SHORTS\|&quot;/);
+  assert.doesNotMatch(flow, /\{!Get_Audience_Need\.Need_Key__c\} &amp; &quot;\|YOUTUBE_SHORTS\|&quot;/);
   assert.match(flow, /<stringValue>Proposed<\/stringValue>/);
   assert.doesNotMatch(flow,/Publish_YouTube|Upload_Video|externalService/);
 });
