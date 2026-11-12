@@ -2,7 +2,7 @@
 
 Issue: https://github.com/jimmytobing/Syntetic-Wisdom/issues/35
 Target: Salesforce Developer Edition, Org ID `00Dfj00000eVCOVEA4` (alias `hdbsf`).
-Status: BUILD in feature branch; LIVE metadata validation and deployment pending. **Not deployed or activated.**
+Status: BUILD in feature branch; Salesforce LIVE check-only of initial PR metadata **FAILED** due to integration-user metadata permissions (deployment `0Affj00000Yt3g4CAB`, 13 component errors). **Not deployed or activated.**
 
 ## Verified baseline (12 Nov 2026)
 - `WDE_Fetch_YouTube_Comments.flow-meta.xml` exists in the repository, calls YouTube and Groq External Services, and prepares/links `WDE_Audience_Signal__c` to `WDE_Audience_Need__c`.
@@ -56,12 +56,12 @@ The live EntityDefinition query returned no custom Content Planning object. New 
 1. Retrieve actual object/field/Flow metadata from WDE and reconcile with source, including field visibility to integration user.
 2. Verify existing HIVE/planning schema and active/latest Flows, entry conditions, DML and fault paths.
 3. Build metadata on a feature branch and run local XML checks.
-4. Run Salesforce `sf project deploy validate` against org ID `00Dfj00000eVCOVEA4` (CLI execution limit may require an approved gateway fix).
+4. Run `### Sf Deploy` with `mode=validate` (internally `sf project deploy start --dry-run --manifest manifest/wde-hive-pr35.xml --test-level NoTestRun`) against WDE Org ID `00Dfj00000eVCOVEA4`. Do not confuse this with unsupported `sf project deploy validate --test-level NoTestRun`.
 5. Deploy only after successful validation, verify deployment ID, installed fields, active versions (without activating new Flow), and sample records.
 6. Record all evidence on Issue #35 and link commit/PR.
 
 ## Current blocker
-`scripts/sf-bash.mjs` imposes a 15,000 ms `spawnSync` timeout. One combined CLI version + org check + SOQL + metadata retrieve invocation failed with `ETIMEDOUT`. No deployment should be claimed from that attempt. Gateway changes require separate security review.
+Salesforce dry-run `0Affj00000Yt3g4CAB` failed with 13 component errors. Read-only query of 8 `PermissionSetAssignment` records for the connected CLI user confirmed `PermissionsCustomizeApplication=false` AND `PermissionsManageInteraction=false` on **all 8 assignments**, including the profile-owned PermissionSet; one permission set has `PermissionsModifyAllData=true`, but that does not grant the missing setup/Flow permissions. Account permission remediation requires explicit owner authorization and follow-up check-only. Evidence is saved on Issue #35.
 
 ## Proposed new custom object — WDE Content Plan (NOT deployed)
 Object Label: **WDE Content Plan**; API Name: `WDE_Content_Plan__c`; plural: **WDE Content Plans**; Name standard Text; sharing ReadWrite; enable reports/search.
@@ -89,7 +89,7 @@ Platform options (all): **YouTube Shorts** (default), **Instagram Reels**, **Fac
 - Existing Groq classification only returns `ID|CATEGORY|CONTEXT|END`: there is no legitimate intensity/quality numeric evidence yet. `WDE_Recalculate_HIVE` deliberately leaves these metrics unchanged and the evaluation state Incomplete until populated from a verified source. Do **not** fill them with guessed constants.
 - Only YouTube Shorts proposal generation exists in the draft; script generation, media rendering, and distribution have not been implemented or tested.
 - Neither Flow has been activated. Need explicit orchestration/scheduler and bulk governor testing before operational rollout.
-- Branch is not the default checkout in `.github/workflows/sf.yaml`; checking out only main will **not** validate these branch-only metadata files. Use an approved branch-aware validation path; do not mislabel main validation as PR validation.
+- The reusable `### Sf Deploy` gateway in `.github/workflows/sf.yaml` checks out an immutable feature-branch commit SHA and the named manifest; use the current PR SHA and verify the resulting Salesforce deployment ID. Prior check-only failed because integration-user permissions are insufficient, not because source checkout is unavailable.
 
 ## Idempotent weekly Plan Key clarification
 
