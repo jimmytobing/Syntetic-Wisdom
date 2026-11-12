@@ -48,7 +48,7 @@ for (const name of flowNames) {
   test(name + ' has the intended activation status, connected graph and no callouts', () => {
     const xml=read('flows/'+name+'.flow-meta.xml');
     balancedTags(xml); referencesResolve(xml);
-    assert.match(xml, name === 'WDE_Daily_HIVE_Planning' ? /<status>Draft<\/status>/ : /<status>Active<\/status>/);
+    assert.match(xml, /<status>Active<\/status>/);
     assert.doesNotMatch(xml, /<actionType>externalService<\/actionType>/);
   });
 }
