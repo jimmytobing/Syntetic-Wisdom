@@ -6,7 +6,7 @@ import { test } from 'node:test';
 // No network calls, no GitHub/Salesforce credentials and no npm dependencies.
 const root = new URL('../force-app/main/default/', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
-const flowNames = ['WDE_Recalculate_HIVE', 'WDE_Propose_Content_Plan'];
+const flowNames = ['WDE_Recalculate_HIVE', 'WDE_Propose_Content_Plan', 'WDE_Daily_HIVE_Planning'];
 function balancedTags(xml) {
   const stack = [];
   for (const [token] of xml.matchAll(/<[^>]+>/g)) {
@@ -118,4 +118,18 @@ test('HIVE rubric is strictly evidence-backed and does not create false Ready sc
   assert.equal(aggregate(latest.map((v,i)=>i===0?{...v,evidence:'U4|Q0|V1'}:v)).status,'Incomplete');
   assert.equal(aggregate(latest.slice(0,2)).status,'Insufficient Data');
   assert.match(ingest, /Never reproduce names, handles/);
+});
+
+test('scheduled orchestration recalculates each Need before considering idempotent proposal', () => {
+  const xml=read('flows/WDE_Daily_HIVE_Planning.flow-meta.xml');
+  balancedTags(xml);referencesResolve(xml);
+  assert.match(xml, /<triggerType>Scheduled<\/triggerType>/);
+  assert.match(xml, /<frequency>Daily<\/frequency>/);
+  assert.match(xml, /<object>WDE_Audience_Need__c<\/object>/);
+  assert.match(xml, /<flowName>WDE_Recalculate_HIVE<\/flowName>/);
+  assert.match(xml, /<flowName>WDE_Propose_Content_Plan<\/flowName>/);
+  assert.match(xml, /<name>Recalc_Was_Successful<\/name>/);
+  assert.equal([...xml.matchAll(/<loops>/g)].length,0);
+  assert.equal([...xml.matchAll(/<recordUpdates>/g)].length,0);
+  assert.equal([...xml.matchAll(/<actionCalls>/g)].length,0);
 });
