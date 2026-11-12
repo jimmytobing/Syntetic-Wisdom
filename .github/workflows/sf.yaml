@@ -179,7 +179,7 @@ jobs:
           ref: ${{ steps.route.outputs.sha }}
           persist-credentials: false
           path: candidate
-      - name: Inspect candidate manifest and Draft-only Flow metadata
+      - name: Inspect candidate manifest and destructive changes files
         id: inspect
         if: steps.route.outcome == 'success'
         shell: bash
