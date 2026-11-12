@@ -42,7 +42,7 @@ function aggregate(signals, today='2026-11-12') {
   const prev7=ages.filter(age=>age>=7&&age<14).length;
   const growth=last7===0?0:prev7===0?100:Math.min(100,Math.max(0,50+50*(last7-prev7)/prev7));
   const recency=volume===0?0:Math.max(0,100-100*Math.min(...ages)/28);
-  return {volume,last7,prev7,normalizedVolume:Math.min(100,volume*5),growth,recency,status:volume<3?'Insufficient Data':([...dedup.values()].every(x=>x.evidence && /^U[0-4]\\|Q[1-3]\\|V1$/.test(x.evidence))?'Ready':'Incomplete')};
+  return {volume,last7,prev7,normalizedVolume:Math.min(100,volume*5),growth,recency,status:volume<3?'Insufficient Data':([...dedup.values()].every(x=>x.evidence && /^U[0-4]\|Q[1-3]\|V1$/.test(x.evidence))?'Ready':'Incomplete')};
 }
 for (const name of flowNames) {
   test(name + ' is draft, well-formed, connected, and callout-free', () => {
@@ -117,5 +117,5 @@ test('HIVE rubric is strictly evidence-backed and does not create false Ready sc
   assert.equal(aggregate(latest.map((v,i)=>i===1?{...v,evidence:null}:v)).status,'Incomplete');
   assert.equal(aggregate(latest.map((v,i)=>i===0?{...v,evidence:'U4|Q0|V1'}:v)).status,'Incomplete');
   assert.equal(aggregate(latest.slice(0,2)).status,'Insufficient Data');
-  assert.doesNotMatch(ingest, /Never store raw comment text on a Signal/); // absence is not proof of privacy; inspect field assignments separately
+  assert.match(ingest, /Never reproduce names, handles/);
 });
