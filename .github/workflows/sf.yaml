@@ -23,6 +23,7 @@ jobs:
     env:
       SF_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID || secrets.SF_CLIENT_ID }}
       SF_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
+      SF_INSTANCE_URL: ${{ vars.SF_INSTANCE_URL }}
       ISSUE_BODY: ${{ github.event.issue.body }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       GH_TOKEN: ${{ github.token }}
