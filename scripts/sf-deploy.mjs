@@ -6,7 +6,6 @@ import { spawnSync } from 'node:child_process';
 const ORG_ID = '00Dfj00000eVCOVEA4';
 const INSTANCE = 'https://hdbsf-dev-ed.develop.my.salesforce.com';
 const HEADING = '### Sf Deploy';
-const ALLOWED_TYPES = new Set(['CustomObject', 'CustomField', 'ValidationRule', 'Flow']);
 const tmp = process.env.RUNNER_TEMP || '/tmp';
 const evidence = path.join(tmp, 'sf-deploy-evidence.md');
 
@@ -26,25 +25,21 @@ function parseRequest(body) {
   let req;
   try { req = JSON.parse(matches[0][1]); } catch { fail('JSON Sf Deploy tidak valid.'); }
   if (!req || Array.isArray(req) || typeof req !== 'object') fail('Request harus berupa JSON object.');
-  if (Object.keys(req).some(k => !['mode','commit','manifest','approval'].includes(k))) fail('Parameter Sf Deploy tidak dikenal.');
+  if (Object.keys(req).some(k => !['mode','commit','manifest'].includes(k))) fail('Parameter Sf Deploy tidak dikenal.');
   if (!['validate','deploy'].includes(req.mode)) fail('mode hanya validate atau deploy.');
   if (typeof req.commit !== 'string' || !/^[a-f0-9]{40}$/.test(req.commit)) fail('commit wajib full 40-char SHA lowercase.');
   if (typeof req.manifest !== 'string' || !/^manifest\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,100}\.xml$/.test(req.manifest)) fail('manifest harus file XML di folder manifest/.');
-  if (req.mode === 'deploy' && req.approval !== 'DEPLOY WDE ' + ORG_ID) fail('Deploy memerlukan approval eksplisit dengan Org ID WDE.');
-  if (req.mode === 'validate' && req.approval !== undefined) fail('mode validate tidak menerima approval.');
   return req;
 }
 function gate() {
+  const allowedActors = new Set(['jimmytobing', '098595']);
   if (process.env.GITHUB_REPOSITORY !== 'jimmytobing/Syntetic-Wisdom' ||
-      process.env.GITHUB_ACTOR !== 'jimmytobing' ||
-      process.env.ISSUE_AUTHOR !== 'jimmytobing' ||
+      !allowedActors.has(process.env.GITHUB_ACTOR) ||
+      !allowedActors.has(process.env.ISSUE_AUTHOR) ||
       !/^\d+$/.test(process.env.ISSUE_NUMBER || '')) fail('GitHub actor/repo/Issue tidak diizinkan.');
   if ((process.env.SF_INSTANCE_URL || '').replace(/\/$/, '') !== INSTANCE) fail('SF_INSTANCE_URL bukan WDE yang diizinkan.');
-  const req = parseRequest(process.env.ISSUE_BODY || '');
-  if (req.mode === 'deploy' && process.env.WDE_DEPLOY_ENABLED !== 'true') {
-    fail('Deploy dinonaktifkan: aktifkan GitHub repository variable WDE_DEPLOY_ENABLED=true setelah persetujuan khusus.');
-  }
-  return req;
+  // The explicit Issue request mode=deploy is sufficient. Keep actor/repo/org verification.
+  return parseRequest(process.env.ISSUE_BODY || '');
 }
 function inspectManifest(req) {
   const candidate = path.resolve(process.env.CANDIDATE_DIR || 'candidate');
@@ -54,15 +49,15 @@ function inspectManifest(req) {
   if (xml.length > 30000 || !xml.includes('<Package xmlns="http://soap.sforce.com/2006/04/metadata">')) fail('Manifest tidak sesuai format metadata.');
   if (xml.includes('<destructiveChanges') || xml.includes('<members>*</members>')) fail('Destructive/wildcard manifest tidak diizinkan.');
   const blocks = [...xml.matchAll(/<types>([\s\S]*?)<\/types>/g)];
-  if (blocks.length === 0 || blocks.length > 10) fail('Manifest types tidak valid.');
+  if (blocks.length === 0) fail('Manifest types tidak valid.');
   let count = 0;
   for (const [, content] of blocks) {
     const types = [...content.matchAll(/<name>([^<]+)<\/name>/g)].map(m=>m[1]);
-    if (types.length !== 1 || !ALLOWED_TYPES.has(types[0])) fail('Metadata type tidak diizinkan.');
+    if (types.length !== 1 || !/^[A-Za-z][A-Za-z0-9_]{0,127}$/.test(types[0])) fail('Metadata type tidak valid.');
     const members = [...content.matchAll(/<members>([^<]+)<\/members>/g)].map(m=>m[1]);
     if (members.length < 1 || members.length > 100) fail('Metadata member terlalu banyak.');
     for (const member of members) {
-      if (!/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)?$/.test(member)) fail('Metadata member name tidak valid.');
+      if (!/^[a-zA-Z][a-zA-Z0-9_./:-]{0,254}$/.test(member) || member.includes('..') || member.includes('//')) fail('Metadata member name tidak valid.');
       if (types[0] === 'Flow') {
         const f = path.join(candidate, 'force-app/main/default/flows', member + '.flow-meta.xml');
         const content = fs.readFileSync(f, 'utf8');

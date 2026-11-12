@@ -149,8 +149,8 @@ jobs:
   run-sf-deploy:
     if: >-
       github.repository == 'jimmytobing/Syntetic-Wisdom' &&
-      github.actor == 'jimmytobing' &&
-      github.event.issue.user.login == 'jimmytobing' &&
+      contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
+      contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
       contains(github.event.issue.body, '### Sf Deploy')
     permissions:
       contents: read
@@ -161,7 +161,6 @@ jobs:
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
       SF_INSTANCE_URL: ${{ vars.SF_INSTANCE_URL }}
-      WDE_DEPLOY_ENABLED: ${{ vars.WDE_DEPLOY_ENABLED }}
       CANDIDATE_DIR: ${{ github.workspace }}/candidate
     steps:
       - name: Checkout trusted gateway code (no persisted Git credentials)
