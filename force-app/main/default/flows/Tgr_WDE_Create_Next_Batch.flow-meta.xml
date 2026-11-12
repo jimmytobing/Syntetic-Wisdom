@@ -33,9 +33,9 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>END_ELEMENT_3</targetReference>
+            <targetReference>Create_Next_Batch</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>Stop safely</defaultConnectorLabel>
+        <defaultConnectorLabel>No open segment; create independent batch</defaultConnectorLabel>
         <rules>
             <name>Open_Found</name>
             <conditionLogic>and</conditionLogic>
@@ -110,6 +110,11 @@
         <scale>0</scale>
     </formulas>
     <formulas>
+        <name>f_Next_Batch_Name</name>
+        <dataType>String</dataType>
+        <expression>LEFT(&quot;WDE Batch &quot; &amp; {!$Record.Sermon_Source_External_Key__c} &amp; &quot; #&quot; &amp; TEXT({!f_Next_Batch_Number}),80)</expression>
+    </formulas>
+    <formulas>
         <name>f_Next_Run_Key</name>
         <dataType>String</dataType>
         <expression>&quot;WDE:&quot; &amp; {!$Record.Sermon_Source_External_Key__c} &amp; &quot;:BATCH:&quot; &amp; TEXT({!f_Next_Batch_Number})</expression>
@@ -154,6 +159,10 @@
         <connector>
             <targetReference>END_ELEMENT_3</targetReference>
         </connector>
+        <inputAssignments>
+            <field>Name</field>
+            <value><elementReference>f_Next_Batch_Name</elementReference></value>
+        </inputAssignments>
         <inputAssignments>
             <field>Approval_Mode__c</field>
             <value>
