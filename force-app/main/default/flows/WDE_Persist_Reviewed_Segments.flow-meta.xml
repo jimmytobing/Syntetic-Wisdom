@@ -1956,7 +1956,7 @@
     </recordLookups>
     <recordLookups>
         <name>Get_Sermon_Source</name>
-        <label>Get permitted sermon source</label>
+        <label>Get sermon source</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
@@ -1969,13 +1969,6 @@
             <operator>EqualTo</operator>
             <value>
                 <elementReference>varSermonSourceId</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Rights_Status__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>PermissionGranted</stringValue>
             </value>
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
