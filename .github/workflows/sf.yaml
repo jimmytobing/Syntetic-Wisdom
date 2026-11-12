@@ -1,0 +1,135 @@
+name: SF - Salesforce PROD API (Issue request)
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sf-api-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  call-salesforce-api:
+    if: >-
+      contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
+      contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
+      contains(github.event.issue.body, '### Sf Request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SF_CLIENT_ID: ${{ secrets.SF_BFI_PROD_CLIENT_ID || secrets.SF_CLIENT_ID }}
+      SF_CLIENT_SECRET: ${{ secrets.SF_BFI_PROD_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify exact Sf Request heading
+        id: route
+        shell: bash
+        run: |
+          if printf '%s\n' "$ISSUE_BODY" | grep -Eq '^### Sf Request[[:space:]]*$'; then
+            echo 'valid=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'valid=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run Salesforce issue request and prepare collapsible evidence
+        id: jim
+        if: steps.route.outputs.valid == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node sf.mjs
+      - name: Publish result in the same Issue
+        if: always() && steps.route.outputs.valid == 'true' && steps.jim.outcome != 'skipped'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -s "$RUNNER_TEMP/sf-evidence.md" ]]; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-evidence.md"
+          else
+            echo 'No evidence file generated; see job logs.' >&2
+            exit 1
+          fi
+
+  run-sf-bash:
+    if: >-
+      contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
+      contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
+      contains(github.event.issue.body, '### Sf Bash')
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      BASH_HEADING: Sf Bash
+    steps:
+      - name: Checkout without stored Git credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check exact Sf Bash heading
+        id: route
+        shell: bash
+        run: |
+          if printf '%s\n' "$ISSUE_BODY" | grep -Eq '^### Sf Bash[[:space:]]*$'; then
+            echo 'valid=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'valid=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Setup Node.js 22 for Salesforce CLI
+        if: steps.route.outputs.valid == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Ensure Salesforce CLI is installed
+        if: steps.route.outputs.valid == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v sf >/dev/null 2>&1; then
+            npm install --global @salesforce/cli@2.159.5
+          fi
+          sf --version
+      - name: Execute isolated Sf Bash
+        id: bash
+        if: steps.route.outputs.valid == 'true'
+        shell: bash
+        run: node jim-bash.mjs
+      - name: Upload Sf Bash evidence
+        if: always() && steps.route.outputs.valid == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sf-bash-${{ github.run_id }}
+          path: ${{ runner.temp }}/sf-bash-evidence.md
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-sf-bash:
+    needs: run-sf-bash
+    if: always() && needs.run-sf-bash.result != 'skipped'
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Download Sf Bash evidence
+        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4
+        with:
+          name: sf-bash-${{ github.run_id }}
+          path: ${{ runner.temp }}/sf-bash-result
+      - name: Publish Sf Bash output in same Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-bash-result/sf-bash-evidence.md"
