@@ -129,7 +129,7 @@ tambah error=null</description>
     </recordUpdates>
     <recordUpdates>
         <name>Set_A_Review</name>
-        <label>Store A draft for review</label>
+        <label>Auto-validate Stage A and advance to enrichment</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
@@ -150,6 +150,10 @@ tambah error=null</description>
             </value>
         </inputAssignments>
         <inputAssignments>
+            <field>Approved_Boundaries__c</field>
+            <value><elementReference>aRaw</elementReference></value>
+        </inputAssignments>
+        <inputAssignments>
             <field>Error_Message__c</field>
             <value>
                 <stringValue></stringValue>
@@ -164,7 +168,7 @@ tambah error=null</description>
         <inputAssignments>
             <field>Status__c</field>
             <value>
-                <stringValue>NeedsReview</stringValue>
+                <stringValue>BoundariesApproved</stringValue>
             </value>
         </inputAssignments>
         <object>WDE_Batch_Run__c</object>
