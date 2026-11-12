@@ -2,14 +2,14 @@
 
 Issue: https://github.com/jimmytobing/Syntetic-Wisdom/issues/35
 Target: Salesforce Developer Edition, Org ID `00Dfj00000eVCOVEA4` (alias `hdbsf`).
-Status: DESIGN / source preparation. **Not deployed or activated.**
+Status: BUILD in feature branch; LIVE metadata validation and deployment pending. **Not deployed or activated.**
 
 ## Verified baseline (12 Nov 2026)
 - `WDE_Fetch_YouTube_Comments.flow-meta.xml` exists in the repository, calls YouTube and Groq External Services, and prepares/links `WDE_Audience_Signal__c` to `WDE_Audience_Need__c`.
 - Existing `WDE_Audience_Need__c` has `Need_Key__c` (Text 255, Unique, External ID) in repository, and `Category__c`, `Status__c`, `Description__c`.
 - Existing `WDE_Audience_Signal__c` has `Signal_Key__c` (Text 255, Unique, External ID), `Signal_Count__c` (Number 18,0), `Signal_Date__c` (Date), and lookup to `WDE_Audience_Need__c`.
 - Salesforce `FieldDefinition` queried with the integration user lists only standard fields for Need and two custom lookup fields for Signal. This is **not** proof that repository-defined fields are absent: check FLS/metadata visibility before changes.
-- Salesforce CLI authenticated to the intended org, but combined metadata retrieve timed out at the gateway's 15-second process limit. Metadata reconciliation is pending.
+- Salesforce CLI authenticated to the intended org; combined metadata retrieval timed out at the gateway's 15-second process limit. A separate single-field CLI retrieval of `WDE_Audience_Need__c.Need_Key__c` succeeded. Full metadata reconciliation remains pending.
 
 ## Intended business behavior
 1. Crawl YouTube comments via existing Flow; preserve unique `Signal_Key__c` to make repeated crawls idempotent.
@@ -44,13 +44,13 @@ Missing evidence should mark a score `Incomplete`; it must **not** silently prod
 
 Picklist options: `Incomplete` (default), `Ready`, `Insufficient Data`, `Error`. Components must be bounded 0–100 by validation or Flow normalization. The formula should only expose a score when the status is Ready and all five components are present.
 
-No new objects are authorized by this design. A Content Planning object/fields should be derived from existing deployed schema before proposing new metadata.
+The live EntityDefinition query returned no custom Content Planning object. New object `WDE_Content_Plan__c` is proposed in feature branch only; deployment is not yet validated. The object uses a stable External ID to prevent duplicate proposals.
 
 ## Flow-first implementation plan
-- Autolaunched `WDE_Recalculate_HIVE`: input Need ID / scheduled batch selection, Get relevant signals, count/aggregate in memory, calculate metrics, collection DML outside loops; structured fault path; no callout required.
+- Draft autolaunched `WDE_Recalculate_HIVE`: input Need ID, Get signals from 28-day window, count in memory, calculate Volume/Growth/Recency, and perform one record update outside loop; structured fault path; no callout.
 - Invoker: scheduled orchestration or explicit admin action; do not activate automatically.
 - Guard against concurrency: one effective calculation per Need at a time, idempotent update of result fields and timestamp.
-- Content Planning: first check existing objects and dependencies. Only then create a candidate with stable external key and human approval gate; never republish by rerun.
+- Draft autolaunched `WDE_Propose_Content_Plan`: only create one YouTube Shorts weekly proposal when HIVE is Ready and score >=60; re-running checks stable Plan Key; human approval gate; no auto publish.
 
 ## Release gate
 1. Retrieve actual object/field/Flow metadata from WDE and reconcile with source, including field visibility to integration user.
@@ -62,3 +62,31 @@ No new objects are authorized by this design. A Content Planning object/fields s
 
 ## Current blocker
 `scripts/sf-bash.mjs` imposes a 15,000 ms `spawnSync` timeout. One combined CLI version + org check + SOQL + metadata retrieve invocation failed with `ETIMEDOUT`. No deployment should be claimed from that attempt. Gateway changes require separate security review.
+
+## Proposed new custom object — WDE Content Plan (NOT deployed)
+Object Label: **WDE Content Plan**; API Name: `WDE_Content_Plan__c`; plural: **WDE Content Plans**; Name standard Text; sharing ReadWrite; enable reports/search.
+
+| Field Label | API Name | Salesforce type | Required | Unique | External ID | Default/Relationship |
+|---|---|---|---|---|---|---|
+| Plan Key | `Plan_Key__c` | Text(255) | No | Yes | Yes | none; immutable key `NEED_KEY\|YOUTUBE_SHORTS\|YYYY-MM-DD` |
+| Audience Need | `Audience_Need__c` | Lookup(WDE_Audience_Need__c) | No | No | No | On delete SetNull |
+| Need External Key | `Need_ExternalKey__c` | Text(255) | No | No | No | copy `Need_Key__c` for traceability |
+| Platform | `Platform__c` | Restricted Picklist | No | No | No | YouTube Shorts |
+| Status | `Status__c` | Restricted Picklist | No | No | No | Proposed |
+| Planning Period | `Planning_Period__c` | Date | No | No | No | none |
+| HIVE Score Snapshot | `HIVE_Score_Snapshot__c` | Number(5,2) | No | No | No | none |
+| Topic | `Topic__c` | Text(255) | No | No | No | none |
+| Hook | `Hook__c` | Text(255) | No | No | No | none |
+| Video Script | `Video_Script__c` | Long Text Area(32768), visibleLines=12 | No | No | No | none |
+| Review Notes | `Review_Notes__c` | Long Text Area(32768), visibleLines=12 | No | No | No | none |
+| Video Asset URL | `Video_Asset_URL__c` | URL(255) | No | No | No | none |
+| Published At | `Published_At__c` | DateTime | No | No | No | none |
+| Source As Of | `Source_As_Of__c` | DateTime | No | No | No | none |
+
+Platform options (all): **YouTube Shorts** (default), **Instagram Reels**, **Facebook Reels**, **Multi-platform**. Status options (all): **Proposed** (default), **Approved**, **In Production**, **Ready**, **Published**, **Rejected**, **Archived**. When creating a planning record through Flow, use the stable `Need_Key__c` as relationship resolution, never the human-readable `Name`.
+
+## Limitations to resolve before production
+- Existing Groq classification only returns `ID|CATEGORY|CONTEXT|END`: there is no legitimate intensity/quality numeric evidence yet. `WDE_Recalculate_HIVE` deliberately leaves these metrics unchanged and the evaluation state Incomplete until populated from a verified source. Do **not** fill them with guessed constants.
+- Only YouTube Shorts proposal generation exists in the draft; script generation, media rendering, and distribution have not been implemented or tested.
+- Neither Flow has been activated. Need explicit orchestration/scheduler and bulk governor testing before operational rollout.
+- Branch is not the default checkout in `.github/workflows/sf.yaml`; checking out only main will **not** validate these branch-only metadata files. Use an approved branch-aware validation path; do not mislabel main validation as PR validation.
