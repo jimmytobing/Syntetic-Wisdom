@@ -2,7 +2,7 @@
 
 Issue: https://github.com/jimmytobing/Syntetic-Wisdom/issues/35
 Target: Salesforce Developer Edition, Org ID `00Dfj00000eVCOVEA4` (alias `hdbsf`).
-Status (12 Nov 2026): **HIVE metadata deployed and verified in WDE** — real deployment `0Affj00000Yxp4YCAR`, 28 components, 0 errors. OAuth source + result-field read FLS deployed; both new Flow definitions installed as **Draft** with `ActiveVersionId=null`. Business runtime HIVE scoring/content plan creation remains NOT activated or E2E verified. PR #36 stays Draft until scoring evidence, scheduling and runtime tests are complete.
+Status (13 Nov 2026): **LIVE in WDE** — HIVE schema/rubric/Flow metadata deployed and active; original YouTube/Groq ingest writes evidence-coded signals; real `NEED:FINANCE` scored **Ready 54.54**; Plan gate correctly refuses creation below 60. Daily scheduler **ACTIVE**, one `CronTrigger` WAITING, next run **13 Nov 2026 09:00 WIB** (`2026-11-13T02:00:00Z`), not yet executed. This is a real partial E2E acceptance (ingest/scoring/negative plan gate); positive Plan creation for an eligible Need ≥60 and first scheduled run **not verified**. PR #36 open for final source review; Issue #35 remains open pending positive acceptance.
 
 ## Verified baseline (12 Nov 2026)
 - `WDE_Fetch_YouTube_Comments.flow-meta.xml` exists in the repository, calls YouTube and Groq External Services, and prepares/links `WDE_Audience_Signal__c` to `WDE_Audience_Need__c`.
@@ -30,7 +30,7 @@ Each metric is normalized to 0–100:
 
 Missing evidence should mark a score `Incomplete`; it must **not** silently produce a misleading low score. Define minimum-sample requirements and anti-spam treatment before production use.
 
-## Proposed additions to existing WDE_Audience_Need__c (NOT deployed)
+## Deployed additions to existing WDE_Audience_Need__c
 | Label | API Name | Type | Required | Unique | External ID | Default |
 |---|---|---|---|---|---|---|
 | HIVE Volume | `HIVE_Volume__c` | Number(5,2) | No | No | No | none |
@@ -44,7 +44,7 @@ Missing evidence should mark a score `Incomplete`; it must **not** silently prod
 
 Picklist options: `Incomplete` (default), `Ready`, `Insufficient Data`, `Error`. Components must be bounded 0–100 by validation or Flow normalization. The formula should only expose a score when the status is Ready and all five components are present.
 
-The live EntityDefinition query returned no custom Content Planning object. New object `WDE_Content_Plan__c` is proposed in feature branch only; deployment is not yet validated. The object uses a stable External ID to prevent duplicate proposals.
+Historical discovery initially found no Content Plan object; it was deployed successfully in WDE through `0Affj00000Yxp4YCAR` and verified by `SELECT COUNT()`. The object uses a stable External ID to prevent duplicate proposals.
 
 ## Flow-first implementation plan
 - Draft autolaunched `WDE_Recalculate_HIVE`: input Need ID, Get signals from 28-day window, count in memory, calculate Volume/Growth/Recency, and perform one record update outside loop; structured fault path; no callout.
@@ -60,10 +60,10 @@ The live EntityDefinition query returned no custom Content Planning object. New 
 5. Deploy only after successful validation, verify deployment ID, installed fields, active versions (without activating new Flow), and sample records.
 6. Record all evidence on Issue #35 and link commit/PR.
 
-## Current blocker
-Salesforce dry-run `0Affj00000Yt3g4CAB` failed with 13 component errors. Read-only query of 8 `PermissionSetAssignment` records for the connected CLI user confirmed `PermissionsCustomizeApplication=false` AND `PermissionsManageInteraction=false` on **all 8 assignments**, including the profile-owned PermissionSet; one permission set has `PermissionsModifyAllData=true`, but that does not grant the missing setup/Flow permissions. Account permission remediation requires explicit owner authorization and follow-up check-only. Evidence is saved on Issue #35.
+## Historical pre-remediation blocker (resolved)
+Historical Salesforce dry-run `0Affj00000Yt3g4CAB` failed with 13 component errors; this was later resolved, with a successful real 28-component deployment `0Affj00000Yxp4YCAR`. Read-only query of 8 `PermissionSetAssignment` records for the connected CLI user confirmed `PermissionsCustomizeApplication=false` AND `PermissionsManageInteraction=false` on **all 8 assignments**, including the profile-owned PermissionSet; one permission set has `PermissionsModifyAllData=true`, but that does not grant the missing setup/Flow permissions. Account permission remediation requires explicit owner authorization and follow-up check-only. Evidence is saved on Issue #35.
 
-## Proposed new custom object — WDE Content Plan (NOT deployed)
+## Deployed custom object — WDE Content Plan
 Object Label: **WDE Content Plan**; API Name: `WDE_Content_Plan__c`; plural: **WDE Content Plans**; Name standard Text; sharing ReadWrite; enable reports/search.
 
 | Field Label | API Name | Salesforce type | Required | Unique | External ID | Default/Relationship |
@@ -85,10 +85,10 @@ Object Label: **WDE Content Plan**; API Name: `WDE_Content_Plan__c`; plural: **W
 
 Platform options (all): **YouTube Shorts** (default), **Instagram Reels**, **Facebook Reels**, **Multi-platform**. Status options (all): **Proposed** (default), **Approved**, **In Production**, **Ready**, **Published**, **Rejected**, **Archived**. When creating a planning record through Flow, use the stable `Need_Key__c` as relationship resolution, never the human-readable `Name`.
 
-## Limitations to resolve before production
-- Existing Groq classification only returns `ID|CATEGORY|CONTEXT|END`: there is no legitimate intensity/quality numeric evidence yet. `WDE_Recalculate_HIVE` deliberately leaves these metrics unchanged and the evaluation state Incomplete until populated from a verified source. Do **not** fill them with guessed constants.
+## Historical limitations and current acceptance restrictions
+- Historically Groq returned `ID|CATEGORY|CONTEXT|END`; V1 now returns coded urgency/quality as described below, populated successfully in WDE, including 20-comment batch. `WDE_Recalculate_HIVE` deliberately leaves these metrics unchanged and the evaluation state Incomplete until populated from a verified source. Do **not** fill them with guessed constants.
 - Only YouTube Shorts proposal generation exists in the draft; script generation, media rendering, and distribution have not been implemented or tested.
-- Neither Flow has been activated. Need explicit orchestration/scheduler and bulk governor testing before operational rollout.
+- Both HIVE autolaunched Flows and the daily orchestration are now active. The first scheduled execution and positive content-creation path remain unverified. Need explicit orchestration/scheduler and bulk governor testing before operational rollout.
 - The reusable `### Sf Deploy` gateway in `.github/workflows/sf.yaml` checks out an immutable feature-branch commit SHA and the named manifest; use the current PR SHA and verify the resulting Salesforce deployment ID. Prior check-only failed because integration-user permissions are insufficient, not because source checkout is unavailable.
 
 ## Idempotent weekly Plan Key clarification
@@ -134,3 +134,19 @@ The existing **single Groq classification request** now requests `ID|CATEGORY|CO
 - Legacy signals without `HIVE_Evidence_Codes__c` remain `Incomplete` until safely reclassified from source. **Never backfill guessed numbers.** The old classification output `ID|CATEGORY|CONTEXT|END` is not valid V1 evidence.
 
 **Build manifest:** `manifest/wde-hive-rubric-pr35.xml` (1 CustomField, 2 Flows, read FLS PermissionSet). This phase must be validated before real deploy and live recrawl. Runtime invocation/activation and orchestration require separate verification after successful metadata compile. Existing Salesforce HIVE 28-component deployment `0Affj00000Yxp4YCAR` stays intact until the new manifest succeeds.
+
+## LIVE runtime and schedule acceptance — 13 Nov 2026
+
+**Target:** WDE Salesforce Developer Edition `00Dfj00000eVCOVEA4`, all actions via one Issue #35. No BFI org accessed.
+
+1. Metadata and Flow deployments: initial 28-component HIVE deployment `0Affj00000Yxp4YCAR`, V1 rubric/YouTube and Recalculate update `0Affj00000YyW9VCAV`, Recalculate persistence fix `0Affj00000YyjhpCAB`, ingest source object CRUD/FLS `0Affj00000Z0twPCAR`, Flow activation `0Affj00000YyaWUCAZ`, daily scheduler `0Affj00000Z108HCAR` (all Salesforce `Succeeded`, `checkOnly=false`).
+2. OAuth user permission sets for HIVE scoring/Content Plan creation and source ingest were deployed and assigned. Source ingest PermissionSet `WDE_Audience_Signal_Ingest_Write` provides object Read/Create/Edit (no Delete) and read/edit on nine Signal fields. Query of actual `FieldPermissions` confirmed 9/9 Read+Edit.
+3. Verified real YouTube/Groq ingest with `4SPC0Ke1Eyg`: one-comment POST succeeded, subsequent 10-comment batch created 6 / updated 1, 20-comment batch created 1 / updated 11. No duplicate key generation claimed. Rubric codes are saved per Signal; the most recent Need-grouped SOQL shows 3/3 code coverage for Finance, 4/6 for Health, other groups lack count or coverage. Calls are explicitly bounded; free-tier limits are provider-managed and not guaranteed.
+4. LIVE Recalculate on Need `a0Jfj000006RpcVEAS`, external key `NEED:FINANCE`: **`Ready`, score `54.54`**, volume `15`, intensity `33.33`, quality `77.78`, growth `100`, recency `92.86` (Salesforce record read immediately after Flow POST). Score is from real 28-day signals and classifier rubric, not fabricated or prefilled.
+5. LIVE Content Plan negative gates passed: `Incomplete` Health and `Ready` Finance below 60 both refused proposal, with Content Plan counts `0 → 0` and no outbound media publish. **Positive Content Plan creation/idempotent rerun on a genuine Need with score ≥60 is not yet testable**. Never lower threshold or populate fake Ready values to pass.
+6. Schedule timezone RCA: actual Salesforce `Organization.TimeZoneSidKey='Asia/Singapore'` (HTTP200). Scheduled-flow `startTime` uses org local time; integration user's timezone `America/Los_Angeles` is irrelevant. Original 02:00 org produced wrong next fire at 01:00 WIB. Corrected `WDE_Daily_HIVE_Planning` metadata to `<startTime>10:00:00.000Z</startTime>` (10:00 org = 09:00 WIB). Check-only `0Affj00000Z04qhCAB` succeeded, actual deployment `0Affj00000Z13sXCAR` succeeded. Post-deploy `CronTrigger` SOQL returned **exactly one** job `WDE_Daily_HIVE_Planning-2`, `State=WAITING`, `CronExpression='0 0 10 ? * * *'`, `NextFireTime='2026-11-13T02:00:00Z'` (**13 Nov 09:00 WIB**), `TimesTriggered=0`. 4/4 FlowDefinition `ActiveVersionId` non-null, equals latest.
+7. The HIVE scheduler processes existing Audience Needs only; it **does not fetch YouTube comments**. Comments must be ingested separately via the active YouTube/Groq Flow; the schedule recalculates and conditionally creates only `Proposed` Content Plan records. Original video creation/distribution are downstream, not delivered in this task.
+
+**Outstanding release acceptance:** observe first Salesforce `CronTrigger.TimesTriggered >= 1` and related Need HIVE state; verify fault logs if job errors; test real Need >=60 Content Plan creation and second invocation yielding no duplicate plan. Do not mark Issue #35 closed or claim full positive end-to-end functionality until these events have verified Salesforce evidence.
+
+Audit references: https://github.com/jimmytobing/Syntetic-Wisdom/issues/35#issuecomment-6836836767 (Ready 54.54), https://github.com/jimmytobing/Syntetic-Wisdom/issues/35#issuecomment-6836877188 (Plan gate), https://github.com/jimmytobing/Syntetic-Wisdom/issues/35#issuecomment-6837113489 (CronTrigger timezone), and all preceding Issue #35 comments for raw requests and responses.
