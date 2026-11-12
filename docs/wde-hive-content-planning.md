@@ -119,3 +119,18 @@ The unique `Plan_Key__c` is built from the immutable **Salesforce Need record ID
 4. Original AI script/video rendering/distribution are separate downstream phases and **not** implemented by this metadata release.
 
 **Do not claim E2E HIVE or Content Planning completed based solely on successful metadata deployment.**
+
+## HIVE rubric V1 — new development scope (#35)
+
+**Source build only until Salesforce check-only and runtime evidence are recorded.** New anonymous signal field `WDE_Audience_Signal__c.HIVE_Evidence_Codes__c`: Label *HIVE Evidence Codes*, Text(12), optional, not Unique, not External ID, blank default, no relationship. Values follow exactly `U0|Q1|V1` ... `U4|Q3|V1`; incomplete or unsupported codes are excluded, never scored as zero.
+
+The existing **single Groq classification request** now requests `ID|CATEGORY|CONTEXT|U0..U4|Q1..Q3|END`. The original comment is ephemeral input to Groq; the Flow stores no author names, raw comment, links, medical details or generated confidence probabilities. `Signal_Key__c` remains the stable reference to the original YouTube comment (source evidence). Re-crawling existing comments updates the same signal by `Signal_Key__c`, not a duplicate. No additional paid callout is introduced.
+
+- Urgency code `U0` means no urgency **expressed**; `U1` mild difficulty; `U2` ongoing burden; `U3` explicitly strong life impact; `U4` explicitly immediate severe distress. These are ordinal rubric classifications, not medical evaluations, danger diagnoses, or verified facts.
+- Evidence detail code `Q1`: actionable need with little context; `Q2`: clear problem plus context; `Q3`: need plus concrete impact. This metric represents observable information density, **not** calibrated AI confidence or personal trait inference. For ambiguous or non-actionable comments the classifier returns `SKIP`.
+- Normalization into HIVE components: `U0..U4` → 0,25,50,75,100; `Q1..Q3` → 33.33,66.67,100. Final metrics are means over the **full 28-day distinct signal set**. This is a model-derived *proxy* anchored to source comments; human review of samples is still needed to establish quality calibration.
+- `WDE_Recalculate_HIVE` requires at least 3 distinct actionable signals in 28 days **and 100% valid V1 rubric coverage** before setting `HIVE_Evaluation_Status__c=Ready`. Otherwise status is `Insufficient Data` or `Incomplete` and Intensity/Quality are explicitly cleared. This prevents a stale Ready formula from masking missing evidence.
+- Aggregation Flow does no callouts and performs only one DML update outside the loop. Automated publishing is not allowed; `WDE_Propose_Content_Plan` still creates `Proposed` only, subject to Ready and score ≥60.
+- Legacy signals without `HIVE_Evidence_Codes__c` remain `Incomplete` until safely reclassified from source. **Never backfill guessed numbers.** The old classification output `ID|CATEGORY|CONTEXT|END` is not valid V1 evidence.
+
+**Build manifest:** `manifest/wde-hive-rubric-pr35.xml` (1 CustomField, 2 Flows, read FLS PermissionSet). This phase must be validated before real deploy and live recrawl. Runtime invocation/activation and orchestration require separate verification after successful metadata compile. Existing Salesforce HIVE 28-component deployment `0Affj00000Yxp4YCAR` stays intact until the new manifest succeeds.
