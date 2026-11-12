@@ -65,8 +65,8 @@ operation.
 
 ## Security and audit
 
-- Authenticated actor and Issue creator must both be `jimmytobing`; repository
-  must be `jimmytobing/Syntetic-Wisdom`.
+- GitHub workflow actor and Issue creator must each be in the allowed set
+  `jimmytobing` or `098595`; repository must be `jimmytobing/Syntetic-Wisdom`.
 - Candidate is checked out by immutable full SHA with no persisted Git
   credentials; its scripts are **never executed** in the credentialed job.
 - The authentication script is loaded from trusted `main`, not feature code.
