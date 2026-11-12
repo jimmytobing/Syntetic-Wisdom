@@ -1,0 +1,225 @@
+import fs from 'node:fs/promises';
+
+// GitHub Issue-driven Salesforce PROD API gateway.
+// Validasi host/endpoint wajib sebelum memakai token. Jangan log credential.
+var instanceUrl = 'https://ptbfifinance.my.salesforce.com';
+var clientId = process.env.SF_CLIENT_ID;
+var clientSecret = process.env.SF_CLIENT_SECRET;
+var issueBody = process.env.ISSUE_BODY || '';
+
+function parseIssueRequest(text) {
+  var lines = text.split(/\r?\n/);
+  var headings = [];
+  for (var i = 0; i < lines.length; i++) {
+    if (/^### Sf Request\s*$/.test(lines[i])) headings.push(i);
+  }
+  if (headings.length !== 1) {
+    throw new Error('Body Issue harus memiliki tepat satu heading ### Sf Request.');
+  }
+  var section = [];
+  for (var line of lines.slice(headings[0] + 1)) {
+    if (/^#{1,3}\s+/.test(line)) break;
+    section.push(line);
+  }
+  var blocks = [];
+  var sectionText = section.join('\n');
+  var expression = /(?:^|\n)```json[ \t]*\n([\s\S]*?)\n```[ \t]*(?=\n|$)/gi;
+  var match = expression.exec(sectionText);
+  while (match) {
+    blocks.push(match[1]);
+    match = expression.exec(sectionText);
+  }
+  if (blocks.length !== 1 || Buffer.byteLength(blocks[0], 'utf8') > 12000) {
+    throw new Error('Section Sf Request wajib berisi satu code fence json maksimal 12 KB.');
+  }
+  var data;
+  try { data = JSON.parse(blocks[0]); }
+  catch { throw new Error('JSON pada section Sf Request tidak valid.'); }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Sf Request harus berupa JSON object.');
+  }
+  if (!data.options || typeof data.options !== 'object' || Array.isArray(data.options)) {
+    throw new Error('options harus berupa JSON object.');
+  }
+  return data;
+}
+
+function validateRequest(input) {
+  if (typeof input.url !== 'string') throw new Error('url wajib berupa string HTTPS.');
+  var url;
+  try { url = new URL(input.url); }
+  catch { throw new Error('URL request tidak valid.'); }
+  if (
+    url.protocol !== 'https:' ||
+    url.origin !== instanceUrl ||
+    url.username || url.password || url.hash ||
+    input.url.length > 2048
+  ) {
+    throw new Error('URL harus HTTPS Salesforce PROD dengan host yang disetujui.');
+  }
+  var method = (input.options.method || 'GET').toUpperCase();
+  if (!['GET', 'POST'].includes(method)) throw new Error('Hanya GET atau POST yang diizinkan.');
+  // Restrict GET to Salesforce REST read-only endpoints.
+  var readOnlyPath = /^\/services\/data\/v\d+\.\d+\/(?:query|queryAll|tooling\/query|tooling\/queryAll)(?:\/.*)?$/;
+  var approvedPostPath = '/services/apexrest/apigw/Expose_API_BFI_Leads_Report';
+  if (method === 'GET' && !readOnlyPath.test(url.pathname)) {
+    throw new Error('GET hanya diizinkan untuk endpoint REST query/tooling query.');
+  }
+  if (method === 'POST' && (url.pathname !== approvedPostPath || url.search)) {
+    throw new Error('POST hanya diizinkan ke endpoint Apex REST yang telah ditentukan.');
+  }
+
+  var rawHeaders = input.options.headers || {};
+  if (!rawHeaders || typeof rawHeaders !== 'object' || Array.isArray(rawHeaders)) {
+    throw new Error('options.headers harus berupa object.');
+  }
+  var headers = new Headers();
+  for (var [key, value] of Object.entries(rawHeaders)) {
+    if (!['accept', 'content-type'].includes(key.toLowerCase()) || typeof value !== 'string') {
+      throw new Error('Hanya header Accept dan Content-Type yang boleh ditentukan Issue.');
+    }
+    if (value.length > 150) throw new Error('Header terlalu panjang.');
+    headers.set(key, value);
+  }
+  if (method === 'GET' && input.options.body !== undefined) {
+    throw new Error('GET tidak menerima body.');
+  }
+  if (method === 'POST' && input.options.body !== undefined &&
+      (typeof input.options.body !== 'object' || input.options.body === null)) {
+    throw new Error('POST body harus berupa JSON object.');
+  }
+  if (method === 'POST' && !headers.has('content-type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  var body = method === 'POST' ? JSON.stringify(input.options.body === undefined ? {} : input.options.body) : undefined;
+  if (body && body.length > 10000) throw new Error('Request body terlalu besar.');
+  return { url, method, headers, body };
+}
+
+var MAX_RESPONSE_BYTES = 50000;
+var EVIDENCE_FILE = (process.env.RUNNER_TEMP || '/tmp') + '/sf-evidence.md';
+var maskKey = /(?:token|secret|password|authorization|credential|api[_-]?key)/i;
+
+function sanitize(value, secrets = [], depth = 0) {
+  if (depth > 15) return '[DEPTH_LIMIT]';
+  if (typeof value === 'string') {
+    var result = value;
+    for (var i = 0; i < secrets.length; i++) {
+      if (secrets[i]) result = result.split(secrets[i]).join('[HIDDEN]');
+    }
+    return result;
+  }
+  if (Array.isArray(value)) {
+    var list = [];
+    for (var i = 0; i < value.length; i++) list.push(sanitize(value[i], secrets, depth + 1));
+    return list;
+  }
+  if (value && typeof value === 'object') {
+    var result = {};
+    var keys = Object.keys(value);
+    for (var j = 0; j < keys.length; j++) {
+      var key = keys[j];
+      result[key] = maskKey.test(key) ? '[HIDDEN]' : sanitize(value[key], secrets, depth + 1);
+    }
+    return result;
+  }
+  return value;
+}
+
+function quoteShell(value) {
+  return "'" + String(value).split("'").join("'\\''") + "'";
+}
+
+async function readResponse(response) {
+  var length = Number(response.headers.get('content-length') || '0');
+  if (length > MAX_RESPONSE_BYTES) return { notice: 'Response body melebihi batas 50 KB dan tidak ditampilkan.' };
+  var content = await response.text();
+  if (Buffer.byteLength(content) > MAX_RESPONSE_BYTES) {
+    return { notice: 'Response body melebihi batas 50 KB dan tidak ditampilkan.' };
+  }
+  try { return JSON.parse(content); } catch { return { text: content }; }
+}
+
+async function writeEvidence(evidence) {
+  var parsed = evidence.parsed;
+  var response = evidence.response;
+  var data = evidence.data;
+  var error = evidence.error;
+  var secrets = evidence.secrets || [];
+  var issue = process.env.ISSUE_NUMBER || '?';
+  var status = response ? response.status : 'N/A';
+  var method = parsed ? parsed.method : 'N/A';
+  var url = parsed ? parsed.url.toString() : '(request belum valid)';
+  var lines = ['## SF API — BFI_PROD — Issue #' + issue, '',
+    'Status: **' + (error ? 'FAILED' : response && response.ok ? 'SUCCESS' : 'FAILED') + '** · HTTP ' + status + ' · Method ' + method, ''];
+  if (parsed) {
+    var soql = parsed.url.searchParams.get('q');
+    if (soql && /^\/services\/data\/v[0-9]+\.[0-9]+\/(?:query|tooling\/query)/.test(parsed.url.pathname)) {
+      lines.push('SOQL:', '```sql', soql, '```', '');
+    }
+    lines.push('<details>', '<summary>cURL (credential masked)</summary>', '', '```bash',
+      'curl --request ' + parsed.method + ' ' + quoteShell(url) + ' \\',
+      "  --header 'Authorization: Bearer [HIDDEN]'" + (parsed.body !== undefined ? ' \\' : ''));
+    if (parsed.body !== undefined) lines.push("  --header 'Content-Type: application/json' \\", '  --data ' + quoteShell(parsed.body));
+    lines.push('```', '', '</details>', '');
+  }
+  lines.push('### Response', '', '<details>', '<summary>Response JSON — HTTP ' + status + '</summary>', '');
+  if (error) {
+    lines.push('Error: `' + String(error.message || error).split('`').join("'") + '`', '');
+  }
+  lines.push('```json',
+    JSON.stringify(sanitize(data === undefined || data === null ? { notice: 'Tidak tersedia.' } : data, secrets), null, 2),
+    '```', '', '</details>', '');
+  var markdown = lines.join('\n');
+  markdown = sanitize(markdown, secrets);
+  if (Buffer.byteLength(markdown) > 55000) {
+    markdown = '## SF API — BFI_PROD — Issue #' + issue + '\n\nHTTP ' + status + '\n\nResponse terlalu besar untuk satu komentar; batasi query atau payload.';
+  }
+  await fs.writeFile(EVIDENCE_FILE, markdown, { mode: 0o600 });
+}
+
+async function main() {
+  var parsed;
+  var response;
+  var data;
+  var accessToken;
+  try {
+    parsed = validateRequest(parseIssueRequest(issueBody));
+    if (!clientId || !clientSecret) {
+      throw new Error('GitHub Secrets SF_CLIENT_ID / SF_CLIENT_SECRET belum lengkap.');
+    }
+    var auth = await fetch(instanceUrl + '/services/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret,
+      }),
+      redirect: 'error',
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!auth.ok) throw new Error('OAuth Salesforce gagal: HTTP ' + auth.status);
+    var tokenPayload = await auth.json();
+    accessToken = tokenPayload ? tokenPayload.access_token : null;
+    if (typeof accessToken !== 'string' || !accessToken) throw new Error('OAuth tidak memberikan access_token.');
+    if (process.env.GITHUB_ACTIONS === 'true') process.stdout.write('::add-mask::' + accessToken + '\n');
+
+    parsed.headers.set('Authorization', 'Bearer ' + accessToken);
+    response = await fetch(parsed.url, {
+      method: parsed.method,
+      headers: parsed.headers,
+      body: parsed.body,
+      redirect: 'error',
+      signal: AbortSignal.timeout(30000),
+    });
+    data = await readResponse(response);
+    await writeEvidence({ parsed, response, data, secrets: [clientId, clientSecret, accessToken] });
+    console.log('Issue #' + (process.env.ISSUE_NUMBER || '?') + ': ' + parsed.method + ' Salesforce PROD HTTP ' + response.status);
+    if (!response.ok) process.exitCode = 1;
+  } catch (error) {
+    console.error('SF API FAILED:', error.message);
+    await writeEvidence({ parsed, response, data, error, secrets: [clientId, clientSecret, accessToken] });
+    process.exitCode = 1;
+  }
+}
+
+await main();
