@@ -25,10 +25,15 @@ function parseRequest(body) {
   let req;
   try { req = JSON.parse(matches[0][1]); } catch { fail('JSON Sf Deploy tidak valid.'); }
   if (!req || Array.isArray(req) || typeof req !== 'object') fail('Request harus berupa JSON object.');
-  if (Object.keys(req).some(k => !['mode','commit','manifest'].includes(k))) fail('Parameter Sf Deploy tidak dikenal.');
+  if (Object.keys(req).some(k => !['mode','commit','manifest','preDestructiveChanges','postDestructiveChanges'].includes(k))) fail('Parameter Sf Deploy tidak dikenal.');
   if (!['validate','deploy'].includes(req.mode)) fail('mode hanya validate atau deploy.');
   if (typeof req.commit !== 'string' || !/^[a-f0-9]{40}$/.test(req.commit)) fail('commit wajib full 40-char SHA lowercase.');
   if (typeof req.manifest !== 'string' || !/^manifest\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,100}\.xml$/.test(req.manifest)) fail('manifest harus file XML di folder manifest/.');
+  for (const key of ['preDestructiveChanges', 'postDestructiveChanges']) {
+    if (req[key] !== undefined && (typeof req[key] !== 'string' || !/^manifest\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,100}\.xml$/.test(req[key]))) {
+      fail(key + ' harus menunjuk manifest/*.xml.');
+    }
+  }
   return req;
 }
 function gate() {
@@ -47,9 +52,9 @@ function inspectManifest(req) {
   if (!actual.startsWith(candidate + path.sep)) fail('Manifest di luar source.');
   const xml = fs.readFileSync(actual, 'utf8');
   if (xml.length > 30000 || !xml.includes('<Package xmlns="http://soap.sforce.com/2006/04/metadata">')) fail('Manifest tidak sesuai format metadata.');
-  if (xml.includes('<destructiveChanges') || xml.includes('<members>*</members>')) fail('Destructive/wildcard manifest tidak diizinkan.');
   const blocks = [...xml.matchAll(/<types>([\s\S]*?)<\/types>/g)];
-  if (blocks.length === 0) fail('Manifest types tidak valid.');
+  // Empty package.xml may accompany a destructive-only deployment.
+  if (blocks.length === 0 && !req.preDestructiveChanges && !req.postDestructiveChanges) fail('Manifest kosong tanpa destructive changes.');
   let count = 0;
   for (const [, content] of blocks) {
     const types = [...content.matchAll(/<name>([^<]+)<\/name>/g)].map(m=>m[1]);
@@ -57,16 +62,21 @@ function inspectManifest(req) {
     const members = [...content.matchAll(/<members>([^<]+)<\/members>/g)].map(m=>m[1]);
     if (members.length < 1 || members.length > 100) fail('Metadata member terlalu banyak.');
     for (const member of members) {
-      if (!/^[a-zA-Z][a-zA-Z0-9_./:-]{0,254}$/.test(member) || member.includes('..') || member.includes('//')) fail('Metadata member name tidak valid.');
-      if (types[0] === 'Flow') {
-        const f = path.join(candidate, 'force-app/main/default/flows', member + '.flow-meta.xml');
-        const content = fs.readFileSync(f, 'utf8');
-        if (!/<status>Draft<\/status>/.test(content) || /<status>Active<\/status>/.test(content)) fail('Hanya Flow Draft yang diizinkan.');
-      }
+      // Salesforce decides wildcard matching and metadata component names. Do not
+      // prevent Active Flows; activation/deactivation can be in the manifest source.
+      if (member.trim().length === 0 || member.length > 255) fail('Metadata member name tidak valid.');
     }
     count += members.length;
   }
   if (count > 120) fail('Jumlah metadata melebihi batas.');
+  for (const key of ['preDestructiveChanges', 'postDestructiveChanges']) {
+    if (req[key]) {
+      const file = path.resolve(candidate, req[key]);
+      if (!file.startsWith(candidate + path.sep)) fail('Destructive manifest di luar source.');
+      const content = fs.readFileSync(file, 'utf8');
+      if (!content.includes('<Package xmlns="http://soap.sforce.com/2006/04/metadata">')) fail('Destructive manifest bukan package.xml.');
+    }
+  }
   return { count, types: blocks.length, candidate };
 }
 function callSf(args, cwd, timeout=30000) {
@@ -121,6 +131,8 @@ try {
     const args=['project','deploy','start','--target-org','hdbsf','--manifest',req.manifest,
       '--test-level','NoTestRun','--wait','8','--json'];
     if(req.mode==='validate') args.splice(3,0,'--dry-run');
+    if(req.preDestructiveChanges) args.push('--pre-destructive-changes',req.preDestructiveChanges);
+    if(req.postDestructiveChanges) args.push('--post-destructive-changes',req.postDestructiveChanges);
     const {response,exitCode}=callSf(args,scope.candidate,570000);
     const result=summary(response,exitCode,req,scope);
     publish(result);
