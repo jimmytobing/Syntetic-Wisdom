@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises';
 
-// GitHub Issue-driven Salesforce PROD API gateway.
+// GitHub Issue-driven Salesforce WDE API gateway.
 // Validasi host/endpoint wajib sebelum memakai token. Jangan log credential.
-var instanceUrl = 'https://ptbfifinance.my.salesforce.com';
+var instanceUrl = (process.env.SF_INSTANCE_URL || '').trim().replace(/\/$/, '');
 var clientId = process.env.SF_CLIENT_ID;
 var clientSecret = process.env.SF_CLIENT_SECRET;
 var issueBody = process.env.ISSUE_BODY || '';
@@ -44,6 +44,21 @@ function parseIssueRequest(text) {
   return data;
 }
 
+function validateInstanceUrl() {
+  if (!instanceUrl) throw new Error('GitHub Variable SF_INSTANCE_URL belum disetel.');
+  var base;
+  try { base = new URL(instanceUrl); }
+  catch { throw new Error('SF_INSTANCE_URL bukan URL valid.'); }
+  if (base.protocol !== 'https:' || !base.hostname.endsWith('.my.salesforce.com') ||
+      base.username || base.password || base.pathname !== '/' || base.search || base.hash ||
+      base.origin !== instanceUrl) {
+    throw new Error('SF_INSTANCE_URL harus HTTPS My Domain Salesforce tanpa path/query.');
+  }
+  if (base.hostname === 'ptbfifinance.my.salesforce.com') {
+    throw new Error('SF_INSTANCE_URL masih mengarah ke BFI_PROD; gunakan domain org WDE.');
+  }
+}
+
 function validateRequest(input) {
   if (typeof input.url !== 'string') throw new Error('url wajib berupa string HTTPS.');
   var url;
@@ -55,7 +70,7 @@ function validateRequest(input) {
     url.username || url.password || url.hash ||
     input.url.length > 2048
   ) {
-    throw new Error('URL harus HTTPS Salesforce PROD dengan host yang disetujui.');
+    throw new Error('URL harus HTTPS Salesforce WDE dengan host yang disetujui.');
   }
   var method = (input.options.method || 'GET').toUpperCase();
   if (!['GET', 'POST'].includes(method)) throw new Error('Hanya GET atau POST yang diizinkan.');
@@ -150,7 +165,7 @@ async function writeEvidence(evidence) {
   var status = response ? response.status : 'N/A';
   var method = parsed ? parsed.method : 'N/A';
   var url = parsed ? parsed.url.toString() : '(request belum valid)';
-  var lines = ['## SF API — BFI_PROD — Issue #' + issue, '',
+  var lines = ['## SF API — WDE — Issue #' + issue, '',
     'Status: **' + (error ? 'FAILED' : response && response.ok ? 'SUCCESS' : 'FAILED') + '** · HTTP ' + status + ' · Method ' + method, ''];
   if (parsed) {
     var soql = parsed.url.searchParams.get('q');
@@ -173,7 +188,7 @@ async function writeEvidence(evidence) {
   var markdown = lines.join('\n');
   markdown = sanitize(markdown, secrets);
   if (Buffer.byteLength(markdown) > 55000) {
-    markdown = '## SF API — BFI_PROD — Issue #' + issue + '\n\nHTTP ' + status + '\n\nResponse terlalu besar untuk satu komentar; batasi query atau payload.';
+    markdown = '## SF API — WDE — Issue #' + issue + '\n\nHTTP ' + status + '\n\nResponse terlalu besar untuk satu komentar; batasi query atau payload.';
   }
   await fs.writeFile(EVIDENCE_FILE, markdown, { mode: 0o600 });
 }
@@ -184,6 +199,7 @@ async function main() {
   var data;
   var accessToken;
   try {
+    validateInstanceUrl();
     parsed = validateRequest(parseIssueRequest(issueBody));
     if (!clientId || !clientSecret) {
       throw new Error('GitHub Secrets SF_CLIENT_ID / SF_CLIENT_SECRET belum lengkap.');
@@ -213,7 +229,7 @@ async function main() {
     });
     data = await readResponse(response);
     await writeEvidence({ parsed, response, data, secrets: [clientId, clientSecret, accessToken] });
-    console.log('Issue #' + (process.env.ISSUE_NUMBER || '?') + ': ' + parsed.method + ' Salesforce PROD HTTP ' + response.status);
+    console.log('Issue #' + (process.env.ISSUE_NUMBER || '?') + ': ' + parsed.method + ' Salesforce WDE HTTP ' + response.status);
     if (!response.ok) process.exitCode = 1;
   } catch (error) {
     console.error('SF API FAILED:', error.message);
