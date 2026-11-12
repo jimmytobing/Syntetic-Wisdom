@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion>
+<description>Automatically start a deterministic batch segmentation run once a new transcript caption count is persisted. Only one first run per source; follow-on batches are handled by Tgr_WDE_Create_Next_Batch. AI validation failures stop instead of being auto-approved.</description>
+<interviewLabel>WDE Start Segmentation After Transcript {!$Flow.CurrentDateTime}</interviewLabel>
+<label>[Tgr] WDE Start Segmentation After Transcript</label>
+<processType>AutoLaunchedFlow</processType>
+<status>Active</status>
+<formulas><name>f_Run_Key</name><dataType>String</dataType><expression>&quot;WDE:&quot; &amp; {!$Record.External_Video_Id__c} &amp; &quot;:BATCH:1&quot;</expression></formulas>
+<formulas><name>f_Batch_Name</name><dataType>String</dataType><expression>LEFT(&quot;WDE Batch &quot; &amp; {!$Record.External_Video_Id__c} &amp; &quot; #1&quot;,80)</expression></formulas>
+<recordLookups><name>Get_Existing_First_Batch</name><label>Find first batch by stable key</label><locationX>0</locationX><locationY>0</locationY>
+<assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+<connector><targetReference>Check_Existing_Batch</targetReference></connector>
+<filterLogic>and</filterLogic><filters><field>Run_Key__c</field><operator>EqualTo</operator><value><elementReference>f_Run_Key</elementReference></value></filters>
+<getFirstRecordOnly>true</getFirstRecordOnly><object>WDE_Batch_Run__c</object><storeOutputAutomatically>true</storeOutputAutomatically></recordLookups>
+<decisions><name>Check_Existing_Batch</name><label>Prevent duplicate first batch</label><locationX>0</locationX><locationY>0</locationY>
+<defaultConnectorLabel>Already exists</defaultConnectorLabel>
+<rules><name>First_Batch_Missing</name><conditionLogic>and</conditionLogic>
+<conditions><leftValueReference>Get_Existing_First_Batch.Id</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
+<connector><targetReference>Create_First_Batch</targetReference></connector><label>Create once</label></rules></decisions>
+<recordCreates><name>Create_First_Batch</name><label>Create first pending segment batch</label><locationX>0</locationX><locationY>0</locationY>
+<inputAssignments><field>Name</field><value><elementReference>f_Batch_Name</elementReference></value></inputAssignments>
+<inputAssignments><field>Run_Key__c</field><value><elementReference>f_Run_Key</elementReference></value></inputAssignments>
+<inputAssignments><field>Sermon_Source__c</field><value><elementReference>$Record.Id</elementReference></value></inputAssignments>
+<inputAssignments><field>Sermon_Source_External_Key__c</field><value><elementReference>$Record.External_Video_Id__c</elementReference></value></inputAssignments>
+<inputAssignments><field>Batch_Number__c</field><value><numberValue>1.0</numberValue></value></inputAssignments>
+<inputAssignments><field>Start_Position__c</field><value><numberValue>1.0</numberValue></value></inputAssignments>
+<inputAssignments><field>Max_Batch_Characters__c</field><value><numberValue>6500.0</numberValue></value></inputAssignments>
+<inputAssignments><field>Retry_Count__c</field><value><numberValue>0.0</numberValue></value></inputAssignments>
+<inputAssignments><field>Approval_Mode__c</field><value><stringValue>AutoApproved</stringValue></value></inputAssignments>
+<inputAssignments><field>Auto_Approved__c</field><value><booleanValue>true</booleanValue></value></inputAssignments>
+<inputAssignments><field>Auto_Next_Enabled__c</field><value><booleanValue>true</booleanValue></value></inputAssignments>
+<inputAssignments><field>Status__c</field><value><stringValue>Pending</stringValue></value></inputAssignments>
+<object>WDE_Batch_Run__c</object></recordCreates>
+<start><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>Get_Existing_First_Batch</targetReference></connector>
+<doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+<filterLogic>and</filterLogic>
+<filters><field>Transcript_Caption_Count__c</field><operator>GreaterThan</operator><value><numberValue>0.0</numberValue></value></filters>
+<object>Sermon_Source__c</object><recordTriggerType>Update</recordTriggerType><triggerType>RecordAfterSave</triggerType></start>
+</Flow>
