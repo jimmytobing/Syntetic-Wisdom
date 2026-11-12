@@ -149,8 +149,8 @@ jobs:
   run-sf-deploy:
     if: >-
       github.repository == 'jimmytobing/Syntetic-Wisdom' &&
-      github.actor == 'jimmytobing' &&
-      github.event.issue.user.login == 'jimmytobing' &&
+      contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
+      contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
       contains(github.event.issue.body, '### Sf Deploy')
     permissions:
       contents: read
