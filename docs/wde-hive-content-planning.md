@@ -50,7 +50,7 @@ The live EntityDefinition query returned no custom Content Planning object. New 
 - Draft autolaunched `WDE_Recalculate_HIVE`: input Need ID, Get signals from 28-day window, count in memory, calculate Volume/Growth/Recency, and perform one record update outside loop; structured fault path; no callout.
 - Invoker: scheduled orchestration or explicit admin action; do not activate automatically.
 - Guard against concurrency: one effective calculation per Need at a time, idempotent update of result fields and timestamp.
-- Draft autolaunched `WDE_Propose_Content_Plan`: only create one YouTube Shorts weekly proposal when HIVE is Ready and score >=60; re-running checks stable Plan Key; human approval gate; no auto publish.
+- Draft autolaunched `WDE_Propose_Content_Plan`: only create one YouTube Shorts weekly proposal when HIVE is Ready and score >=60; the stable Plan Key uses the immutable 18-character Salesforce Need Id plus platform and week (not a possibly 255-character External Key); human approval gate; no auto publish.
 
 ## Release gate
 1. Retrieve actual object/field/Flow metadata from WDE and reconcile with source, including field visibility to integration user.
@@ -68,7 +68,7 @@ Object Label: **WDE Content Plan**; API Name: `WDE_Content_Plan__c`; plural: **W
 
 | Field Label | API Name | Salesforce type | Required | Unique | External ID | Default/Relationship |
 |---|---|---|---|---|---|---|
-| Plan Key | `Plan_Key__c` | Text(255) | No | Yes | Yes | none; immutable key `NEED_KEY\|YOUTUBE_SHORTS\|YYYY-MM-DD` |
+| Plan Key | `Plan_Key__c` | Text(255) | No | Yes | Yes | none; immutable per-org key `NEED_ID|YOUTUBE_SHORTS|YYYY-MM-DD` (44 characters, avoids truncating a 255-character Need External Key) |
 | Audience Need | `Audience_Need__c` | Lookup(WDE_Audience_Need__c) | No | No | No | On delete SetNull |
 | Need External Key | `Need_ExternalKey__c` | Text(255) | No | No | No | copy `Need_Key__c` for traceability |
 | Platform | `Platform__c` | Restricted Picklist | No | No | No | YouTube Shorts |
@@ -90,3 +90,7 @@ Platform options (all): **YouTube Shorts** (default), **Instagram Reels**, **Fac
 - Only YouTube Shorts proposal generation exists in the draft; script generation, media rendering, and distribution have not been implemented or tested.
 - Neither Flow has been activated. Need explicit orchestration/scheduler and bulk governor testing before operational rollout.
 - Branch is not the default checkout in `.github/workflows/sf.yaml`; checking out only main will **not** validate these branch-only metadata files. Use an approved branch-aware validation path; do not mislabel main validation as PR validation.
+
+## Idempotent weekly Plan Key clarification
+
+The unique `Plan_Key__c` is built from the immutable **Salesforce Need record ID** plus `|YOUTUBE_SHORTS|` and ISO week-start date. This prevents collisions/truncation if the external `Need_Key__c` is up to 255 characters. The full audience `Need_Key__c` is **also persisted separately** in `Need_ExternalKey__c` to support cross-org relationship mapping; the Plan Key guarantees uniqueness within this WDE org, not identical IDs across orgs. Do not resolve Audience Need by display `Name`.
