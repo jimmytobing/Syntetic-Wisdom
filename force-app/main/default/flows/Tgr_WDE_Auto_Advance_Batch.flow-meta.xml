@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion>
+<description>After Stage A or B reaches validated review status, asynchronously invoke WDE_Auto_Advance_Batch. No human approval; idempotent by status and nonempty AI output. Runs after commit, avoiding trigger recursion.</description>
+<interviewLabel>WDE Auto Advance Batch Trigger {!$Flow.CurrentDateTime}</interviewLabel>
+<label>[Tgr] WDE Auto Advance Batch</label>
+<processType>AutoLaunchedFlow</processType>
+<status>Active</status>
+<subflows><name>Advance_Batch</name><label>Advance validated AI result</label><locationX>0</locationX><locationY>0</locationY>
+<flowName>WDE_Auto_Advance_Batch</flowName>
+<inputAssignments><name>varS_BatchId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments></subflows>
+<ends><name>END_ELEMENT_1</name><locationX>0</locationX><locationY>0</locationY></ends>
+<start><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>END_ELEMENT_1</targetReference></connector>
+<doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+<filterLogic>1 OR 2</filterLogic>
+<filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>NeedsReview</stringValue></value></filters>
+<filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>NeedsCommitReview</stringValue></value></filters>
+<object>WDE_Batch_Run__c</object><recordTriggerType>CreateAndUpdate</recordTriggerType>
+<scheduledPaths><connector><targetReference>Advance_Batch</targetReference></connector><pathType>AsyncAfterCommit</pathType></scheduledPaths>
+<triggerType>RecordAfterSave</triggerType></start>
+</Flow>
