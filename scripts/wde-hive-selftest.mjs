@@ -125,6 +125,7 @@ test('scheduled orchestration recalculates each Need before considering idempote
   balancedTags(xml);referencesResolve(xml);
   assert.match(xml, /<triggerType>Scheduled<\/triggerType>/);
   assert.match(xml, /<frequency>Daily<\/frequency>/);
+  assert.match(xml, /<startTime>10:00:00\.000Z<\/startTime>/); // 10:00 org Asia/Singapore = 09:00 WIB
   assert.match(xml, /<object>WDE_Audience_Need__c<\/object>/);
   assert.match(xml, /<flowName>WDE_Recalculate_HIVE<\/flowName>/);
   assert.match(xml, /<flowName>WDE_Propose_Content_Plan<\/flowName>/);
