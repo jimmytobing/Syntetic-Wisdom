@@ -38,13 +38,13 @@
 </decisions>
 <decisions>
 <name>Video_Id_Valid</name><label>Skip empty or unavailable video ID</label><locationX>0</locationX><locationY>0</locationY>
-<defaultConnector><targetReference>Loop_Playlist_Items</targetReference></defaultConnector>
+<defaultConnector><targetReference>Loop_Playlist_Items</targetReference></defaultConnector><defaultConnectorLabel>Skip missing video ID</defaultConnectorLabel>
 <rules><name>Has_Video_Id</name><conditionLogic>and</conditionLogic>
 <conditions><leftValueReference>Loop_Playlist_Items.contentDetails.videoId</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
 <connector><targetReference>Get_Existing_Source</targetReference></connector><label>Valid</label></rules>
 </decisions>
 <decisions><name>Source_Exists</name><label>Idempotency check</label><locationX>0</locationX><locationY>0</locationY>
-<defaultConnector><targetReference>Prepare_New_Source</targetReference></defaultConnector>
+<defaultConnector><targetReference>Prepare_New_Source</targetReference></defaultConnector><defaultConnectorLabel>Not found</defaultConnectorLabel>
 <rules><name>Already_Exists</name><conditionLogic>and</conditionLogic>
 <conditions><leftValueReference>Get_Existing_Source.Id</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
 <connector><targetReference>Loop_Playlist_Items</targetReference></connector><label>Existing</label></rules>
