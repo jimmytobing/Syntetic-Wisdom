@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>HIVE_Evidence_Codes__c</fullName>
+    <description>Anon rubric tags U0-U4|Q1-Q3|V1. Generated from the original YouTube comment by Groq classifier, traceable through stable Signal_Key. Blank means evidence unavailable.</description>
+    <label>HIVE Evidence Codes</label>
+    <length>12</length>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <type>Text</type>
+    <unique>false</unique>
+    <externalId>false</externalId>
+</CustomField>
