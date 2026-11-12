@@ -30,7 +30,7 @@
 </actionCalls>
 <decisions>
 <name>Check_Playlist_Response</name><label>Require successful playlist response</label><locationX>0</locationX><locationY>0</locationY>
-<defaultConnector><targetReference>Set_Api_Error</targetReference></defaultConnector>
+<defaultConnector><targetReference>Set_Api_Error</targetReference></defaultConnector><defaultConnectorLabel>API error</defaultConnectorLabel>
 <rules><name>HTTP_OK</name><conditionLogic>and</conditionLogic>
 <conditions><leftValueReference>varN_ResponseCode</leftValueReference><operator>GreaterThanOrEqualTo</operator><rightValue><numberValue>200.0</numberValue></rightValue></conditions>
 <conditions><leftValueReference>varN_ResponseCode</leftValueReference><operator>LessThan</operator><rightValue><numberValue>300.0</numberValue></rightValue></conditions>
