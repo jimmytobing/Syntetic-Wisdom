@@ -181,10 +181,12 @@ jobs:
           persist-credentials: false
           path: candidate
       - name: Inspect candidate manifest and Draft-only Flow metadata
+        id: inspect
         if: steps.route.outcome == 'success'
         shell: bash
         run: node trusted/scripts/sf-deploy.mjs inspect
       - name: Install official Salesforce CLI (no npm)
+        id: install
         if: steps.route.outcome == 'success'
         shell: bash
         run: |
@@ -199,6 +201,7 @@ jobs:
           echo "$CLI_DIR/bin" >> "$GITHUB_PATH"
           "$CLI_DIR/bin/sf" --version
       - name: Authenticate CLI using trusted gateway script
+        id: auth
         if: steps.route.outcome == 'success'
         shell: bash
         env:
@@ -210,6 +213,29 @@ jobs:
         if: steps.route.outcome == 'success'
         shell: bash
         run: node trusted/scripts/sf-deploy.mjs run
+      - name: Prepare evidence if CLI or checkout failed before execution
+        if: always()
+        shell: bash
+        env:
+          ROUTE_OUTCOME: ${{ steps.route.outcome }}
+          INSPECT_OUTCOME: ${{ steps.inspect.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          AUTH_OUTCOME: ${{ steps.auth.outcome }}
+          EXECUTE_OUTCOME: ${{ steps.execute.outcome }}
+        run: |
+          set -euo pipefail
+          FILE="$RUNNER_TEMP/sf-deploy-evidence.md"
+          if [[ ! -s "$FILE" ]]; then
+            {
+              echo "## Sf Deploy — WDE — Issue $ISSUE_NUMBER"
+              echo
+              echo "Status: **FAILED before Salesforce result**"
+              echo
+              echo "preflight=$ROUTE_OUTCOME; inspect=$INSPECT_OUTCOME; cli_install=$INSTALL_OUTCOME; auth=$AUTH_OUTCOME; execute=$EXECUTE_OUTCOME"
+              echo
+              echo "See job logs. No Salesforce deployment success is claimed."
+            } > "$FILE"
+          fi
       - name: Upload sanitized Sf Deploy evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
