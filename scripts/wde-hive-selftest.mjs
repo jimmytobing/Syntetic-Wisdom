@@ -35,14 +35,14 @@ function aggregate(signals, today='2026-11-12') {
   const reference=Date.parse(today+'T00:00:00Z'), dedup=new Map();
   for (const item of signals) {
     const age=(reference-Date.parse(item.date+'T00:00:00Z'))/86400000;
-    if(item.key && Number.isInteger(age) && age>=0 && age<28 && !dedup.has(item.key)) dedup.set(item.key,age);
+    if(item.key && Number.isInteger(age) && age>=0 && age<28 && !dedup.has(item.key)) dedup.set(item.key,{age,evidence:item.evidence||null});
   }
-  const ages=[...dedup.values()], volume=ages.length;
+  const ages=[...dedup.values()].map(x=>x.age), volume=ages.length;
   const last7=ages.filter(age=>age<7).length;
   const prev7=ages.filter(age=>age>=7&&age<14).length;
   const growth=last7===0?0:prev7===0?100:Math.min(100,Math.max(0,50+50*(last7-prev7)/prev7));
   const recency=volume===0?0:Math.max(0,100-100*Math.min(...ages)/28);
-  return {volume,last7,prev7,normalizedVolume:Math.min(100,volume*5),growth,recency,status:volume<3?'Insufficient Data':'Incomplete'};
+  return {volume,last7,prev7,normalizedVolume:Math.min(100,volume*5),growth,recency,status:volume<3?'Insufficient Data':([...dedup.values()].every(x=>x.evidence && /^U[0-4]\\|Q[1-3]\\|V1$/.test(x.evidence))?'Ready':'Incomplete')};
 }
 for (const name of flowNames) {
   test(name + ' is draft, well-formed, connected, and callout-free', () => {
@@ -87,7 +87,35 @@ test('content plan has stable unique External ID and human review status',()=>{
 });
 test('HIVE DML is outside source record loop',()=>{
   const xml=read('flows/WDE_Recalculate_HIVE.flow-meta.xml');
-  assert.match(xml, /<noMoreValuesConnector><targetReference>Prepare_Need_Update<\/targetReference><\/noMoreValuesConnector>/);
+  assert.match(xml, /<noMoreValuesConnector><targetReference>Evidence_Sufficient<\/targetReference><\/noMoreValuesConnector>/);
+  assert.match(xml, /<name>Clear_Unverified_Rubric<\/name>/);
+  assert.match(xml, /<name>Set_Evidence_Averages<\/name>/);
   assert.equal([...xml.matchAll(/<recordUpdates>/g)].length,1);
   assert.equal([...xml.matchAll(/<recordCreates>/g)].length,0);
+});
+
+test('HIVE rubric is strictly evidence-backed and does not create false Ready scores', () => {
+  const ingest=read('flows/WDE_Fetch_YouTube_Comments.flow-meta.xml');
+  const hive=read('flows/WDE_Recalculate_HIVE.flow-meta.xml');
+  const evidenceField=read('objects/WDE_Audience_Signal__c/fields/HIVE_Evidence_Codes__c.field-meta.xml');
+  balancedTags(ingest); referencesResolve(ingest); balancedTags(hive); balancedTags(evidenceField);
+  assert.match(ingest, /ID\|CATEGORY\|CONTEXT\|U0\.\.U4\|Q1\.\.Q3\|END/);
+  assert.match(ingest, /<name>f_HIVE_EvidenceCodes<\/name>/);
+  assert.match(ingest, /varR_CurrentSignal\.HIVE_Evidence_Codes__c/);
+  assert.match(hive, /<name>f_RubricIsValid<\/name>/);
+  assert.match(hive, /<name>Evidence_Sufficient<\/name>/);
+  assert.match(hive, /<name>Clear_Unverified_Rubric<\/name>/);
+  assert.match(hive, /<name>varN_EvidencedCount<\/name>/);
+  assert.match(hive, /<name>f_AverageIntensity<\/name>/);
+  assert.match(hive, /<name>f_AverageQuality<\/name>/);
+  const latest=[
+    {key:'a',date:'2026-11-12',evidence:'U3|Q3|V1'},
+    {key:'b',date:'2026-11-11',evidence:'U1|Q1|V1'},
+    {key:'c',date:'2026-11-10',evidence:'U0|Q2|V1'}
+  ];
+  assert.equal(aggregate(latest).status,'Ready');
+  assert.equal(aggregate(latest.map((v,i)=>i===1?{...v,evidence:null}:v)).status,'Incomplete');
+  assert.equal(aggregate(latest.map((v,i)=>i===0?{...v,evidence:'U4|Q0|V1'}:v)).status,'Incomplete');
+  assert.equal(aggregate(latest.slice(0,2)).status,'Insufficient Data');
+  assert.doesNotMatch(ingest, /Never store raw comment text on a Signal/); // absence is not proof of privacy; inspect field assignments separately
 });
