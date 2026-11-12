@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>HIVE_Volume__c</fullName>
+    <description>Normalized 0-100 volume metric for WDE HIVE scoring; populated only by a verified aggregation process.</description>
+    <label>HIVE Volume</label>
+    <precision>5</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <type>Number</type>
+</CustomField>
