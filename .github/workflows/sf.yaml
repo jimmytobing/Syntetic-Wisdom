@@ -1,4 +1,4 @@
-name: SF - Salesforce PROD API (Issue request)
+name: SF - WDE API (Issue request)
 
 on:
   issues:
@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      SF_CLIENT_ID: ${{ secrets.SF_BFI_PROD_CLIENT_ID || secrets.SF_CLIENT_ID }}
-      SF_CLIENT_SECRET: ${{ secrets.SF_BFI_PROD_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
+      SF_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID || secrets.SF_CLIENT_ID }}
+      SF_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
       ISSUE_BODY: ${{ github.event.issue.body }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       GH_TOKEN: ${{ github.token }}
@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node sf.mjs
+          node scripts/sf.mjs
       - name: Publish result in the same Issue
         if: always() && steps.route.outputs.valid == 'true' && steps.jim.outcome != 'skipped'
         shell: bash
@@ -102,7 +102,7 @@ jobs:
         id: bash
         if: steps.route.outputs.valid == 'true'
         shell: bash
-        run: node jim-bash.mjs
+        run: node scripts/sf-bash.mjs
       - name: Upload Sf Bash evidence
         if: always() && steps.route.outputs.valid == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
