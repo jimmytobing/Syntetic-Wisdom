@@ -10,6 +10,7 @@
 <processType>AutoLaunchedFlow</processType>
 <status>Active</status>
 <subflows><name>Advance_Batch</name><label>Advance validated AI result</label><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>END_ELEMENT_1</targetReference></connector>
 <flowName>WDE_Auto_Advance_Batch</flowName>
 <inputAssignments><name>varS_BatchId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments></subflows>
 <ends><name>END_ELEMENT_1</name><locationX>0</locationX><locationY>0</locationY></ends>
