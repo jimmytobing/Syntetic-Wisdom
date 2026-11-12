@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+<types>
+<members>Tgr_WDE_Run_Stage_A</members>
+<members>Tgr_WDE_Run_Stage_B</members>
+<members>Tgr_WDE_Run_Stage_C</members>
+<members>WDE_Enrich_Approved_Boundaries</members>
+<members>WDE_Persist_Reviewed_Segments</members>
+<members>Tgr_WDE_Create_Next_Batch</members>
+<members>Tgr_WDE_Start_Segmentation_After_Transcript</members>
+<members>WDE_Semantic_Segmentation_Batch</members>
+<name>Flow</name>
+</types>
+<version>68.0</version>
+</Package>
