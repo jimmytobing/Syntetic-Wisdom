@@ -91,7 +91,7 @@
             <label>Has_Remaining_Text</label>
         </rules>
     </decisions>
-    <description>Pilot auto-next batch: creates at most one Pending successor only after explicit Auto_Next_Enabled__c and Completed; guards source length, duplicate Run_Key, and open segment. Next record Auto_Next_Enabled__c=false. Keep Draft until verified.</description>
+    <description>Pilot auto-next batch: creates at most one Pending successor only after Auto_Next_Enabled__c and Completed; guards source length, duplicate Run_Key, and open segment. Next record Auto_Next_Enabled__c=true, continuing after validated completion. Keep Draft until verified.</description>
     <ends>
         <name>END_ELEMENT_2</name>
         <locationX>0</locationX>
@@ -157,19 +157,19 @@
         <inputAssignments>
             <field>Approval_Mode__c</field>
             <value>
-                <stringValue>ReviewBeforeCommit</stringValue>
+                <stringValue>AutoApproved</stringValue>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Auto_Approved__c</field>
             <value>
-                <booleanValue>false</booleanValue>
+                <booleanValue>true</booleanValue>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Auto_Next_Enabled__c</field>
             <value>
-                <booleanValue>false</booleanValue>
+                <booleanValue>true</booleanValue>
             </value>
         </inputAssignments>
         <inputAssignments>
