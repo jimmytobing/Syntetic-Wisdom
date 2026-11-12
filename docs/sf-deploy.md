@@ -59,9 +59,32 @@ another deployment: inspect the previous run and its Salesforce deployment ID
 before editing the Issue again. A comment alone does not trigger the workflow.
 `"mode": "validate"` remains the safe check-only option.
 
-**Flow safeguard:** The gateway continues to permit deployment of Flow
-metadata only with `<status>Draft</status>`. Flow activation is a separate
-operation.
+**Flow status:** Gateway tidak membatasi `<status>` Flow. Jika metadata
+memuat `Active`, Salesforce dapat mengaktifkan versi Flow sesuai kemampuan
+Metadata API dan izin user. Tinjau dampak Flow sebelum `deploy`.
+
+## Pre/post destructive changes
+
+Untuk menghapus metadata melalui Salesforce Metadata API, gunakan opsi
+`preDestructiveChanges` dan/atau `postDestructiveChanges` pada request yang
+sama. Setiap opsi menunjuk ke file `manifest/*.xml` dalam commit SHA yang
+sama. Gateway meneruskannya ke CLI melalui `--pre-destructive-changes` dan
+`--post-destructive-changes`. File manifest utama boleh berisi package kosong
+untuk operasi penghapusan saja.
+
+```json
+{
+  "mode": "validate",
+  "commit": "<full verified 40-char SHA>",
+  "manifest": "manifest/package.xml",
+  "postDestructiveChanges": "manifest/destructiveChangesPost.xml"
+}
+```
+
+Untuk eksekusi nyata, ubah `mode` menjadi `deploy`. Tidak ada approval
+tambahan atau pembatasan destructive di gateway; **perubahan dan penghapusan
+metadata dapat tidak bisa dibatalkan**. Periksa isi kedua manifest dan verifikasi
+hasil operasi yang lalu sebelum mengedit Issue lagi.
 
 ## Security and audit
 
@@ -72,10 +95,10 @@ operation.
 - The authentication script is loaded from trusted `main`, not feature code.
 - Salesforce instance is checked against the exact WDE URL; **Org ID and
   edition are queried from Salesforce** immediately before metadata operation.
-- The manifest path remains limited to `manifest/*.xml` without wildcard or
-  destructiveChanges. **All Salesforce Metadata API types** are accepted by
-  the gateway (no `ALLOWED_TYPES` list); support for each individual type is
-  determined by the actual Salesforce Metadata API. Flow remains Draft-only.
+- Manifest dapat memakai wildcard (`*`) untuk komponen yang didukung Salesforce.
+  **Semua Salesforce Metadata API types** diterima gateway tanpa `ALLOWED_TYPES`.
+  Tidak ada pembatasan status Flow (`Draft`/`Active`) atau pembatasan destructive
+  changes. Dukungan aktual tetap ditentukan oleh Salesforce.
 - No GitHub token is passed to the Salesforce execution job; evidence is
   published from a **separate job** with `issues: write` and no Salesforce
   credentials.
@@ -83,9 +106,9 @@ operation.
   Issue per query, validation or deployment attempt.
 - Do not claim success from workflow status alone; inspect the Salesforce
   deployment ID, status, checkOnly and component/test errors.
-- This gateway runs metadata validation or deployment only. It does not perform
-  record DML, video generation, Flow activation, or end-to-end business verification.
-  Deploying metadata can itself change permissions, automation, and org behavior.
+- Gateway menjalankan metadata validation atau deployment; deployment dapat
+  mengaktifkan Flow, menghapus metadata, dan mengubah permission/automation.
+  Tidak melakukan record DML terpisah, video generation, atau verifikasi bisnis.
 
 For rejected requests, inspect the failure evidence and correct the Issue body;
 do not blindly repeat a deployment request without checking its prior effects.
