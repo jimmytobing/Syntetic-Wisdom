@@ -94,3 +94,10 @@ Platform options (all): **YouTube Shorts** (default), **Instagram Reels**, **Fac
 ## Idempotent weekly Plan Key clarification
 
 The unique `Plan_Key__c` is built from the immutable **Salesforce Need record ID** plus `|YOUTUBE_SHORTS|` and ISO week-start date. This prevents collisions/truncation if the external `Need_Key__c` is up to 255 characters. The full audience `Need_Key__c` is **also persisted separately** in `Need_ExternalKey__c` to support cross-org relationship mapping; the Plan Key guarantees uniqueness within this WDE org, not identical IDs across orgs. Do not resolve Audience Need by display `Name`.
+
+## Live Audience Signal field visibility investigation (12 Nov 2026)
+
+- A 28-day aggregate SOQL on `WDE_Audience_Signal__c.Signal_Date__c` returned HTTP 400 `INVALID_FIELD` to the OAuth integration user (Issue #35 evidence comment `6817694437`). This alone **does not prove that the field is missing**.
+- `sf project retrieve start --target-org hdbsf --metadata CustomField:WDE_Audience_Signal__c.Signal_Date__c --wait 1 --json` succeeded (`status=Succeeded`, one file) against WDE Org ID `00Dfj00000eVCOVEA4` (Issue comment `6817719270`). **Field existence is verified.**
+- `FieldPermissions` SOQL returned one FLS grant for the field, belonging to profile-owned PermissionSet `X00ex00000018ozh_128_09_04_12_1`, not the integration user's assigned profile-owned PermissionSet `X00e1P000000RmH5QAK` and not any of the seven assigned named sets. The OAuth integration user's effective field read visibility is **LIKELY** blocked; verify the assignment intersection before changing FLS. Evidence comment `6817731771`.
+- The integration user must have read access to `Signal_Date__c`, `Signal_Key__c`, `WDE_Audience_Need__c` (and any additional fields used by HIVE) in addition to approved setup/Flow deployment permissions. Re-run the original aggregate read-only query after permission remediation, **before** computing HIVE on live data.
