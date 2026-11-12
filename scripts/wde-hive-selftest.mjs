@@ -20,7 +20,7 @@ function balancedTags(xml) {
 }
 function referencesResolve(xml) {
   const elements = new Set(
-    [...xml.matchAll(/<(?:assignments|decisions|recordLookups|recordCreates|recordUpdates|loops)>\s*<name>([^<]+)<\/name>/g)]
+    [...xml.matchAll(/<(?:actionCalls|assignments|decisions|recordLookups|recordCreates|recordUpdates|loops|subflows)>\s*<name>([^<]+)<\/name>/g)]
       .map(m => m[1])
   );
   for (const [, target] of xml.matchAll(/<targetReference>([^<]+)<\/targetReference>/g)) {
