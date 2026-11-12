@@ -37,30 +37,31 @@ latest desired candidate before using it.
 the Salesforce validation succeeded: confirm the Issue evidence shows
 `status=Succeeded`, `success=true`, and `checkOnly=true`.
 
-## Deploy (disabled by default)
+## Deploy (enabled by default)
 
-Only after a successful check-only run on the **same SHA**, explicit
-release authorization, and reviewing dependency/impact:
+When an authorized GitHub actor explicitly selects `"mode": "deploy"` in the
+existing Issue, the gateway performs a Salesforce metadata deployment to the
+verified WDE org. There is **no separate approval string or repository-variable
+feature flag**.
 
 ```json
 {
   "mode": "deploy",
   "commit": "<full verified 40-char SHA>",
-  "manifest": "manifest/wde-hive-pr35.xml",
-  "approval": "DEPLOY WDE 00Dfj00000eVCOVEA4"
+  "manifest": "manifest/wde-hive-pr35.xml"
 }
 ```
 
-Deployment additionally requires the protected **GitHub repository variable**
-`WDE_DEPLOY_ENABLED=true`. Without it, the script refuses deployment.
-An Issue comment without changing its active body does not trigger deployment.
-Do not enable the variable routinely. Review and disable it after approved
-release. Every deployment request is a Salesforce mutation and must be explicitly
-authorized in its Issue.
+**Important:** `deploy` is a mutating operation. Do not select this mode for
+investigation or unreviewed changes. Validate the same commit first when
+practical. Repeated Issue edits while `mode=deploy` is active can start
+another deployment: inspect the previous run and its Salesforce deployment ID
+before editing the Issue again. A comment alone does not trigger the workflow.
+`"mode": "validate"` remains the safe check-only option.
 
-**This gateway never activates a Flow**: manifests containing Flow metadata
-must reference source with `<status>Draft</status>`. Flow activation requires
-a separate explicitly authorized release process.
+**Flow safeguard:** The gateway continues to permit deployment of Flow
+metadata only with `<status>Draft</status>`. Flow activation is a separate
+operation.
 
 ## Security and audit
 
@@ -71,9 +72,10 @@ a separate explicitly authorized release process.
 - The authentication script is loaded from trusted `main`, not feature code.
 - Salesforce instance is checked against the exact WDE URL; **Org ID and
   edition are queried from Salesforce** immediately before metadata operation.
-- The manifest path is limited to `manifest/*.xml`; no wildcard or
-  destructiveChanges. Supported metadata types: `CustomObject`,
-  `CustomField`, `ValidationRule`, and `Flow` (Draft only).
+- The manifest path remains limited to `manifest/*.xml` without wildcard or
+  destructiveChanges. **All Salesforce Metadata API types** are accepted by
+  the gateway (no `ALLOWED_TYPES` list); support for each individual type is
+  determined by the actual Salesforce Metadata API. Flow remains Draft-only.
 - No GitHub token is passed to the Salesforce execution job; evidence is
   published from a **separate job** with `issues: write` and no Salesforce
   credentials.
@@ -81,8 +83,9 @@ a separate explicitly authorized release process.
   Issue per query, validation or deployment attempt.
 - Do not claim success from workflow status alone; inspect the Salesforce
   deployment ID, status, checkOnly and component/test errors.
-- This flow does not perform data DML, test invocations, video generation,
-  Flow activation, or end-to-end business verification.
+- This gateway runs metadata validation or deployment only. It does not perform
+  record DML, video generation, Flow activation, or end-to-end business verification.
+  Deploying metadata can itself change permissions, automation, and org behavior.
 
 For rejected requests, inspect the failure evidence and correct the Issue body;
 do not blindly repeat a deployment request without checking its prior effects.
