@@ -4,6 +4,9 @@
 <description>After Stage A or B reaches validated review status, asynchronously invoke WDE_Auto_Advance_Batch. No human approval; idempotent by status and nonempty AI output. Runs after commit, avoiding trigger recursion.</description>
 <interviewLabel>WDE Auto Advance Batch Trigger {!$Flow.CurrentDateTime}</interviewLabel>
 <label>[Tgr] WDE Auto Advance Batch</label>
+<processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+<processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
+<processMetadataValues><name>OriginBuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
 <processType>AutoLaunchedFlow</processType>
 <status>Active</status>
 <subflows><name>Advance_Batch</name><label>Advance validated AI result</label><locationX>0</locationX><locationY>0</locationY>
