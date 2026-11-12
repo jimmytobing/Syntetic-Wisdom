@@ -1,0 +1,155 @@
+name: WDE PR35 — trusted check-only validation
+
+# Fixed-source, owner-authorized validation. Never execute feature-branch code with secrets.
+on:
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wde-pr35-validate
+  cancel-in-progress: false
+
+jobs:
+  source-selftest:
+    if: >-
+      github.repository == 'jimmytobing/Syntetic-Wisdom' &&
+      github.actor == 'jimmytobing' &&
+      github.event.issue.user.login == 'jimmytobing' &&
+      github.event.issue.number == 35 &&
+      contains(github.event.issue.body, '### WDE Validate PR35')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout pinned candidate WITHOUT persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: d3a5be5a5f01c777a235067d42cff77a86eba68a
+          persist-credentials: false
+      - name: Test untrusted source in NO-SECRETS job
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test scripts/wde-hive-selftest.mjs
+
+  wde-metadata-checkonly:
+    needs: source-selftest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted main code, without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+          path: trusted
+      - name: Checkout PINNED candidate metadata only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: d3a5be5a5f01c777a235067d42cff77a86eba68a
+          persist-credentials: false
+          path: candidate
+      - name: Validate exact WDE configured instance
+        shell: bash
+        env:
+          SF_INSTANCE_URL: ${{ vars.SF_INSTANCE_URL }}
+        run: |
+          set -euo pipefail
+          test "${SF_INSTANCE_URL%/}" = "https://hdbsf-dev-ed.develop.my.salesforce.com"
+      - name: Install official Salesforce CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          CLI_DIR="$RUNNER_TEMP/wde-sf-cli"
+          CLI_TAR="$RUNNER_TEMP/sf-linux-x64.tar.xz"
+          mkdir -p "$CLI_DIR"
+          CLI_URL="https://developer.salesforce.com/media/salesforce-cli/sf/versions/2.159.5/9d74d04/sf-v2.159.5-9d74d04-linux-x64.tar.xz"
+          curl --fail --silent --show-error --location --retry 2 --connect-timeout 10 --max-time 90 "$CLI_URL" -o "$CLI_TAR"
+          tar -xJf "$CLI_TAR" -C "$CLI_DIR" --strip-components 1
+          rm -f "$CLI_TAR"
+          echo "$CLI_DIR/bin" >> "$GITHUB_PATH"
+          "$CLI_DIR/bin/sf" --version
+      - name: Authenticate using TRUSTED main script only
+        shell: bash
+        env:
+          SF_INSTANCE_URL: ${{ vars.SF_INSTANCE_URL }}
+          SF_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID || secrets.SF_CLIENT_ID }}
+          SF_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          node trusted/scripts/sf-cli-auth.mjs
+      - name: Verify LIVE Org ID before touching metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          sf data query --target-org hdbsf --query "SELECT Id FROM Organization LIMIT 1" --json > "$RUNNER_TEMP/wde-org.json"
+          node -e 'const r=require(process.argv[1]); if(r.status!==0 || r.result.records.length!==1 || r.result.records[0].Id!=="00Dfj00000eVCOVEA4") process.exit(1); console.log("VERIFIED WDE Org ID 00Dfj00000eVCOVEA4");' "$RUNNER_TEMP/wde-org.json"
+      - name: Check-only deployment of fixed PR35 manifest
+        id: validate
+        shell: bash
+        working-directory: candidate
+        run: |
+          set +e
+          sf project deploy start --target-org hdbsf --dry-run --manifest manifest/wde-hive-pr35.xml --test-level NoTestRun --wait 10 --json > "$RUNNER_TEMP/wde-pr35-result.json"
+          EXIT_CODE=$?
+          set -e
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          node -e '
+            const fs=require("node:fs");
+            const p=process.argv[1], md=process.argv[2];
+            let j; try { j=JSON.parse(fs.readFileSync(p,"utf8")); }
+            catch { j={status:1,result:{status:"Unparseable"}}; }
+            const r=j.result||{};
+            const failures=[...(Array.isArray(r.details?.componentFailures)?r.details.componentFailures:r.details?.componentFailures?[r.details.componentFailures]:[])].slice(0,15).map(f=>({
+              componentType:String(f.componentType||"").slice(0,60),
+              fullName:String(f.fullName||"").slice(0,180),
+              problemType:String(f.problemType||"").slice(0,60),
+              problem:String(f.problem||"").slice(0,350)
+            }));
+            const summary={status:r.status||"Unknown",checkOnly:r.checkOnly===true,id:r.id||null,success:r.success===true,
+              componentErrors:r.numberComponentErrors??null,componentTotal:r.numberComponentsTotal??null,
+              testFailures:r.numberTestErrors??null,failures};
+            fs.writeFileSync(md,"## WDE PR35 fixed-SHA check-only\n\n```json\n"+JSON.stringify(summary,null,2)+"\n```\n");
+            console.log(JSON.stringify(summary));
+          ' "$RUNNER_TEMP/wde-pr35-result.json" "$RUNNER_TEMP/wde-pr35-evidence.md"
+          test "$EXIT_CODE" -eq 0
+      - name: Upload minimal sanitized validation evidence
+        if: always() && steps.validate.outcome != 'skipped'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: wde-pr35-checkonly-${{ github.run_id }}
+          path: ${{ runner.temp }}/wde-pr35-evidence.md
+          if-no-files-found: warn
+          retention-days: 1
+
+  publish-evidence:
+    needs: wde-metadata-checkonly
+    if: always() && needs.wde-metadata-checkonly.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      issues: write
+    steps:
+      - name: Download sanitized evidence
+        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4
+        with:
+          name: wde-pr35-checkonly-${{ github.run_id }}
+          path: ${{ runner.temp }}/result
+      - name: Publish only summary into Issue #35
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ -s "$RUNNER_TEMP/result/wde-pr35-evidence.md" ]]; then
+            gh issue comment 35 --repo "jimmytobing/Syntetic-Wisdom" --body-file "$RUNNER_TEMP/result/wde-pr35-evidence.md"
+          else
+            echo "No validated evidence available; see workflow job logs." >&2
+            exit 1
+          fi
