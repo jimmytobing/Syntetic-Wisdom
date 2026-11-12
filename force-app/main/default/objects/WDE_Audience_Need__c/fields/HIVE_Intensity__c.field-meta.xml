@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>HIVE_Intensity__c</fullName>
+    <description>Normalized 0-100 intensity metric for WDE HIVE scoring; populated only by a verified aggregation process.</description>
+    <label>HIVE Intensity</label>
+    <precision>5</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <type>Number</type>
+</CustomField>
