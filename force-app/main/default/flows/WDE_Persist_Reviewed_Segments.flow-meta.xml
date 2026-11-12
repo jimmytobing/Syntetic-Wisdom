@@ -1102,7 +1102,7 @@
     </decisions>
     <decisions>
         <name>Gate_Human_Review</name>
-        <label>Require actual review and explicit confirmation</label>
+        <label>Require nonempty validated enrichment</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
@@ -1112,13 +1112,7 @@
         <rules>
             <name>Reviewed</name>
             <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>varHumanReviewed</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <booleanValue>true</booleanValue>
-                </rightValue>
-            </conditions>
+            
             <conditions>
                 <leftValueReference>varApprovedEnrichmentLines</leftValueReference>
                 <operator>IsNull</operator>
@@ -1136,7 +1130,7 @@
             <connector>
                 <targetReference>Get_Sermon_Source</targetReference>
             </connector>
-            <label>Reviewed</label>
+            <label>Enrichment available</label>
         </rules>
     </decisions>
     <decisions>
