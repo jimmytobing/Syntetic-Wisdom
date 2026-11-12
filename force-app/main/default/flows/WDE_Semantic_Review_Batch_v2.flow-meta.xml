@@ -2452,13 +2452,6 @@
                 <elementReference>varSermonSourceId</elementReference>
             </value>
         </filters>
-        <filters>
-            <field>Rights_Status__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>PermissionGranted</stringValue>
-            </value>
-        </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>Sermon_Source__c</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
