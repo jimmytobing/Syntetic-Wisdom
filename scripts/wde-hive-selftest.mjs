@@ -45,10 +45,10 @@ function aggregate(signals, today='2026-11-12') {
   return {volume,last7,prev7,normalizedVolume:Math.min(100,volume*5),growth,recency,status:volume<3?'Insufficient Data':([...dedup.values()].every(x=>x.evidence && /^U[0-4]\|Q[1-3]\|V1$/.test(x.evidence))?'Ready':'Incomplete')};
 }
 for (const name of flowNames) {
-  test(name + ' is draft, well-formed, connected, and callout-free', () => {
+  test(name + ' has the intended activation status, connected graph and no callouts', () => {
     const xml=read('flows/'+name+'.flow-meta.xml');
     balancedTags(xml); referencesResolve(xml);
-    assert.match(xml, /<status>Draft<\/status>/);
+    assert.match(xml, name === 'WDE_Daily_HIVE_Planning' ? /<status>Draft<\/status>/ : /<status>Active<\/status>/);
     assert.doesNotMatch(xml, /<actionType>externalService<\/actionType>/);
   });
 }
