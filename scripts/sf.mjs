@@ -60,9 +60,14 @@ function validateInstanceUrl() {
 }
 
 function validateRequest(input) {
-  if (typeof input.url !== 'string') throw new Error('url wajib berupa string HTTPS.');
+  if (typeof input.url !== 'string') throw new Error('url wajib berupa URL HTTPS atau path API relatif.');
   var url;
-  try { url = new URL(input.url); }
+  try {
+    // Relative paths are resolved only against the configured, validated WDE domain.
+    url = input.url.startsWith('/services/')
+      ? new URL(input.url, instanceUrl)
+      : new URL(input.url);
+  }
   catch { throw new Error('URL request tidak valid.'); }
   if (
     url.protocol !== 'https:' ||
