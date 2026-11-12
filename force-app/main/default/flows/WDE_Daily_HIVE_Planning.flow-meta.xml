@@ -5,7 +5,7 @@
     <interviewLabel>WDE Daily HIVE Planning {!$Flow.CurrentDateTime}</interviewLabel>
     <label>WDE Daily HIVE Planning</label>
     <processType>AutoLaunchedFlow</processType>
-    <status>Draft</status>
+    <status>Active</status>
     <variables><name>varB_RecalcSuccess</name><dataType>Boolean</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
     <variables><name>varS_RecalcError</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
     <subflows>
