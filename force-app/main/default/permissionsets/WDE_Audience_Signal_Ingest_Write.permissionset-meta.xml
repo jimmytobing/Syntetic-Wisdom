@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>Least privilege write access for WDE YouTube/Groq anonymous signal ingestion. No delete, no setup permissions, no permission administration.</description>
+  <hasActivationRequired>false</hasActivationRequired>
+  <label>WDE Audience Signal Ingest Write</label>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.Audience_Need_ExternalKey__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.HIVE_Evidence_Codes__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.Sermon_Source_ExternalKey__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.Sermon_Source__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.Signal_Count__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.Signal_Date__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.Signal_Key__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.Signal_Summary__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audience_Signal__c.WDE_Audience_Need__c</field><readable>true</readable></fieldPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>WDE_Audience_Signal__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+</PermissionSet>
