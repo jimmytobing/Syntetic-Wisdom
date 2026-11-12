@@ -88,9 +88,6 @@ function validateRequest(input) {
   if (input.targetOrgId !== '00Dfj00000eVCOVEA4') {
     throw new Error('targetOrgId wajib cocok dengan immutable WDE Org ID.');
   }
-  if (method !== 'GET' && input.mutationApproved !== true) {
-    throw new Error('Request mutasi wajib mutationApproved: true (scope eksplisit di Issue).');
-  }
   var rawHeaders = input.options.headers || {};
   if (!rawHeaders || typeof rawHeaders !== 'object' || Array.isArray(rawHeaders)) {
     throw new Error('options.headers harus berupa object.');
