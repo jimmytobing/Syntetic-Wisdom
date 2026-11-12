@@ -85,46 +85,21 @@ jobs:
           else
             echo 'valid=false' >> "$GITHUB_OUTPUT"
           fi
-      - name: Setup Node.js 22 for Salesforce CLI
+      - name: Install Salesforce CLI from official compressed TAR (no npm/cache)
         if: steps.route.outputs.valid == 'true'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22
-      # Restore by stable prefix, but use per-run unique save keys to avoid cache reservation conflicts.
-      - name: Restore Salesforce CLI installation
-        if: steps.route.outputs.valid == 'true'
-        id: sf-cli-cache
-        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        with:
-          path: ~/.cache/wde-sf-cli
-          key: ${{ runner.os }}-${{ runner.arch }}-node22-sf-cli-2.159.5-v2-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-node22-sf-cli-2.159.5-v2-
-      - name: Ensure Salesforce CLI 2.159.5
-        if: steps.route.outputs.valid == 'true'
-        id: cli-install
         shell: bash
         run: |
           set -euo pipefail
-          CLI_HOME="$HOME/.cache/wde-sf-cli"
-          CLI_BIN="$CLI_HOME/node_modules/.bin"
-          if [[ -x "$CLI_BIN/sf" ]]; then
-            echo "Salesforce CLI cache: HIT (binary ready)"
-            echo "installed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "Salesforce CLI cache: MISS (installing 2.159.5)"
-            npm install --prefix "$CLI_HOME" --no-save --no-audit --no-fund @salesforce/cli@2.159.5
-            echo "installed=true" >> "$GITHUB_OUTPUT"
-          fi
-          echo "$CLI_BIN" >> "$GITHUB_PATH"
-          "$CLI_BIN/sf" --version
-      - name: Save Salesforce CLI installation
-        if: steps.route.outputs.valid == 'true' && steps.cli-install.outputs.installed == 'true'
-        id: sf-cli-save
-        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        with:
-          path: ~/.cache/wde-sf-cli
-          key: ${{ runner.os }}-${{ runner.arch }}-node22-sf-cli-2.159.5-v2-${{ github.run_id }}
+          CLI_DIR="$RUNNER_TEMP/wde-sf-cli"
+          CLI_TAR="$RUNNER_TEMP/sf-linux-x64.tar.xz"
+          mkdir -p "$CLI_DIR"
+          # Salesforce's versioned installer (official release 2.159.5).
+          CLI_URL="https://developer.salesforce.com/media/salesforce-cli/sf/versions/2.159.5/9d74d04/sf-v2.159.5-9d74d04-linux-x64.tar.xz"
+          curl --fail --silent --show-error --location --retry 2 --connect-timeout 10 --max-time 90 "$CLI_URL" -o "$CLI_TAR"
+          tar -xJf "$CLI_TAR" -C "$CLI_DIR" --strip-components 1
+          rm -f "$CLI_TAR"
+          echo "$CLI_DIR/bin" >> "$GITHUB_PATH"
+          "$CLI_DIR/bin/sf" --version
       - name: Authenticate Salesforce CLI to WDE (hdbsf)
         if: steps.route.outputs.valid == 'true'
         shell: bash
