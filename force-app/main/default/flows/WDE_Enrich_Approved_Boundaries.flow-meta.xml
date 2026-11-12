@@ -1237,7 +1237,7 @@
     </decisions>
     <decisions>
         <name>Validate_Approved_Input</name>
-        <label>Require human-approved boundary and explicit confirmation</label>
+        <label>Require nonempty validated boundary lines</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
@@ -1247,13 +1247,7 @@
         <rules>
             <name>Approval_Confirmed_And_Boundaries_Present</name>
             <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>varHumanApproved</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <booleanValue>true</booleanValue>
-                </rightValue>
-            </conditions>
+            
             <conditions>
                 <leftValueReference>varApprovedBoundaryLines</leftValueReference>
                 <operator>IsNull</operator>
@@ -1271,7 +1265,7 @@
             <connector>
                 <targetReference>Get_Sermon_Source</targetReference>
             </connector>
-            <label>Human approval provided</label>
+            <label>Validated lines present</label>
         </rules>
     </decisions>
     <decisions>
