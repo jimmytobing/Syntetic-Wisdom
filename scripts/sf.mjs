@@ -54,8 +54,8 @@ function validateInstanceUrl() {
       base.origin !== instanceUrl) {
     throw new Error('SF_INSTANCE_URL harus HTTPS My Domain Salesforce tanpa path/query.');
   }
-  if (base.hostname === 'ptbfifinance.my.salesforce.com') {
-    throw new Error('SF_INSTANCE_URL masih mengarah ke BFI_PROD; gunakan domain org WDE.');
+  if (base.origin !== 'https://hdbsf-dev-ed.develop.my.salesforce.com') {
+    throw new Error('SF_INSTANCE_URL wajib menunjuk ke domain WDE hdbsf (bukan org lain).');
   }
 }
 
@@ -77,18 +77,20 @@ function validateRequest(input) {
   ) {
     throw new Error('URL harus HTTPS Salesforce WDE dengan host yang disetujui.');
   }
+  // No per-endpoint allowlist. Keep requests on the verified WDE Salesforce REST namespace.
+  if (!/^\/services\/(?:data\/v[0-9]+\.[0-9]+\/|apexrest\/)/.test(url.pathname)) {
+    throw new Error('Hanya Salesforce REST data/apexrest namespace yang diizinkan.');
+  }
   var method = (input.options.method || 'GET').toUpperCase();
-  if (!['GET', 'POST'].includes(method)) throw new Error('Hanya GET atau POST yang diizinkan.');
-  // Restrict GET to Salesforce REST read-only endpoints.
-  var readOnlyPath = /^\/services\/data\/v\d+\.\d+\/(?:query|queryAll|tooling\/query|tooling\/queryAll)(?:\/.*)?$/;
-  var approvedPostPath = '/services/apexrest/apigw/Expose_API_BFI_Leads_Report';
-  if (method === 'GET' && !readOnlyPath.test(url.pathname)) {
-    throw new Error('GET hanya diizinkan untuk endpoint REST query/tooling query.');
+  if (!['GET', 'POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) {
+    throw new Error('Method tidak didukung.');
   }
-  if (method === 'POST' && (url.pathname !== approvedPostPath || url.search)) {
-    throw new Error('POST hanya diizinkan ke endpoint Apex REST yang telah ditentukan.');
+  if (input.targetOrgId !== '00Dfj00000eVCOVEA4') {
+    throw new Error('targetOrgId wajib cocok dengan immutable WDE Org ID.');
   }
-
+  if (method !== 'GET' && input.mutationApproved !== true) {
+    throw new Error('Request mutasi wajib mutationApproved: true (scope eksplisit di Issue).');
+  }
   var rawHeaders = input.options.headers || {};
   if (!rawHeaders || typeof rawHeaders !== 'object' || Array.isArray(rawHeaders)) {
     throw new Error('options.headers harus berupa object.');
@@ -101,17 +103,17 @@ function validateRequest(input) {
     if (value.length > 150) throw new Error('Header terlalu panjang.');
     headers.set(key, value);
   }
-  if (method === 'GET' && input.options.body !== undefined) {
-    throw new Error('GET tidak menerima body.');
+  if (['GET', 'DELETE'].includes(method) && input.options.body !== undefined) {
+    throw new Error('GET dan DELETE tidak menerima body.');
   }
-  if (method === 'POST' && input.options.body !== undefined &&
+  if (['POST', 'PATCH', 'PUT'].includes(method) && input.options.body !== undefined &&
       (typeof input.options.body !== 'object' || input.options.body === null)) {
     throw new Error('POST body harus berupa JSON object.');
   }
-  if (method === 'POST' && !headers.has('content-type')) {
+  if (['POST', 'PATCH', 'PUT'].includes(method) && !headers.has('content-type')) {
     headers.set('Content-Type', 'application/json');
   }
-  var body = method === 'POST' ? JSON.stringify(input.options.body === undefined ? {} : input.options.body) : undefined;
+  var body = ['POST', 'PATCH', 'PUT'].includes(method) ? JSON.stringify(input.options.body === undefined ? {} : input.options.body) : undefined;
   if (body && body.length > 10000) throw new Error('Request body terlalu besar.');
   return { url, method, headers, body };
 }
@@ -180,7 +182,7 @@ async function writeEvidence(evidence) {
     lines.push('<details>', '<summary>cURL (credential masked)</summary>', '', '```bash',
       'curl --request ' + parsed.method + ' ' + quoteShell(url) + ' \\',
       "  --header 'Authorization: Bearer [HIDDEN]'" + (parsed.body !== undefined ? ' \\' : ''));
-    if (parsed.body !== undefined) lines.push("  --header 'Content-Type: application/json' \\", '  --data ' + quoteShell(parsed.body));
+    if (parsed.body !== undefined) lines.push("  --header 'Content-Type: application/json' \\", '  --data ' + quoteShell(JSON.stringify(sanitize(JSON.parse(parsed.body), secrets))));
     lines.push('```', '', '</details>', '');
   }
   lines.push('### Response', '', '<details>', '<summary>Response JSON — HTTP ' + status + '</summary>', '');
@@ -223,6 +225,21 @@ async function main() {
     accessToken = tokenPayload ? tokenPayload.access_token : null;
     if (typeof accessToken !== 'string' || !accessToken) throw new Error('OAuth tidak memberikan access_token.');
     if (process.env.GITHUB_ACTIONS === 'true') process.stdout.write('::add-mask::' + accessToken + '\n');
+
+    // Verify authenticated org, not merely CLI alias / My Domain string.
+    var verificationQuery = new URL(instanceUrl + '/services/data/v68.0/query');
+    verificationQuery.searchParams.set('q', 'SELECT Id, OrganizationType FROM Organization LIMIT 1');
+    var verifyResponse = await fetch(verificationQuery, {
+      headers: { Authorization: 'Bearer ' + accessToken },
+      redirect: 'error',
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!verifyResponse.ok) throw new Error('Org verification failed: HTTP ' + verifyResponse.status);
+    var verifiedOrg = (await verifyResponse.json()).records?.[0];
+    if (verifiedOrg?.Id !== '00Dfj00000eVCOVEA4' || verifiedOrg?.OrganizationType !== 'Developer Edition') {
+      throw new Error('Authenticated Salesforce org does not match WDE Developer Edition Org ID.');
+    }
+    console.log('VERIFIED_ORG_ID', verifiedOrg.Id);
 
     parsed.headers.set('Authorization', 'Bearer ' + accessToken);
     response = await fetch(parsed.url, {
