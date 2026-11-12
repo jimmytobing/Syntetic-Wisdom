@@ -32,9 +32,10 @@ function parseRequest(body) {
   return req;
 }
 function gate() {
+  const allowedActors = new Set(['jimmytobing', '098595']);
   if (process.env.GITHUB_REPOSITORY !== 'jimmytobing/Syntetic-Wisdom' ||
-      process.env.GITHUB_ACTOR !== 'jimmytobing' ||
-      process.env.ISSUE_AUTHOR !== 'jimmytobing' ||
+      !allowedActors.has(process.env.GITHUB_ACTOR) ||
+      !allowedActors.has(process.env.ISSUE_AUTHOR) ||
       !/^\d+$/.test(process.env.ISSUE_NUMBER || '')) fail('GitHub actor/repo/Issue tidak diizinkan.');
   if ((process.env.SF_INSTANCE_URL || '').replace(/\/$/, '') !== INSTANCE) fail('SF_INSTANCE_URL bukan WDE yang diizinkan.');
   // The explicit Issue request mode=deploy is sufficient. Keep actor/repo/org verification.
