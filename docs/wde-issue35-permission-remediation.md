@@ -19,7 +19,8 @@ the required permission changes.
 
 ## Narrow bootstrap metadata (prepared, not deployed)
 - `force-app/main/default/permissionsets/WDE_Metadata_Deployment_Access.permissionset-meta.xml`
-- `manifest/wde-permission-bootstrap-pr35.xml`
+- `force-app/main/default/permissionsets/WDE_HIVE_Source_Read.permissionset-meta.xml`
+- `manifest/wde-permission-bootstrap-pr35.xml` (both Permission Sets)
 
 This Permission Set contains only:
 - `CustomizeApplication` — Customize Application
@@ -28,12 +29,22 @@ This Permission Set contains only:
 No `ManageProfilesPermissionsets`, `AssignPermissionSets`, or general
 System Administrator role is granted to the integration user.
 
+The separate `WDE_HIVE_Source_Read` Permission Set grants read-only object
+access to Audience Need and Audience Signal plus minimal FLS read to
+`Need_Key__c`, `Signal_Date__c`, `Signal_Key__c`, and the Audience Need lookup.
+This set has no create/edit/delete or setup privileges.
+
 ## Admin-controlled application
 A **separate Salesforce admin/deployment identity** with adequate setup
-permissions must perform the bootstrap in the WDE org. Do not switch to BFI
+permissions must perform the bootstrap in the WDE org. The check-only
+bootstrap attempt as the current integration user **FAILED**: Salesforce
+job `0Affj00000YuBEvCAN` returned `checkOnly=true`, `status=Failed`,
+`componentErrors=1`, and `insufficient access rights on cross-reference id`
+for `WDE_Metadata_Deployment_Access`. This is not evidence the Permission Set
+XML is invalid; it is evidence that this user cannot perform the bootstrap. Do not switch to BFI
 orgs, share access tokens, or assume that adding XML assigns permissions.
-In Salesforce Setup, create or deploy the dedicated WDE permission set and
-assign it to the **Run As** user of the existing GitHub Salesforce OAuth
+In Salesforce Setup, create or deploy both dedicated WDE Permission Sets and
+assign them to the **Run As** user of the existing GitHub Salesforce OAuth
 client-credentials Connected App (verify the exact user record and license).
 If metadata is not compatible with that user's license, use Setup UI to
 inspect supported permission grants; never blindly elevate another user.
@@ -58,14 +69,17 @@ Do not assume FLS is fixed by granting Customize Application.
 ## Verification/release sequence
 1. Read current OAuth run-as user + effective assigned PermissionSet system
    grants. Confirm WDE Org ID from Salesforce itself.
-2. Check-only the bootstrap Permission Set through
+2. Check-only both bootstrap Permission Sets through
    `### Sf Deploy` `mode=validate`, manifest
    `manifest/wde-permission-bootstrap-pr35.xml`. A failed check-only by the
    unprivileged integration user does **not** imply the admin cannot deploy it.
-3. With admin identity, deploy/create the bootstrap set then assign it to the
-   verified integration user. Confirm the actual Salesforce response.
-4. Grant minimum HIVE data source object-read + field-read permissions; verify
-   28-day aggregate read-only SOQL on the OAuth user.
+3. With admin identity, deploy/create the bootstrap sets then assign both to
+   the verified integration user. Confirm the actual Salesforce response.
+   If either permission is unavailable under the integration-user license,
+   stop and reconcile user license/permission-set license; do not change the
+   connected app's Run As user or grant System Administrator speculatively.
+4. Verify effective object-read + field-read grants from `WDE_HIVE_Source_Read`
+   and rerun 28-day aggregate read-only SOQL as the OAuth user.
 5. Run `### Sf Deploy` `mode=validate` for the **latest** PR #36 commit,
    manifest `manifest/wde-hive-pr35.xml`. Check deployment ID, result
    `Succeeded`, `checkOnly=true`, zero errors.
