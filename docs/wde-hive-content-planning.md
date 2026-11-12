@@ -2,7 +2,7 @@
 
 Issue: https://github.com/jimmytobing/Syntetic-Wisdom/issues/35
 Target: Salesforce Developer Edition, Org ID `00Dfj00000eVCOVEA4` (alias `hdbsf`).
-Status: BUILD in feature branch; Salesforce LIVE check-only of initial PR metadata **FAILED** due to integration-user metadata permissions (deployment `0Affj00000Yt3g4CAB`, 13 component errors). **Not deployed or activated.**
+Status (12 Nov 2026): **HIVE metadata deployed and verified in WDE** — real deployment `0Affj00000Yxp4YCAR`, 28 components, 0 errors. OAuth source + result-field read FLS deployed; both new Flow definitions installed as **Draft** with `ActiveVersionId=null`. Business runtime HIVE scoring/content plan creation remains NOT activated or E2E verified. PR #36 stays Draft until scoring evidence, scheduling and runtime tests are complete.
 
 ## Verified baseline (12 Nov 2026)
 - `WDE_Fetch_YouTube_Comments.flow-meta.xml` exists in the repository, calls YouTube and Groq External Services, and prepares/links `WDE_Audience_Signal__c` to `WDE_Audience_Need__c`.
@@ -101,3 +101,21 @@ The unique `Plan_Key__c` is built from the immutable **Salesforce Need record ID
 - `sf project retrieve start --target-org hdbsf --metadata CustomField:WDE_Audience_Signal__c.Signal_Date__c --wait 1 --json` succeeded (`status=Succeeded`, one file) against WDE Org ID `00Dfj00000eVCOVEA4` (Issue comment `6817719270`). **Field existence is verified.**
 - `FieldPermissions` SOQL returned one FLS grant for the field, belonging to profile-owned PermissionSet `X00ex00000018ozh_128_09_04_12_1`, not the integration user's assigned profile-owned PermissionSet `X00e1P000000RmH5QAK` and not any of the seven assigned named sets. The OAuth integration user's effective field read visibility is **LIKELY** blocked; verify the assignment intersection before changing FLS. Evidence comment `6817731771`.
 - The integration user must have read access to `Signal_Date__c`, `Signal_Key__c`, `WDE_Audience_Need__c` (and any additional fields used by HIVE) in addition to approved setup/Flow deployment permissions. Re-run the original aggregate read-only query after permission remediation, **before** computing HIVE on live data.
+
+## Verified Salesforce release — Issue #35 (12 November 2026)
+
+- WDE identity: Developer Edition Org ID `00Dfj00000eVCOVEA4` checked live by trusted Sf Deploy gateway.
+- OAuth Permission Set `Salesforce_AI_RCA_Metadata_Access` effective `CustomizeApplication=true` and `ManageInteraction=true` (Flow management), confirmed in Issue comments `6821195464` / `6821206681`.
+- New read-only `WDE_HIVE_Source_Read` Permission Set deployed by `0Affj00000YwyLECAZ` and idempotently assigned to OAuth integration user (before=0, after=1). Historical `Signal_Date__c` INVALID_FIELD disappeared: 28-day aggregate returned HTTP 200 and **7 signals across 4 Audience Needs**, comment `6829038839`.
+- HIVE 28-component manifest `manifest/wde-hive-pr35.xml` validated in Salesforce `0Affj00000Ywk5KCAR` (`checkOnly=true`, zero errors) then deployed `0Affj00000Yxp4YCAR` (`checkOnly=false`, zero errors); evidence comment `6829123483`.
+- Post-deployment OAuth read query initially failed for `HIVE_Evaluation_Status__c`. Updated `WDE_HIVE_Source_Read` now includes read-only FLS for all eight Need HIVE fields, 14 Content Plan fields and read on Content Plan object. This validated `0Affj00000Yy7RFCAZ` and deployed `0Affj00000YxB7ACAV` (both success). OAuth HIVE field query now HTTP 200, five sampled records contain `null` status/score/volume/growth/recency (comment `6829254340`), which is **not** a scoring calculation.
+- Tooling API `FlowDefinition` confirmed `WDE_Recalculate_HIVE` and `WDE_Propose_Content_Plan` both have non-null latest versions and **null active versions**, comment `6829272476`; no Flow activated. API query of `WDE_Content_Plan__c` confirmed object exists and has **0 records**, comment `6829291402`.
+
+### Remaining functional work before production readiness
+
+1. Groq signal classifier must produce **evidence-backed numeric intensity and quality**; current incoming `ID|CATEGORY|CONTEXT|END` contract has neither. Do not fabricate numeric scores or mark HIVE Ready with missing evidence.
+2. Implement and validate auditable mapping from classified comments to intensity and quality, backfill existing signal/need records with traceable source, and enforce anti-spam + minimum sample controls.
+3. Perform controlled, explicit runtime tests for both Flows with fault handling, idempotency, permissions, and bulk behavior; define orchestration/schedule and operator approval. Only activate versions and generate Content Plans when those prerequisites are satisfied and authorized.
+4. Original AI script/video rendering/distribution are separate downstream phases and **not** implemented by this metadata release.
+
+**Do not claim E2E HIVE or Content Planning completed based solely on successful metadata deployment.**
