@@ -33,6 +33,7 @@
   BLANKVALUE({!$Record.Retry_Count__c}, 0) &lt; 3,
   OR(
     {!aResult} = &quot;INVALID_AI_FORMAT&quot;,
+    {!aResult} = &quot;INVALID_AI_RANGE&quot;,
     {!aResult} = &quot;EMPTY_RESPONSE&quot;,
     AND(
       {!aResult} = &quot;GROQ_ERROR&quot;,
@@ -59,7 +60,7 @@
         <expression>BLANKVALUE({!$Record.Retry_Count__c},0) + 1</expression>
     </formulas>
     <decisions>
-        <name>Decide_Retry_A</name><label>Retry malformed AI response at most twice</label><locationX>0</locationX><locationY>0</locationY>
+        <name>Decide_Retry_A</name><label>Retry transient or invalid AI output up to three times</label><locationX>0</locationX><locationY>0</locationY>
         <defaultConnector><targetReference>Set_A_Failure</targetReference></defaultConnector>
         <defaultConnectorLabel>Fail closed</defaultConnectorLabel>
         <rules><name>Retry_A</name><conditionLogic>and</conditionLogic>
