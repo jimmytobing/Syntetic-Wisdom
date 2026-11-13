@@ -36,7 +36,7 @@ export function canonicalQaReceiptPayload(p) {
 
 export function verifyIndependentQaReceipt({ receipt, key, batch, now = Date.now() }) {
   const fail = reason => ({verified:false,reason,attestation:null});
-  if (!receipt || !batch || typeof receipt !== 'object' || !validText(key) ||
+  if (!receipt || !batch || typeof receipt !== 'object' || !validText(key) || Buffer.byteLength(key,'utf8') < 32 ||
       typeof receipt.signature !== 'string' || !/^[0-9a-f]{64}$/.test(receipt.signature)) {
     return fail('QA_SIGNATURE_MISSING');
   }
