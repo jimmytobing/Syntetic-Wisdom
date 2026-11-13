@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>QA_Enrichment_SHA256__c</fullName>
+    <description>sha256: plus 64 lowercase hex characters of exact Stage B enrichment UTF-8 bytes. Compare with computed current text and independently signed QA receipt before release.</description>
+    <label>QA Enrichment SHA256</label>
+    <length>71</length>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+    <externalId>false</externalId>
+</CustomField>
