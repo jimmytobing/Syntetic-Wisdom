@@ -46,11 +46,11 @@ test('fails closed on missing required inputs', () => {
 });
 test('approval gate requires editorial, source coverage, reviewer, audio and rights', () => {
   const verified = { coverage: { pass: true }, handoffs: { pass: true },
-    reviewer: 'Human editor', audioReviewed: true, rightsCleared: true };
+    reviewer: 'Human editor', audioReviewed: true, rightsCleared: true, sourceAuthenticated: true };
   assert.deepEqual(inspectEditorialApprovalGate(verified), { eligible: true, blockers: [], approvalPerformed: false });
   const blocked = inspectEditorialApprovalGate({ ...verified, coverage: { pass: false }, handoffs: { pass: false },
-    reviewer: '', audioReviewed: false, rightsCleared: false });
-  assert.deepEqual(blocked.blockers, ['COVERAGE_FAILED', 'HANDOFF_FAILED', 'HUMAN_REVIEW_MISSING',
+    reviewer: '', audioReviewed: false, rightsCleared: false, sourceAuthenticated: false });
+  assert.deepEqual(blocked.blockers, ['COVERAGE_FAILED', 'SOURCE_AUTHENTICATION_MISSING', 'HANDOFF_FAILED', 'HUMAN_REVIEW_MISSING',
     'AUDIO_REVIEW_MISSING', 'RIGHTS_UNCLEARED']);
   assert.equal(blocked.eligible, false);
   assert.equal(blocked.approvalPerformed, false);
