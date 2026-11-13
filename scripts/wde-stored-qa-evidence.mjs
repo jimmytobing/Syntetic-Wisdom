@@ -28,7 +28,9 @@ export function inspectStoredBatchQaEvidence({
     enrichmentDigest: digest
   };
   let verification;
-  if (receipt) {
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) {
+    reasons.push('QA_RECEIPT_MISSING');
+  } else {
     verification = verifyIndependentQaReceipt({ receipt, key: verificationKey, batch, now });
     if (!verification.verified) reasons.push(verification.reason);
   }
