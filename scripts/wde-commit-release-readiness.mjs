@@ -3,6 +3,7 @@
 // Caller MUST independently verify the source/record version and QA provenance.
 // Do not call this with a Groq-generated "qa" attestation as the evidence authority.
 import { triageStageBFlowResponse } from './wde-flow-editorial-adapter.mjs';
+import { createHash } from 'node:crypto';
 import { verifyIndependentQaReceipt } from './wde-independent-qa-receipt.mjs';
 
 const value = (s) => typeof s === 'string' && s.trim().length > 0;
@@ -15,6 +16,14 @@ export function inspectCommitReleaseReadiness({
     throw Error('BATCH_SNAPSHOT_REQUIRED');
   }
   const reasons = [];
+  const responses = Array.isArray(flowResponse) ? flowResponse :
+    (Array.isArray(flowResponse?.result?.body) ? flowResponse.result.body : flowResponse?.body);
+  const enrichment = Array.isArray(responses) && responses.length === 1 ?
+    responses[0]?.outputValues?.varEnrichmentLines : undefined;
+  const computedDigest = typeof enrichment === 'string' ?
+    'sha256:' + createHash('sha256').update(enrichment, 'utf8').digest('hex') : null;
+  if (!/^sha256:[0-9a-f]{64}$/.test(batch.enrichmentDigest) ||
+      computedDigest !== batch.enrichmentDigest) reasons.push('ENRICHMENT_DIGEST_MISMATCH');
   if (batch.status !== 'NeedsCommitReview') reasons.push('BATCH_NOT_HELD_FOR_REVIEW');
   if (batch.isLatestSnapshot !== true) reasons.push('BATCH_SNAPSHOT_NOT_VERIFIED');
   // Reject the old unsigned caller-provided attestation; it can be forged.
