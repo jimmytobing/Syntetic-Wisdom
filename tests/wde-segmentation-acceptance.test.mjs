@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inspectSegmentationCoverage, inspectEditorialApprovalGate } from '../scripts/wde-segmentation-acceptance.mjs';
+import { inspectSegmentationCoverage, inspectEditorialApprovalGate, inspectAiEditorialTriage } from '../scripts/wde-segmentation-acceptance.mjs';
 
 const captions = Array.from({ length: 1620 }, (_, i) => i);
 const seg = (start, end, extra = {}) => ({
@@ -47,11 +47,74 @@ test('fails closed on missing required inputs', () => {
 test('approval gate requires editorial, source coverage, reviewer, audio and rights', () => {
   const verified = { coverage: { pass: true }, handoffs: { pass: true },
     reviewer: 'Human editor', audioReviewed: true, rightsCleared: true, sourceAuthenticated: true };
-  assert.deepEqual(inspectEditorialApprovalGate(verified), { eligible: true, blockers: [], approvalPerformed: false });
+  assert.deepEqual(inspectEditorialApprovalGate(verified), { eligible: true, blockers: [], approvalPerformed: false, editorialRoute: 'HUMAN_REVIEW_REQUIRED' });
   const blocked = inspectEditorialApprovalGate({ ...verified, coverage: { pass: false }, handoffs: { pass: false },
     reviewer: '', audioReviewed: false, rightsCleared: false, sourceAuthenticated: false });
-  assert.deepEqual(blocked.blockers, ['COVERAGE_FAILED', 'SOURCE_AUTHENTICATION_MISSING', 'HANDOFF_FAILED', 'HUMAN_REVIEW_MISSING',
+  assert.deepEqual(blocked.blockers, ['COVERAGE_FAILED', 'SOURCE_AUTHENTICATION_MISSING', 'HANDOFF_FAILED', 'EDITORIAL_REVIEW_REQUIRED',
     'AUDIO_REVIEW_MISSING', 'RIGHTS_UNCLEARED']);
   assert.equal(blocked.eligible, false);
   assert.equal(blocked.approvalPerformed, false);
+});
+
+const passed = { coverage: { pass: true }, handoffs: { pass: true }, sourceAuthenticated: true };
+const aiReview = {
+  verdict: 'PASS', confidence: 0.98, sourceAnchored: true,
+  evidenceId: 'source-check-2026-11-13', qaVersion: 'editorial-v1',
+  boundaryChecksPassed: true, crossSegmentChecksPassed: true, flags: []
+};
+test('AI-first routes fully evidenced high confidence result without human reviewer', () => {
+  assert.deepEqual(inspectAiEditorialTriage({ ...passed, aiReview }).route, 'AI_EDITORIAL_CLEAR');
+  const result = inspectEditorialApprovalGate({
+    ...passed, aiReview, audioReviewed: true, rightsCleared: true
+  });
+  assert.equal(result.eligible, true);
+  assert.equal(result.approvalPerformed, false);
+});
+test('AI-clear does not override missing audio and source rights', () => {
+  const result=inspectEditorialApprovalGate({ ...passed, aiReview });
+  assert.deepEqual(result.blockers, ['AUDIO_REVIEW_MISSING', 'RIGHTS_UNCLEARED']);
+  assert.equal(result.eligible, false);
+});
+test('ambiguous AI review requires human adjudication, not mere reviewer text', () => {
+  const uncertain={ ...aiReview, confidence: 0.8, flags: ['SPEAKER_CHANGE'] };
+  const triage=inspectAiEditorialTriage({ ...passed, aiReview: uncertain });
+  assert.equal(triage.route, 'HUMAN_REVIEW_REQUIRED');
+  const blocked=inspectEditorialApprovalGate({
+    ...passed, aiReview: uncertain, reviewer:'Editor', audioReviewed: true, rightsCleared: true
+  });
+  assert.deepEqual(blocked.blockers, ['EDITORIAL_REVIEW_REQUIRED']);
+  const adjudicated=inspectEditorialApprovalGate({
+    ...passed, aiReview: uncertain, reviewer:'Editor', humanAdjudicated: true,
+    audioReviewed:true, rightsCleared:true
+  });
+  assert.equal(adjudicated.eligible,true);
+});
+test('AI reported pass cannot bypass independently failed handoff or coverage', () => {
+  for (const failure of [{coverage:{pass:false}},{handoffs:{pass:false}},{sourceAuthenticated:false}]) {
+    const r=inspectAiEditorialTriage({ ...passed, ...failure, aiReview });
+    assert.equal(r.humanReviewRequired,true);
+  }
+});
+test('AI missing metadata, unknown confidence, invalid flags fail closed', () => {
+  for (const review of [
+    undefined,
+    {...aiReview,confidence: NaN},
+    {...aiReview,confidence: 1.1},
+    {...aiReview,qaVersion:''},
+    {...aiReview,evidenceId:''},
+    {...aiReview,flags:['speaker ambiguity']},
+    {...aiReview,flags:null},
+    {...aiReview,boundaryChecksPassed:false}
+  ]) {
+    const result=inspectAiEditorialTriage({ ...passed, aiReview: review });
+    assert.equal(result.editorialClear,false);
+    assert.equal(result.approvalPerformed,false);
+  }
+});
+test('current live 87-91 speaker handoff mismatch routes to human review', () => {
+  const r=inspectAiEditorialTriage({
+    coverage:{pass:true},handoffs:{pass:false},sourceAuthenticated:true,aiReview
+  });
+  assert.equal(r.route,'HUMAN_REVIEW_REQUIRED');
+  assert.ok(r.reasons.includes('HANDOFF_FAILED'));
 });
