@@ -41,7 +41,8 @@
          CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;502&quot;),
          CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;503&quot;),
          CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;504&quot;),
-         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;rate limit&quot;))
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;rate limit&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;too many requests&quot;))
     ),
     AND(
       {!aResult} = &quot;FLOW_FAULT&quot;,
