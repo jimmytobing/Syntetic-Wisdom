@@ -79,8 +79,7 @@
   CASE(TEXT(BLANKVALUE({!$Record.Retry_Count__c}, 0)), &quot;0&quot;, 1, &quot;1&quot;, 5, 15)
 ) / 1440</expression>
     </formulas>
-    <description>WDE Batch 8 pilot — asynchronous stage A; no automatic approval. Deploy inactive and validate in sandbox first.
-tambah error=null</description>
+    <description>WDE Stage A asynchronous segmentation. Strict AI boundary validation with bounded retry for INVALID_AI_RANGE, INVALID_AI_FORMAT, EMPTY_RESPONSE, transient Groq errors and temporary faults. RetryPending uses Next_Retry_At__c; permanent failures fail closed. Issue 35 recovery.</description>
     <ends>
         <name>END_ELEMENT_4</name>
         <locationX>0</locationX>
