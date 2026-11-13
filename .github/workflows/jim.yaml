@@ -49,8 +49,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -s "$RUNNER_TEMP/jim-evidence.md" ]]; then
-            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/jim-evidence.md"
+          if [[ -s "$RUNNER_TEMP/jim-request-comment.md" ]]; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/jim-request-comment.md"
           else
             echo 'No evidence file generated; see job logs.' >&2
             exit 1
@@ -92,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: jim-bash-${{ github.run_id }}
-          path: ${{ runner.temp }}/jim-bash-evidence.md
+          path: ${{ runner.temp }}/jim-bash-comment.md
           if-no-files-found: error
           retention-days: 1
 
@@ -116,4 +116,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/jim-bash-result/jim-bash-evidence.md"
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/jim-bash-result/jim-bash-comment.md"
