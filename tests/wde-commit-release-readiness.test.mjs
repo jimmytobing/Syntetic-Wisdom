@@ -1,16 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHmac } from 'node:crypto';
+import { createHmac, createHash } from 'node:crypto';
 import { inspectCommitReleaseReadiness } from '../scripts/wde-commit-release-readiness.mjs';
 import { canonicalQaReceiptPayload, QA_ORG_ID, QA_RECEIPT_VERSION, verifyIndependentQaReceipt } from '../scripts/wde-independent-qa-receipt.mjs';
 
 const key='TEST_ONLY_NOT_A_SECRET_DO_NOT_USE_IN_PRODUCTION_2026';
 const now=1794600000000;
+const enrichment='0;17;Other;topic;summary;false;false|';
+const digest='sha256:'+createHash('sha256').update(enrichment).digest('hex');
 const batch={id:'batch-35-1',sourceId:'a07fj00001J9PShAAN',
-  enrichmentDigest:'sha256:verified-digest',status:'NeedsCommitReview',
+  enrichmentDigest:digest,status:'NeedsCommitReview',
   isLatestSnapshot:true};
 const flowResponse=[{isSuccess:true,outputValues:{
-  varResultStatus:'SUCCESS',varEnrichmentLines:'0;17;Other;topic;summary;false;false|'
+  varResultStatus:'SUCCESS',varEnrichmentLines:enrichment
 }}];
 const review={verdict:'PASS',confidence:0.99,sourceAnchored:true,evidenceId:'QA-35-SNAPSHOT',
   qaVersion:'editorial-v1',boundaryChecksPassed:true,crossSegmentChecksPassed:true,flags:[]};
@@ -111,6 +113,19 @@ test('receipt verifier returns no attestation for malformed or wrong signature',
   assert.equal(verifyIndependentQaReceipt({receipt:{payload,signature:'0'.repeat(64)},
     key,batch,now}).verified,false);
   assert.equal(verifyIndependentQaReceipt({receipt,key:'',batch,now}).verified,false);
+});
+
+test('changed Stage B enrichment fails even with a valid earlier signed receipt',()=>{
+  const changed=[{isSuccess:true,outputValues:{varResultStatus:'SUCCESS',varEnrichmentLines:enrichment+'tamper'}}];
+  const r=run({flowResponse:changed});
+  assert.ok(r.blockers.includes('ENRICHMENT_DIGEST_MISMATCH'));
+  assert.equal(r.decision,'REMAIN_NEEDS_COMMIT_REVIEW');
+});
+
+test('invalid non-SHA256 digest fails regardless of receipt signature',()=>{
+  const changed={...batch,enrichmentDigest:'sha256:unverified'};
+  const r=run({batch:changed});
+  assert.ok(r.blockers.includes('ENRICHMENT_DIGEST_MISMATCH'));
 });
 
 test('batch snapshot is mandatory',()=>{
