@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  call-dupcheck-api:
+  jim-request:
     if: >-
       contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
       contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
@@ -56,7 +56,7 @@ jobs:
             exit 1
           fi
 
-  run-jim-bash:
+  jim-bash:
     if: >-
       contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
       contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
@@ -97,8 +97,8 @@ jobs:
           retention-days: 1
 
   publish-jim-bash:
-    needs: run-jim-bash
-    if: always() && needs.run-jim-bash.result != 'skipped'
+    needs: jim-bash
+    if: always() && needs.jim-bash.result != 'skipped'
     permissions:
       issues: write
     runs-on: ubuntu-latest
