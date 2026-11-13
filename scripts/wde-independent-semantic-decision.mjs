@@ -11,10 +11,16 @@ const typeOf = s=>s.segment_type??s.Segment_Type__c;
 const startOf = s=>s.start_index??s.Start_Index__c;
 const endOf = s=>s.end_index??s.End_Index__c;
 const verdicts = new Set(['PASS','REVIEW','FAIL']);
-const knownHandoffs = Object.freeze([
-  {start:87,end:91,type:'Other'},
-  {start:92,end:92,type:'Testimony'}
-]);
+const verifiedSourceAnchors = Object.freeze({
+  a07fj00001J9PShAAN: Object.freeze([
+    {start:87,end:91,type:'Other'},
+    {start:92,end:92,type:'Testimony'}
+  ]),
+  a07fj00001F216TAAR: Object.freeze([
+    {start:0,end:15,type:'Other'},
+    {start:16,end:22,type:'Testimony'}
+  ])
+});
 
 export function adjudicateIndependentSemanticSegments({
   rawTranscript, primarySegments, independentSegments, provenance, sourceId,
@@ -26,12 +32,17 @@ export function adjudicateIndependentSemanticSegments({
   const reasons = [];
   const sourceRows=rawTranscript.slice(0,-1).split('|');
   const captions=[];
+  const firstIndex=Number(sourceRows[0]?.split(';')[0]);
+  if(!Number.isSafeInteger(firstIndex)||firstIndex<0)
+    reasons.push('SOURCE_CAPTION_INVALID');
   for(let i=0;i<sourceRows.length;i++){
     const fields=sourceRows[i].split(';');
-    if(fields.length<4 || Number(fields[0])!==i || !fields.slice(3).join(';').trim())
+    if(fields.length<4 || Number(fields[0])!==firstIndex+i ||
+       !fields.slice(3).join(';').trim())
       reasons.push('SOURCE_CAPTION_INVALID');
     captions.push(fields.slice(3).join(';'));
   }
+  const lastIndex=firstIndex+captions.length-1;
   // These booleans MUST be set by a trusted runner after verifying separate
   // execution/provenance. The model response must never supply this object.
   if(provenance?.verifiedByTrustedRunner!==true ||
@@ -40,21 +51,24 @@ export function adjudicateIndependentSemanticSegments({
      provenance?.sourceId!==sourceId ||
      typeof provenance?.runId!=='string'||!provenance.runId.trim())
     reasons.push('INDEPENDENCE_NOT_AUTHENTICATED');
-  if(primarySegments.length!==independentSegments.length || !primarySegments.length)
-    reasons.push('SEGMENT_COUNT_DISAGREEMENT');
+  if(!primarySegments.length||!independentSegments.length)
+    reasons.push('SEGMENTS_MISSING');
   const primary=[...primarySegments].sort((a,b)=>startOf(a)-startOf(b));
   const independent=[...independentSegments].sort((a,b)=>a.start-a.start);
-  let next=0, totalChecked=0;
+  let next=firstIndex, totalChecked=0;
   const disputes=[];
+  if(primarySegments.length!==independentSegments.length)
+    disputes.push({start:firstIndex,end:lastIndex,code:'SEGMENT_COUNT_DISAGREEMENT'});
   for(let i=0;i<independent.length;i++){
     const s=independent[i],p=primary[i];
     if(!Number.isSafeInteger(s.start)||!Number.isSafeInteger(s.end)||
-      s.start!==next||s.end<s.start||s.end>=captions.length ||
+      s.start!==next||s.end<s.start||s.end>lastIndex ||
       !types.has(s.type)||!verdicts.has(s.verdict)){
       reasons.push('INDEPENDENT_SEGMENT_INVALID');continue;
     }
     next=s.end+1;
-    const startText=norm(captions[s.start]),endText=norm(captions[s.end]);
+    const startText=norm(captions[s.start-firstIndex]),
+      endText=norm(captions[s.end-firstIndex]);
     if(!startText||!endText||norm(s.startEvidence)!==startText||
        norm(s.endEvidence)!==endText ||
        typeof s.rationale!=='string'||s.rationale.trim().length<12)
@@ -64,21 +78,26 @@ export function adjudicateIndependentSemanticSegments({
       disputes.push({start:s.start,end:s.end,code:'PRIMARY_INDEPENDENT_DISAGREEMENT'});
     totalChecked+=s.end-s.start+1;
   }
-  if(next!==captions.length || totalChecked!==captions.length)
+  if(next!==lastIndex+1 || totalChecked!==captions.length)
     reasons.push('SEMANTIC_COVERAGE_INCOMPLETE');
-  // Known human-reviewed source anchors constrain *both* independent and primary labels.
-  if(sourceId==='a07fj00001J9PShAAN'){
-    for(const anchor of knownHandoffs){
-      const at=independent.find(s=>s.start<=anchor.start&&s.end>=anchor.end);
-      if(!at||at.type!==anchor.type)disputes.push({
-        start:anchor.start,end:anchor.end,code:'SOURCE_ANCHORED_HANDOFF_MISMATCH'
-      });
+  // Source-anchored editorial acceptance markers are independently reviewed
+  // against original captions and are checked only inside this batch window.
+  for(const anchor of verifiedSourceAnchors[sourceId]??[]){
+    if(anchor.end<firstIndex||anchor.start>lastIndex)continue;
+    if(anchor.start<firstIndex||anchor.end>lastIndex){
+      reasons.push('SOURCE_ANCHOR_CONTEXT_INCOMPLETE');
+      continue;
     }
+    const holder=independent.find(s=>s.start<=anchor.start&&s.end>=anchor.end);
+    if(!holder||holder.type!==anchor.type)disputes.push({
+      start:anchor.start,end:anchor.end,code:'SOURCE_ANCHORED_HANDOFF_MISMATCH'
+    });
   }
   if(requiredEvidence!=='all') reasons.push('EVIDENCE_POLICY_UNSUPPORTED');
   const decision=reasons.length?'REVIEW':disputes.length?'FAIL':'PASS';
   return {decision,reasonCodes:[...new Set(reasons)],
     disputes,captionCount:captions.length,checkedCaptionCount:totalChecked,
+    batchStartIndex:firstIndex,batchEndIndex:lastIndex,
     independentDecision:true,editorialScope:'TRANSCRIPT_ONLY',
     // PASS is independent transcript-level assessment, not publication approval.
     audioVerified:false,rightsCleared:false,releaseAuthorized:false,
