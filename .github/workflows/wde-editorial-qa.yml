@@ -6,6 +6,7 @@ on:
       - "scripts/wde-opener-handoff-qa.mjs"
       - "scripts/wde-segmentation-acceptance.mjs"
       - "scripts/wde-flow-editorial-adapter.mjs"
+      - "scripts/wde-commit-release-readiness.mjs"
       - "force-app/main/default/flows/Tgr_WDE_Run_Stage_B.flow-meta.xml"
       - "force-app/main/default/flows/Tgr_WDE_Run_Stage_C.flow-meta.xml"
       - "force-app/main/default/objects/WDE_Batch_Run__c/fields/Status__c.field-meta.xml"
@@ -13,6 +14,7 @@ on:
       - "tests/wde-segmentation-acceptance.test.mjs"
       - "tests/wde-flow-editorial-adapter.test.mjs"
       - "tests/wde-flow-commit-gate.test.mjs"
+      - "tests/wde-commit-release-readiness.test.mjs"
       - ".github/workflows/wde-editorial-qa.yml"
   push:
     branches:
@@ -21,6 +23,7 @@ on:
       - "scripts/wde-opener-handoff-qa.mjs"
       - "scripts/wde-segmentation-acceptance.mjs"
       - "scripts/wde-flow-editorial-adapter.mjs"
+      - "scripts/wde-commit-release-readiness.mjs"
       - "force-app/main/default/flows/Tgr_WDE_Run_Stage_B.flow-meta.xml"
       - "force-app/main/default/flows/Tgr_WDE_Run_Stage_C.flow-meta.xml"
       - "force-app/main/default/objects/WDE_Batch_Run__c/fields/Status__c.field-meta.xml"
@@ -28,6 +31,7 @@ on:
       - "tests/wde-segmentation-acceptance.test.mjs"
       - "tests/wde-flow-editorial-adapter.test.mjs"
       - "tests/wde-flow-commit-gate.test.mjs"
+      - "tests/wde-commit-release-readiness.test.mjs"
       - ".github/workflows/wde-editorial-qa.yml"
 
 permissions:
@@ -54,6 +58,8 @@ jobs:
           node --check tests/wde-segmentation-acceptance.test.mjs
           node --check scripts/wde-flow-editorial-adapter.mjs
           node --check tests/wde-flow-editorial-adapter.test.mjs
-          node --check tests/wde-flow-commit-gate.test.mjs
+          node --check tests/wde-flow-commit-gate.test.mjs tests/wde-commit-release-readiness.test.mjs
+          node --check scripts/wde-commit-release-readiness.mjs
+          node --check tests/wde-commit-release-readiness.test.mjs
       - name: Run source-anchored editorial QA unit tests
         run: node --test tests/wde-opener-handoff-qa.test.mjs tests/wde-segmentation-acceptance.test.mjs tests/wde-flow-editorial-adapter.test.mjs tests/wde-flow-commit-gate.test.mjs
