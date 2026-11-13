@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/sf.mjs
+          node .github/mjs/sf-request.mjs
       - name: Publish result in the same Issue
         if: always() && steps.route.outputs.valid == 'true' && steps.jim.outcome != 'skipped'
         shell: bash
@@ -109,12 +109,12 @@ jobs:
           SF_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
         run: |
           set -euo pipefail
-          node scripts/sf-cli-auth.mjs
+          node .github/mjs/sf-bash-auth.mjs
       - name: Execute isolated Sf Bash
         id: bash
         if: steps.route.outputs.valid == 'true'
         shell: bash
-        run: node scripts/sf-bash.mjs
+        run: node .github/mjs/sf-bash.mjs
       - name: Upload Sf Bash evidence
         if: always() && steps.route.outputs.valid == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -171,7 +171,7 @@ jobs:
       - name: Strict Sf Deploy request/actor/org preflight
         id: route
         shell: bash
-        run: node trusted/scripts/sf-deploy.mjs preflight
+        run: node trusted/.github/mjs/sf-deploy.mjs preflight
       - name: Checkout immutable candidate SHA without persisted credentials
         if: steps.route.outcome == 'success'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -183,7 +183,7 @@ jobs:
         id: inspect
         if: steps.route.outcome == 'success'
         shell: bash
-        run: node trusted/scripts/sf-deploy.mjs inspect
+        run: node trusted/.github/mjs/sf-deploy.mjs inspect
       - name: Install official Salesforce CLI (no npm)
         id: install
         if: steps.route.outcome == 'success'
@@ -206,12 +206,12 @@ jobs:
         env:
           SF_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID || secrets.SF_CLIENT_ID }}
           SF_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
-        run: node trusted/scripts/sf-cli-auth.mjs
+        run: node trusted/.github/mjs/sf-bash-auth.mjs
       - name: Verify Salesforce LIVE Org ID and execute requested validate/deploy
         id: execute
         if: steps.route.outcome == 'success'
         shell: bash
-        run: node trusted/scripts/sf-deploy.mjs run
+        run: node trusted/.github/mjs/sf-deploy.mjs run
       - name: Prepare evidence if CLI or checkout failed before execution
         if: always()
         shell: bash
