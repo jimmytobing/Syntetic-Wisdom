@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
 <apiVersion>68.0</apiVersion>
-<description>Async after-commit requeue only bounded Stage A malformed-output retries. Trigger enters RetryPending only when Stage A validation failed and Retry_Count is incremented (max 2). Does not bypass strict segmentation validation or human rights tracking.</description>
+<description>Scheduled requeue based on Next_Retry_At__c for bounded Stage A transient failures. Trigger enters RetryPending only when Stage A validation failed and Retry_Count is incremented (max 2). Does not bypass strict segmentation validation or human rights tracking.</description>
 <interviewLabel>WDE Retry Stage A {!$Flow.CurrentDateTime}</interviewLabel>
 <label>[Tgr] WDE Retry Stage A</label>
 <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
@@ -24,9 +24,9 @@
 <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
 <filterLogic>and</filterLogic>
 <filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
-<filters><field>Retry_Count__c</field><operator>LessThanOrEqualTo</operator><value><numberValue>2.0</numberValue></value></filters>
+<filters><field>Retry_Count__c</field><operator>LessThanOrEqualTo</operator><value><numberValue>3.0</numberValue></value></filters>
 <object>WDE_Batch_Run__c</object><recordTriggerType>Update</recordTriggerType>
-<scheduledPaths><name>Retry_A_Deferred</name><connector><targetReference>Requeue_Stage_A</targetReference></connector><label>Retry after Groq quota backoff</label><offsetNumber>24</offsetNumber><offsetUnit>Hours</offsetUnit><timeSource>RecordTriggerEvent</timeSource></scheduledPaths>
+<scheduledPaths><name>Retry_A_Deferred</name><connector><targetReference>Requeue_Stage_A</targetReference></connector><label>Retry at Next Retry At</label><offsetNumber>0</offsetNumber><offsetUnit>Minutes</offsetUnit><recordField>Next_Retry_At__c</recordField><timeSource>RecordField</timeSource></scheduledPaths>
 <triggerType>RecordAfterSave</triggerType>
 </start>
 </Flow>
