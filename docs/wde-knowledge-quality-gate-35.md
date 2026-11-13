@@ -68,3 +68,21 @@ A read-only `Sf Bash` run against live org `00Dfj00000eVCOVEA4` reconstructed ev
 - Node tests in repository expanded to 17 cases. A V8 compatibility harness executed 17/17 successfully, but the official Node test runner still needs validation.
 
 **Publishing gate:** do not automatically approve, distribute or monetize any content while `Rights_Status=Unknown`, voice/audio verification is pending, or independent editorial approval is missing. This is not a generic restriction on authoring original text; it is a safeguard against implying that rights or factual reviews have occurred.
+
+## Source-grounded candidate scorecard — 13 Nov 2026
+
+Read-only Salesforce CLI verified 17/17 exact caption quote references for five draft original Wisdom Insight units:
+
+| Candidate | Source caption window | Exact source quotes | Draft narration | Status |
+| --- | --- | ---: | ---: | --- |
+| KU-07-A — Faith and disappointment during crisis | 552–575 | 4/4 | 96 words | NeedsReview |
+| KU-08-A — Financial stress and response | 605–631 | 3/3 | 91 words | NeedsReview |
+| KU-08-B — Avoid crisis-driven bad decisions | 730–760 | 3/3 | 89 words | NeedsReview |
+| KU-08-C — Active waiting | 1037–1042 | 3/3 | 95 words | NeedsReview |
+| KU-10-A — Caring leadership and workers | 1307–1326 | 4/4 | 92 words | NeedsReview |
+
+**Evidence:** [SF CLI exact-quote validation](https://github.com/jimmytobing/Syntetic-Wisdom/issues/35#issuecomment-6853492611). Long-form drafts: [#8](wde-knowledge-unit-drafts-segment-8-35.md) and [#7/#10](wde-knowledge-unit-drafts-segments-7-10-35.md).
+
+**Measured technical gate:** 17 quote checks matched; 19/19 V8 JavaScript regression cases passed (not an official Node test). 12/12 canonical segment text was reconstructed byte-equivalent after whitespace normalization; 7/11 boundaries flagged for editorial review by a **heuristic**, not classified as proven errors. Stage A single controlled sample 560–687 returned SUCCESS without canonical DML.
+
+**Hard blockers:** no independent audio verification, human source/theology editorial approval, actual 45-second voiceover timing or source rights clearance (`Rights_Status=Unknown`). Five candidates must remain `NeedsReview`, not auto-approved or distributed. A mechanical caption substring match cannot establish that all story claims, theology, voice, or rights are correct.
