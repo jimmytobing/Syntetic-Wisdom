@@ -30,7 +30,7 @@
     <formulas>
         <name>f_Retry_A_Eligible</name><dataType>Boolean</dataType>
         <expression>AND(
-  BLANKVALUE({!$Record.Retry_Count__c}, 0) &amp;lt; 2,
+  BLANKVALUE({!$Record.Retry_Count__c}, 0) &lt; 3,
   OR(
     {!aResult} = &quot;INVALID_AI_FORMAT&quot;,
     {!aResult} = &quot;EMPTY_RESPONSE&quot;,
@@ -65,6 +65,18 @@
         <conditions><leftValueReference>f_Retry_A_Eligible</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
         <connector><targetReference>Set_A_Retry_Pending</targetReference></connector><label>Safe bounded retry</label></rules>
     </decisions>
+    <formulas>
+        <name>f_NextRetryAt</name>
+        <dataType>DateTime</dataType>
+        <expression>NOW() + IF(
+  OR(CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;per day&quot;),
+     CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;daily&quot;),
+     CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;tokens per day&quot;),
+     CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;requests per day&quot;)),
+  1440,
+  CASE(TEXT(BLANKVALUE({!$Record.Retry_Count__c}, 0)), &quot;0&quot;, 1, &quot;1&quot;, 5, 15)
+) / 1440</expression>
+    </formulas>
     <description>WDE Batch 8 pilot — asynchronous stage A; no automatic approval. Deploy inactive and validate in sandbox first.
 tambah error=null</description>
     <ends>
@@ -217,6 +229,7 @@ tambah error=null</description>
         <filterLogic>and</filterLogic>
         <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>$Record.Id</elementReference></value></filters>
         <inputAssignments><field>Retry_Count__c</field><value><elementReference>f_Next_A_Retry</elementReference></value></inputAssignments>
+        <inputAssignments><field>Next_Retry_At__c</field><value><elementReference>f_NextRetryAt</elementReference></value></inputAssignments>
         <inputAssignments><field>Error_Message__c</field><value><elementReference>aError</elementReference></value></inputAssignments>
         <inputAssignments><field>Status__c</field><value><stringValue>RetryPending</stringValue></value></inputAssignments>
         <object>WDE_Batch_Run__c</object>
