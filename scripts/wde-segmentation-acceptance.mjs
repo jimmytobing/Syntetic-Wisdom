@@ -49,12 +49,13 @@ export function inspectSegmentationCoverage(segments, captionIndices, options = 
 }
 
 // Does not perform approval; returns eligibility only if reviewer evidence is explicit.
-export function inspectEditorialApprovalGate({ coverage, handoffs, reviewer, audioReviewed, rightsCleared }) {
+export function inspectEditorialApprovalGate({ coverage, handoffs, reviewer, audioReviewed, rightsCleared, sourceAuthenticated }) {
   if (!coverage || !handoffs || typeof coverage.pass !== 'boolean' || typeof handoffs.pass !== 'boolean') {
     throw Error('INPUT_INVALID');
   }
   const blockers = [];
   if (!coverage.pass) blockers.push('COVERAGE_FAILED');
+  if (sourceAuthenticated !== true) blockers.push('SOURCE_AUTHENTICATION_MISSING');
   if (!handoffs.pass) blockers.push('HANDOFF_FAILED');
   if (typeof reviewer !== 'string' || !reviewer.trim()) blockers.push('HUMAN_REVIEW_MISSING');
   if (audioReviewed !== true) blockers.push('AUDIO_REVIEW_MISSING');
