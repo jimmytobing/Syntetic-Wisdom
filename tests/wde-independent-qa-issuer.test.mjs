@@ -67,6 +67,40 @@ test('issuer requires exact org, held state and signing key',()=>{
   assert.throws(()=>issue({batch:{...batch,status:'CommitApproved'}}),/ISSUER_CONTEXT_INVALID/);
   assert.throws(()=>issue({signingKey:'short'}),/ISSUER_CONTEXT_INVALID/);
 });
+test('authenticated independent semantic agreement yields signed transcript PASS, but no automated release',()=>{
+  const segmentsEvidence=segments.map(s=>({
+    start:s.Start_Index__c,end:s.End_Index__c,type:s.Segment_Type__c,
+    verdict:'PASS',startEvidence:texts[s.Start_Index__c],endEvidence:texts[s.End_Index__c],
+    rationale:'Independently grounded section-by-section editorial transcript classification.'
+  }));
+  const provenance={verifiedByTrustedRunner:true,independentProvider:true,
+    sourceId:batch.sourceId,sourceDigest:'sha256:'+createHash('sha256').update(rawTranscript).digest('hex'),
+    runId:'independent-qa-synthetic-run-1'};
+  const result=issue({independentEditorial:{segments:segmentsEvidence,provenance}});
+  assert.equal(result.semanticDecision,'PASS');
+  assert.equal(result.receipt.payload.review.verdict,'PASS');
+  assert.equal(result.receipt.payload.review.confidence,0);
+  assert.deepEqual(result.receipt.payload.review.flags,['SEMANTIC_CALIBRATION_NOT_VERIFIED']);
+  assert.equal(result.editorialRoute,'HUMAN_REVIEW_REQUIRED');
+  assert.equal(result.canWriteSalesforce,false);
+  assert.equal(verifyIndependentQaReceipt({receipt:result.receipt,key,batch,now}).verified,true);
+});
+
+test('independent semantic disagreement produces REVIEW receipt, not signed PASS',()=>{
+  const indep=segments.map(s=>({start:s.Start_Index__c,end:s.End_Index__c,
+    type:s.Segment_Type__c,verdict:'PASS',
+    startEvidence:texts[s.Start_Index__c],endEvidence:texts[s.End_Index__c],
+    rationale:'Separate independent review of the indexed source transcript.'}));
+  indep[1].type='Testimony';
+  const provenance={verifiedByTrustedRunner:true,independentProvider:true,
+    sourceId:batch.sourceId,sourceDigest:'sha256:'+createHash('sha256').update(rawTranscript).digest('hex'),
+    runId:'independent-qa-synthetic-run-2'};
+  const result=issue({independentEditorial:{segments:indep,provenance}});
+  assert.equal(result.semanticDecision,'FAIL');
+  assert.equal(result.receipt.payload.review.verdict,'REVIEW');
+  assert.ok(result.receipt.payload.review.flags.includes('INDEPENDENT_SEMANTIC_FAIL'));
+});
+
 test('signed payload cannot be silently promoted to PASS',()=>{
   const {receipt}=issue();
   receipt.payload.review.verdict='PASS';
