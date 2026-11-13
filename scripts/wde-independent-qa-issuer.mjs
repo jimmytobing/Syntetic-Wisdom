@@ -4,6 +4,7 @@
 import { createHash, createHmac } from 'node:crypto';
 import { inspectSegmentationCoverage } from './wde-segmentation-acceptance.mjs';
 import { inspectOpeningHandoffs } from './wde-opener-handoff-qa.mjs';
+import { adjudicateIndependentSemanticSegments } from './wde-independent-semantic-decision.mjs';
 import { canonicalQaReceiptPayload, QA_ORG_ID, QA_RECEIPT_VERSION } from './wde-independent-qa-receipt.mjs';
 
 const normalize = v => String(v ?? '').toLowerCase().normalize('NFKC')
@@ -47,7 +48,8 @@ export function inspectOriginalCaptionText({ rawTranscript, segments, expectedTo
 }
 
 export function issueIndependentQaReviewReceipt({
-  batch, flowResponse, rawTranscript, segments, signingKey, now=Date.now()
+  batch, flowResponse, rawTranscript, segments, signingKey, independentEditorial,
+  now=Date.now()
 }) {
   if(!batch || batch.orgId !== QA_ORG_ID || !text(batch.id) ||
     !text(batch.sourceId) || !text(batch.enrichmentDigest) ||
@@ -69,10 +71,24 @@ export function issueIndependentQaReviewReceipt({
   if(!coverage.pass) flags.push('COVERAGE_FAILED');
   if(!textCheck.pass) flags.push('ORIGINAL_TEXT_MISMATCH');
   if(!handoffs.pass) flags.push('EDITORIAL_HANDOFF_FAILED');
-  // Always require independent semantic/audio review. Signer is NOT an editorial oracle.
-  flags.push('SEMANTIC_EDITORIAL_NOT_CERTIFIED');
+  // Semantic PASS requires a separately authenticated, caption-grounded evaluator.
+  // Even a PASS is transcript-only; empirical calibration is required for automation.
+  let semantic;
+  if(independentEditorial) {
+    semantic = adjudicateIndependentSemanticSegments({
+      rawTranscript,primarySegments:segments,
+      independentSegments:independentEditorial.segments,
+      provenance:independentEditorial.provenance,sourceId:batch.sourceId
+    });
+    if(semantic.decision !== 'PASS') flags.push('INDEPENDENT_SEMANTIC_'+semantic.decision);
+  } else flags.push('INDEPENDENT_SEMANTIC_MISSING');
+  if(!semantic || semantic.decision !== 'PASS') flags.push('SEMANTIC_EDITORIAL_NOT_CERTIFIED');
+  // Absence of a real, separately adjudicated calibration prohibits automatic
+  // AI-clear even if the independent transcript semantic verdict is PASS.
+  flags.push('SEMANTIC_CALIBRATION_NOT_VERIFIED');
   const review={
-    verdict:'REVIEW',confidence:0,sourceAnchored:textCheck.pass,
+    verdict:flags.some(x=>x!=='SEMANTIC_CALIBRATION_NOT_VERIFIED') ? 'REVIEW' : 'PASS',
+    confidence:0,sourceAnchored:textCheck.pass,
     evidenceId:'qa:'+createHash('sha256').update(batch.id+'\n'+batch.enrichmentDigest).digest('hex').slice(0,32),
     qaVersion:'deterministic-transcript-review-v1',
     boundaryChecksPassed:coverage.pass && handoffs.pass,
@@ -85,7 +101,7 @@ export function issueIndependentQaReviewReceipt({
     flowStatus:'SUCCESS',issuedAt:now,expiresAt:now+300000,review
   };
   const signature=createHmac('sha256',signingKey).update(canonicalQaReceiptPayload(payload)).digest('hex');
-  return {receipt:{payload,signature},editorialRoute:'HUMAN_REVIEW_REQUIRED',
-    approvalPerformed:false,canWriteSalesforce:false,
-    notes:'Cryptographic attestation of deterministic source checks; no AI editorial PASS or rights clearance.'};
+  return {receipt:{payload,signature},semanticDecision:semantic?.decision ?? 'REVIEW',
+    editorialRoute:'HUMAN_REVIEW_REQUIRED',approvalPerformed:false,canWriteSalesforce:false,
+    notes:'Independent transcript semantic result can be PASS/FAIL/REVIEW; empirical calibration, audio and rights remain blocked.'};
 }
