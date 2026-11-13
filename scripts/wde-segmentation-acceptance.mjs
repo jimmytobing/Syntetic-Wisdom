@@ -48,8 +48,44 @@ export function inspectSegmentationCoverage(segments, captionIndices, options = 
     note: 'Structural coverage only; source authenticity, editorial accuracy and publication rights require independent verification.' };
 }
 
-// Does not perform approval; returns eligibility only if reviewer evidence is explicit.
-export function inspectEditorialApprovalGate({ coverage, handoffs, reviewer, audioReviewed, rightsCleared, sourceAuthenticated }) {
+// Review routing only: never promotes a record or clears publication permissions.
+// AI output is untrusted; require separately computed structural checks and source evidence.
+export function inspectAiEditorialTriage({ coverage, handoffs, aiReview, sourceAuthenticated }) {
+  if (!coverage || !handoffs || typeof coverage.pass !== 'boolean' || typeof handoffs.pass !== 'boolean') {
+    throw Error('INPUT_INVALID');
+  }
+  const reasons = [];
+  if (!coverage.pass) reasons.push('COVERAGE_FAILED');
+  if (!handoffs.pass) reasons.push('HANDOFF_FAILED');
+  if (sourceAuthenticated !== true) reasons.push('SOURCE_AUTHENTICATION_MISSING');
+  if (!aiReview || typeof aiReview !== 'object' || Array.isArray(aiReview)) {
+    reasons.push('AI_REVIEW_MISSING');
+  } else {
+    if (aiReview.verdict !== 'PASS') reasons.push('AI_REVIEW_NOT_PASS');
+    if (typeof aiReview.confidence !== 'number' || !Number.isFinite(aiReview.confidence) ||
+        aiReview.confidence < 0.95 || aiReview.confidence > 1) reasons.push('AI_CONFIDENCE_INSUFFICIENT');
+    if (aiReview.sourceAnchored !== true || !aiReview.evidenceId?.trim?.() ||
+        !aiReview.qaVersion?.trim?.()) reasons.push('AI_EVIDENCE_INCOMPLETE');
+    if (aiReview.boundaryChecksPassed !== true || aiReview.crossSegmentChecksPassed !== true) {
+      reasons.push('AI_BOUNDARY_UNVERIFIED');
+    }
+    if (!Array.isArray(aiReview.flags) || aiReview.flags.length !== 0) reasons.push('AI_FLAGS_REQUIRE_REVIEW');
+  }
+  return {
+    route: reasons.length ? 'HUMAN_REVIEW_REQUIRED' : 'AI_EDITORIAL_CLEAR',
+    reasons, editorialClear: reasons.length === 0,
+    humanReviewRequired: reasons.length !== 0,
+    approvalPerformed: false,
+    note: 'Triage is not independent proof of accuracy, audio verification or publication rights.'
+  };
+}
+
+// Fail closed: AI-clear is enough to skip routine *editorial* manual review,
+// but ambiguous AI results still require a named human reviewer and adjudication.
+export function inspectEditorialApprovalGate({
+  coverage, handoffs, reviewer, humanAdjudicated, audioReviewed,
+  rightsCleared, sourceAuthenticated, aiReview
+}) {
   if (!coverage || !handoffs || typeof coverage.pass !== 'boolean' || typeof handoffs.pass !== 'boolean') {
     throw Error('INPUT_INVALID');
   }
@@ -57,8 +93,17 @@ export function inspectEditorialApprovalGate({ coverage, handoffs, reviewer, aud
   if (!coverage.pass) blockers.push('COVERAGE_FAILED');
   if (sourceAuthenticated !== true) blockers.push('SOURCE_AUTHENTICATION_MISSING');
   if (!handoffs.pass) blockers.push('HANDOFF_FAILED');
-  if (typeof reviewer !== 'string' || !reviewer.trim()) blockers.push('HUMAN_REVIEW_MISSING');
+  const triage = inspectAiEditorialTriage({ coverage, handoffs, aiReview, sourceAuthenticated });
+  const humanReviewed = typeof reviewer === 'string' && !!reviewer.trim();
+  // Backwards compatibility for already-human-reviewed cases. For new exception
+  // cases a reviewer name alone is not sufficient: adjudication must be explicit.
+  const editorialAccepted = triage.editorialClear ||
+    (humanReviewed && (aiReview === undefined || humanAdjudicated === true));
+  if (!editorialAccepted) blockers.push('EDITORIAL_REVIEW_REQUIRED');
   if (audioReviewed !== true) blockers.push('AUDIO_REVIEW_MISSING');
   if (rightsCleared !== true) blockers.push('RIGHTS_UNCLEARED');
-  return { eligible: blockers.length === 0, blockers, approvalPerformed: false };
+  return {
+    eligible: blockers.length === 0, blockers, approvalPerformed: false,
+    editorialRoute: triage.route
+  };
 }
