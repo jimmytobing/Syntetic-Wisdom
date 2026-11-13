@@ -46,6 +46,9 @@ export function evaluateKnowledgeUnits(payload) {
   }
   if (segments.length && captionIndices.length && previousEnd!==captionIndices.at(-1)) issues.push(problem('SEGMENT_END_MISMATCH',String(previousEnd)));
   const reports = units.map((u,i)=>{
+    if (!u || typeof u !== 'object' || Array.isArray(u)) {
+      return {id:String(i),spoken_words:0,status:'NEEDS_REVIEW',issues:[problem('UNIT_INVALID',String(i))]};
+    }
     const failures=[];
     const id = norm(u.id)||String(i);
     if (!integer(u.source_start_index)||!integer(u.source_end_index)||u.source_start_index>u.source_end_index ||
@@ -56,6 +59,7 @@ export function evaluateKnowledgeUnits(payload) {
     for(const field of core) if(!norm(u[field])) failures.push(problem('UNIT_FIELD_MISSING',`${id}:${field}`));
     if (!Array.isArray(u.evidence)||!u.evidence.length) failures.push(problem('UNIT_EVIDENCE_MISSING',id));
     else for(const e of u.evidence){
+      if (!e || typeof e !== 'object' || Array.isArray(e)) { failures.push(problem('EVIDENCE_INVALID',id)); continue; }
       const actual=byIndex.get(e.index);
       if (!integer(e.index)||!integer(u.source_start_index)||!integer(u.source_end_index)||
           e.index<u.source_start_index||e.index>u.source_end_index||!actual||
@@ -63,16 +67,19 @@ export function evaluateKnowledgeUnits(payload) {
         failures.push(problem('EVIDENCE_NOT_GROUNDED',`${id}:${e.index}`));
       }
     }
+    const containingSegments=segments.filter(s=>integer(s.start_index)&&integer(s.end_index)&&integer(u.source_start_index)&&integer(u.source_end_index)&&u.source_start_index>=s.start_index&&u.source_end_index<=s.end_index);
+    if (containingSegments.length!==1) failures.push(problem('UNIT_CROSSES_SEGMENTS',id));
     const spokenWords=words(u.original_script_45s);
     // 45 s at ~120-155 words/min => about 90-116 words. Use wide editorial envelope.
     if (spokenWords<85||spokenWords>120) failures.push(problem('SCRIPT_LENGTH_REVIEW',`${id}:${spokenWords} words`));
     // Deterministic validation does NOT establish semantic correctness.
     const reviewed=u.human_review==='approved' && norm(u.reviewer) && norm(u.review_notes);
     if (!reviewed) failures.push(problem('SOURCE_EDITORIAL_REVIEW_REQUIRED',id));
-    return {id,spoken_words:spokenWords,status:failures.length?'NEEDS_REVIEW':'ELIGIBLE_AFTER_HUMAN_REVIEW',issues:failures};
+    // Self-reported reviewer fields cannot authenticate source-audio, editorial, rights or timing review.
+    return {id,spoken_words:spokenWords,status:failures.length?'NEEDS_REVIEW':'STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW',issues:failures};
   });
   if (!units.length) issues.push(problem('UNITS_MISSING','No independently grounded knowledge units supplied.'));
-  return {status:issues.length||reports.some(r=>r.issues.length)?'BLOCKED':'REVIEWED_CANDIDATES',structural_issues:issues,unit_reports:reports,
+  return {status:issues.length||reports.some(r=>r.issues.length)?'BLOCKED':'STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW',structural_issues:issues,unit_reports:reports,
     disclaimer:'Mechanical gate and human acknowledgment do not prove theological accuracy, source audio fidelity, rights clearance, or publishability.'};
 }
 
