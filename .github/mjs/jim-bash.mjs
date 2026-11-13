@@ -7,7 +7,7 @@ var bashPrefix = bashName === "Sf Bash" ? "sf" : "jim";
 var issueBody = process.env.ISSUE_BODY || "";
 var issueNumber = process.env.ISSUE_NUMBER || "?";
 var tempDir = process.env.RUNNER_TEMP || "/tmp";
-var evidenceFile = tempDir + "/" + bashPrefix + "-bash-evidence.md";
+var evidenceFile = tempDir + "/" + bashPrefix + "-bash-comment.md";
 var fence = String.fromCharCode(96, 96, 96);
 
 function readBash(text) {
