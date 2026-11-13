@@ -8,7 +8,7 @@ segments:[{start_index:0,end_index:1,topic:'Bertindak bijak',summary:'Pembicara 
 units:[{id:'u1',source_start_index:0,source_end_index:1,claim:'Periksa sumber',audience_need:'Keputusan yang bertanggung jawab',application:'Periksa informasi',original_script_45s:script,
 evidence:[{index:1,quote:'Periksa sumber'}],human_review:'approved',reviewer:'Editor QA',review_notes:'Manual example only; audio and context still require checking.'}]});
 test('valid structure with explicit review is eligible, never auto-published',()=>{
-  const a=evaluateKnowledgeUnits(base());assert.equal(a.structural_issues.length,0);assert.equal(a.unit_reports[0].status,'ELIGIBLE_AFTER_HUMAN_REVIEW');
+  const a=evaluateKnowledgeUnits(base());assert.equal(a.structural_issues.length,0);assert.equal(a.unit_reports[0].status,'STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW');
   assert.notEqual(a.status,'PUBLISHED');
 });
 test('rejects missing citation match',()=>{const a=base();a.units[0].evidence[0].quote='janji pasti sembuh';assert.equal(evaluateKnowledgeUnits(a).unit_reports[0].status,'NEEDS_REVIEW');});
@@ -16,3 +16,20 @@ test('blocks gap and overlap',()=>{const a=base();a.segments=[{start_index:0,end
 test('never passes unreviewed model generated content',()=>{const a=base();a.units[0].human_review='pending';assert.equal(evaluateKnowledgeUnits(a).status,'BLOCKED');});
 test('rejects invented evidence outside source index',()=>{const a=base();a.units[0].evidence=[{index:2,quote:'Periksa sumber'}];assert.ok(evaluateKnowledgeUnits(a).unit_reports[0].issues.some(i=>i.code==='EVIDENCE_NOT_GROUNDED'));});
 test('rejects non-video-sized narratives',()=>{const a=base();a.units[0].original_script_45s='satu kalimat';assert.ok(evaluateKnowledgeUnits(a).unit_reports[0].issues.some(i=>i.code==='SCRIPT_LENGTH_REVIEW'));});
+
+test('rejects knowledge unit that spans two baseline segments',()=>{
+ const a=base();a.segments=[{start_index:0,end_index:0,topic:'Topic A',summary:'Summary A'},{start_index:1,end_index:1,topic:'Topic B',summary:'Summary B'}];
+ assert.ok(evaluateKnowledgeUnits(a).unit_reports[0].issues.some(x=>x.code==='UNIT_CROSSES_SEGMENTS'));
+});
+test('malformed evidence item is rejected rather than throwing',()=>{
+ const a=base();a.units[0].evidence=[null];
+ assert.ok(evaluateKnowledgeUnits(a).unit_reports[0].issues.some(x=>x.code==='EVIDENCE_INVALID'));
+});
+test('null candidate is rejected rather than throwing',()=>{
+ const a=base();a.units=[null];
+ assert.equal(evaluateKnowledgeUnits(a).unit_reports[0].status,'NEEDS_REVIEW');
+});
+test('claimed manual review never produces publish approval',()=>{
+ const a=base();const result=evaluateKnowledgeUnits(a);
+ assert.equal(result.status,'STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW');
+});
