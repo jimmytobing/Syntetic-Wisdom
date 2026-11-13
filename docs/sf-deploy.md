@@ -1,6 +1,6 @@
 # WDE — `### Sf Deploy` gateway
 
-GitHub Workflow: `.github/workflows/sf.yaml`; Script: `scripts/sf-deploy.mjs`.
+GitHub Workflow: `.github/workflows/sf.yaml`; Script: `.github/mjs/sf-deploy.mjs`.
 
 **Target tetap:** `hdbsf` / Salesforce Developer Edition /
 Org ID `00Dfj00000eVCOVEA4` /
