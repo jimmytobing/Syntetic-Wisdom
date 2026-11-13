@@ -1,0 +1,38 @@
+name: WDE Editorial QA
+
+on:
+  pull_request:
+    paths:
+      - "scripts/wde-opener-handoff-qa.mjs"
+      - "tests/wde-opener-handoff-qa.test.mjs"
+      - ".github/workflows/wde-editorial-qa.yml"
+  push:
+    branches:
+      - "feature/wde-hive-content-planning-35"
+    paths:
+      - "scripts/wde-opener-handoff-qa.mjs"
+      - "tests/wde-opener-handoff-qa.test.mjs"
+      - ".github/workflows/wde-editorial-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  editorial-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Setup Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: Check JavaScript syntax
+        run: |
+          node --check scripts/wde-opener-handoff-qa.mjs
+          node --check tests/wde-opener-handoff-qa.test.mjs
+      - name: Run source-anchored editorial QA unit tests
+        run: node --test tests/wde-opener-handoff-qa.test.mjs
