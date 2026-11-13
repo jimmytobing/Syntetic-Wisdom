@@ -29,7 +29,7 @@
     </decisions>
     <formulas>
         <name>f_Retry_A_Eligible</name><dataType>Boolean</dataType>
-        <expression>AND(OR({!aResult} = &quot;INVALID_AI_FORMAT&quot;, {!aResult} = &quot;EMPTY_RESPONSE&quot;), BLANKVALUE({!$Record.Retry_Count__c}, 0) &lt; 2)</expression>
+        <expression>AND(OR({!aResult} = &quot;INVALID_AI_FORMAT&quot;, {!aResult} = &quot;EMPTY_RESPONSE&quot;, CONTAINS(LOWER({!aError}), &quot;too many requests&quot;)), BLANKVALUE({!$Record.Retry_Count__c}, 0) &lt; 2)</expression>
     </formulas>
     <formulas>
         <name>f_Next_A_Retry</name><dataType>Number</dataType><scale>0</scale>
