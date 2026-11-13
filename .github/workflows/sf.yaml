@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  call-salesforce-api:
+  sf-request:
     if: >-
       contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
       contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
@@ -58,7 +58,7 @@ jobs:
             exit 1
           fi
 
-  run-sf-bash:
+  sf-bash:
     if: >-
       contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
       contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
@@ -125,8 +125,8 @@ jobs:
           retention-days: 1
 
   publish-sf-bash:
-    needs: run-sf-bash
-    if: always() && needs.run-sf-bash.result != 'skipped'
+    needs: sf-bash
+    if: always() && needs.sf-bash.result != 'skipped'
     permissions:
       issues: write
     runs-on: ubuntu-latest
@@ -146,7 +146,7 @@ jobs:
           set -euo pipefail
           gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-bash-result/sf-bash-evidence.md"
 
-  run-sf-deploy:
+  sf-deploy:
     if: >-
       github.repository == 'jimmytobing/Syntetic-Wisdom' &&
       contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
@@ -245,8 +245,8 @@ jobs:
           retention-days: 1
 
   publish-sf-deploy:
-    needs: run-sf-deploy
-    if: always() && needs.run-sf-deploy.result != 'skipped'
+    needs: sf-deploy
+    if: always() && needs.sf-deploy.result != 'skipped'
     permissions:
       issues: write
     runs-on: ubuntu-latest
