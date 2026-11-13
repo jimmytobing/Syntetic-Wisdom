@@ -29,7 +29,29 @@
     </decisions>
     <formulas>
         <name>f_Retry_A_Eligible</name><dataType>Boolean</dataType>
-        <expression>AND(OR({!aResult} = &quot;INVALID_AI_FORMAT&quot;, {!aResult} = &quot;EMPTY_RESPONSE&quot;, CONTAINS(LOWER({!aError}), &quot;too many requests&quot;)), BLANKVALUE({!$Record.Retry_Count__c}, 0) &lt; 2)</expression>
+        <expression>AND(
+  BLANKVALUE({!$Record.Retry_Count__c}, 0) &amp;lt; 2,
+  OR(
+    {!aResult} = &quot;INVALID_AI_FORMAT&quot;,
+    {!aResult} = &quot;EMPTY_RESPONSE&quot;,
+    AND(
+      {!aResult} = &quot;GROQ_ERROR&quot;,
+      OR(CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;429&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;500&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;502&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;503&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;504&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;rate limit&quot;))
+    ),
+    AND(
+      {!aResult} = &quot;FLOW_FAULT&quot;,
+      OR(CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;timeout&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;timed out&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;connection&quot;),
+         CONTAINS(LOWER(BLANKVALUE({!aError}, &quot;&quot;)), &quot;temporar&quot;))
+    )
+  )
+)</expression>
     </formulas>
     <formulas>
         <name>f_Next_A_Retry</name><dataType>Number</dataType><scale>0</scale>
