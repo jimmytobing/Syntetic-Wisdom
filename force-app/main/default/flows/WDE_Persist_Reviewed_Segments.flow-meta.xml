@@ -1661,7 +1661,7 @@
     <formulas>
         <name>f_MergedText</name>
         <dataType>String</dataType>
-        <expression>TRIM({!Get_Open_Previous.Transcript_Text__c} &amp; &quot; &quot; &amp; {!varSegmentText})</expression>
+        <expression>TRIM({!Get_Open_Previous.Transcript_Text__c} &amp; BR() &amp; BR() &amp; {!varSegmentText})</expression>
     </formulas>
     <formulas>
         <name>f_MergedTextLength</name>
@@ -1678,7 +1678,7 @@
     <formulas>
         <name>f_NewSegmentText</name>
         <dataType>String</dataType>
-        <expression>IF({!varSegmentCaptionCount} = 0, {!f_CapText}, TRIM({!varSegmentText} &amp; &quot; &quot; &amp; {!f_CapText}))</expression>
+        <expression>IF({!varSegmentCaptionCount} = 0, {!f_CapText}, TRIM({!varSegmentText} &amp; IF(MOD({!varSegmentCaptionCount}, 4) = 0, BR() &amp; BR(), &quot; &quot;) &amp; {!f_CapText}))</expression>
     </formulas>
     <formulas>
         <name>f_NextCaptionIndex</name>
