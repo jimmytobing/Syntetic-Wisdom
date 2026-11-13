@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion>
+<description>Async after-commit requeue only bounded Stage A malformed-output retries. Trigger enters RetryPending only when Stage A validation failed and Retry_Count is incremented (max 2). Does not bypass strict segmentation validation or human rights tracking.</description>
+<interviewLabel>WDE Retry Stage A {!$Flow.CurrentDateTime}</interviewLabel>
+<label>[Tgr] WDE Retry Stage A</label>
+<processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+<processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
+<processMetadataValues><name>OriginBuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+<processType>AutoLaunchedFlow</processType>
+<status>Active</status>
+<recordUpdates>
+<name>Requeue_Stage_A</name><label>Return retry batch to Pending</label><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>END_ELEMENT_1</targetReference></connector>
+<filterLogic>and</filterLogic>
+<filters><field>Id</field><operator>EqualTo</operator><value><elementReference>$Record.Id</elementReference></value></filters>
+<filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
+<inputAssignments><field>Status__c</field><value><stringValue>Pending</stringValue></value></inputAssignments>
+<object>WDE_Batch_Run__c</object>
+</recordUpdates>
+<ends><name>END_ELEMENT_1</name><locationX>0</locationX><locationY>0</locationY></ends>
+<start><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>END_ELEMENT_1</targetReference></connector>
+<doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+<filterLogic>and</filterLogic>
+<filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
+<filters><field>Retry_Count__c</field><operator>LessThanOrEqualTo</operator><value><numberValue>2.0</numberValue></value></filters>
+<object>WDE_Batch_Run__c</object><recordTriggerType>Update</recordTriggerType>
+<scheduledPaths><connector><targetReference>Requeue_Stage_A</targetReference></connector><pathType>AsyncAfterCommit</pathType></scheduledPaths>
+<triggerType>RecordAfterSave</triggerType>
+</start>
+</Flow>
