@@ -27,6 +27,14 @@
             <label>A_Success</label>
         </rules>
     </decisions>
+    <decisions>
+        <name>Decide_Retry_A</name><label>Retry transient or invalid AI output up to three times</label><locationX>0</locationX><locationY>0</locationY>
+        <defaultConnector><targetReference>Set_A_Failure</targetReference></defaultConnector>
+        <defaultConnectorLabel>Fail closed</defaultConnectorLabel>
+        <rules><name>Retry_A</name><conditionLogic>and</conditionLogic>
+        <conditions><leftValueReference>f_Retry_A_Eligible</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
+        <connector><targetReference>Set_A_Retry_Pending</targetReference></connector><label>Safe bounded retry</label></rules>
+    </decisions>
     <formulas>
         <name>f_Retry_A_Eligible</name><dataType>Boolean</dataType>
         <expression>AND(
@@ -59,14 +67,6 @@
         <name>f_Next_A_Retry</name><dataType>Number</dataType><scale>0</scale>
         <expression>BLANKVALUE({!$Record.Retry_Count__c},0) + 1</expression>
     </formulas>
-    <decisions>
-        <name>Decide_Retry_A</name><label>Retry transient or invalid AI output up to three times</label><locationX>0</locationX><locationY>0</locationY>
-        <defaultConnector><targetReference>Set_A_Failure</targetReference></defaultConnector>
-        <defaultConnectorLabel>Fail closed</defaultConnectorLabel>
-        <rules><name>Retry_A</name><conditionLogic>and</conditionLogic>
-        <conditions><leftValueReference>f_Retry_A_Eligible</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
-        <connector><targetReference>Set_A_Retry_Pending</targetReference></connector><label>Safe bounded retry</label></rules>
-    </decisions>
     <formulas>
         <name>f_NextRetryAt</name>
         <dataType>DateTime</dataType>
