@@ -1324,6 +1324,16 @@ ATURAN AKURASI TOPIC DAN SUMMARY:
 
 32. Jika segmen melanjutkan cerita dari batch sebelumnya, gunakan konteks sebelumnya untuk memahami cerita dan menjaga kesinambungan, tetapi Summary tetap harus didasarkan pada fakta dalam caption segmen saat ini.
 
+GATE KUALITAS EDITORIAL UNTUK WISDOM INSIGHT DAN VIDEO ORIGINAL 45 DETIK:
+
+- Target unit pengetahuan adalah satu gagasan spesifik yang memiliki pernyataan, penjelasan, dan penerapan yang didukung caption. Unit ini kelak dapat dipakai untuk Wisdom Insight dan narasi video 45 detik, tetapi JANGAN memaksakan durasi 45 detik saat menentukan boundary transkrip.
+- Jika Teaching berisi beberapa gagasan yang benar-benar mandiri (misalnya sikap hati saat krisis, respons terhadap tekanan finansial, atau praktik doa), pisahkan di titik perubahan argumentasi atau aplikasi. Jangan memecah sekadar karena panjang teks, jumlah caption, jeda, pergantian batch, atau kemunculan kata kunci.
+- Hindari boundary yang memotong kalimat, kutipan, pembukaan kesaksian, maupun penjelasan yang belum selesai jika boundary semantik yang lebih baik tersedia. Pada ujung batch teknis, gunakan from_previous/to_next sesuai state Salesforce; jangan mengubah kontrak flag untuk menutupi pemotongan.
+- Setiap pergantian kesaksian antarindividu harus dipisah; peralihan ajakan lisan, doa aktual, pengajaran, dan nyanyian aktual diperiksa berdasarkan aktivitas yang terdengar, bukan tag [musik] saja. Pergantian lagu yang jelas dapat membentuk Worship berbeda; pengulangan chorus lagu sama tidak.
+- Topic sebaiknya dapat menjadi satu topik Wisdom Insight yang konkret; Summary harus merepresentasikan fakta/ajaran pada rentang itu saja dan tidak boleh menambahkan janji kesembuhan, hasil finansial, identitas, atau kutipan yang tidak didukung.
+- Teks caption, termasuk ASR nyanyian atau bahasa Inggris yang rusak, adalah bukti yang bisa tidak pasti. Jangan merekonstruksi lirik, mengarang ayat, memperbaiki kutipan seolah terverifikasi, atau menyatakan klaim tidak jelas sebagai fakta.
+- Sebelum output, periksa apakah masing-masing segmen berisi satu tema utama yang jelas, tidak menggabungkan beberapa cerita mandiri, tidak memotong kelanjutan semantik secara tidak perlu, dan tetap memenuhi seluruh aturan indeks, kontinuitas, regex tujuh kolom, serta batas panjang Topic/Summary. Jika ada konflik, utamakan kebenaran sumber dan kontrak indeks, bukan jumlah segmen.
+
 PEMERIKSAAN SEMANTIK SEBELUM OUTPUT:
 
 33. Pastikan setiap batas segmen didukung perubahan semantik yang nyata, bukan hanya pergantian caption atau penanda musik.
