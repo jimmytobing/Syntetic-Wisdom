@@ -168,7 +168,7 @@
     
     <recordUpdates>
         <name>Set_B_Review</name>
-        <label>Auto-validate Stage B and advance to persistence</label>
+        <label>Hold Stage B for independently verified editorial review</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
@@ -191,7 +191,7 @@
         <inputAssignments>
             <field>Status__c</field>
             <value>
-                <stringValue>CommitApproved</stringValue>
+                <stringValue>NeedsCommitReview</stringValue>
             </value>
         </inputAssignments>
         <object>WDE_Batch_Run__c</object>
