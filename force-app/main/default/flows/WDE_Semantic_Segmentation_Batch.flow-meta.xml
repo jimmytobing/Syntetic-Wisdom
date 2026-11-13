@@ -485,7 +485,7 @@
             <assignToReference>varErrorMessage</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>varS_Error</elementReference>
+                <elementReference>f_GroqHttpError</elementReference>
             </value>
         </assignmentItems>
         <connector>
@@ -1147,6 +1147,11 @@
         <name>f_TranscriptBatch</name>
         <dataType>String</dataType>
         <expression>IF({!f_BatchEnd} &gt;= {!varStartPosition}, MID({!Get_Sermon_Source.Raw_Transcript_Text__c}, {!varStartPosition}, {!f_BatchEnd} - {!varStartPosition} + 1), &quot;&quot;)</expression>
+    </formulas>
+    <formulas>
+        <name>f_GroqHttpError</name>
+        <dataType>String</dataType>
+        <expression>&quot;HTTP &quot; &amp; TEXT({!varResponseCode}) &amp; &quot;: &quot; &amp; BLANKVALUE({!varS_Error}, &quot;Groq request failed&quot;)</expression>
     </formulas>
     <interviewLabel>WDE_Semantic_Segmentation_Batch {!$Flow.CurrentDateTime}</interviewLabel>
     <label>WDE_Semantic_Segmentation_Batch</label>
