@@ -34,12 +34,20 @@ export function evaluateKnowledgeUnits(payload) {
   if (!captionIndices.length) issues.push(problem('CAPTIONS_MISSING','Cannot ground knowledge units without indexed source captions.'));
   if (!segments.length) issues.push(problem('SEGMENTS_MISSING','Provide segmentation candidates.'));
   let previousEnd = null;
+  const boundaryWarnings = [];
   for (const [i,s] of segments.entries()) {
     if (!integer(s.start_index)||!integer(s.end_index)||s.end_index<s.start_index) {
       issues.push(problem('SEGMENT_RANGE_INVALID',String(i))); continue;
     }
     if (i===0 && captionIndices.length && s.start_index!==captionIndices[0]) issues.push(problem('SEGMENT_START_MISMATCH',String(i)));
     if (previousEnd!==null && s.start_index!==previousEnd+1) issues.push(problem('SEGMENT_GAP_OR_OVERLAP',String(i)));
+    if (previousEnd!==null && s.start_index===previousEnd+1) {
+      const left=byIndex.get(previousEnd)||'',right=byIndex.get(s.start_index)||'';
+      // ASR may omit punctuation. This is a review warning, never proof of a bad boundary.
+      if (left && right && !/[.!?][”’"']?$/.test(left) && /^[a-z]/.test(right)) {
+        boundaryWarnings.push(problem('POSSIBLE_MID_SENTENCE_SPLIT',String(previousEnd)+'/'+String(s.start_index)));
+      }
+    }
     if (!norm(s.topic)||!norm(s.summary)) issues.push(problem('SEGMENT_METADATA_MISSING',String(i)));
     if (norm(s.topic).length>120||norm(s.summary).length>180) issues.push(problem('SEGMENT_METADATA_TOO_LONG',String(i)));
     previousEnd=s.end_index;
@@ -79,7 +87,7 @@ export function evaluateKnowledgeUnits(payload) {
     return {id,spoken_words:spokenWords,status:failures.length?'NEEDS_REVIEW':'STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW',issues:failures};
   });
   if (!units.length) issues.push(problem('UNITS_MISSING','No independently grounded knowledge units supplied.'));
-  return {status:issues.length||reports.some(r=>r.issues.length)?'BLOCKED':'STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW',structural_issues:issues,unit_reports:reports,
+  return {status:issues.length||reports.some(r=>r.issues.length)?'BLOCKED':'STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW',structural_issues:issues,boundary_warnings:boundaryWarnings,unit_reports:reports,
     disclaimer:'Mechanical gate and human acknowledgment do not prove theological accuracy, source audio fidelity, rights clearance, or publishability.'};
 }
 
