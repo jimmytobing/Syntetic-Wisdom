@@ -36,7 +36,7 @@ export function inspectStoredBatchQaEvidence({
   return {
     verified: reasons.length === 0,
     reasons,
-    attestation: reasons.length === 0 ? verification.attestation : null,
+    attestation: reasons.length === 0 ? verification?.attestation ?? null : null,
     // Never return a DML payload or an approval decision.
     releasePerformed: false
   };
