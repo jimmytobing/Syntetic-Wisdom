@@ -52,3 +52,19 @@ Candidate JSON shape:
 6. Additional Stage A prompt changes should be justified by a reproducible editorial failure and safe multi-batch sample, since earlier third-variant call returned `INVALID_AI_FORMAT`.
 
 **Status as of 13 Nov 2026:** prior Flow version active `301fj00002EatjFAAR` on WDE Org ID `00Dfj00000eVCOVEA4`. This QA utility is **repo-only**, not deployed Salesforce automation. Full-video Insight readiness is not yet verified.
+
+
+## Full-source fidelity validation — 13 Nov 2026
+
+A read-only `Sf Bash` run against live org `00Dfj00000eVCOVEA4` reconstructed every canonical segment by joining its exact caption text within its stored `Start_Index__c` and `End_Index__c`. All 12/12 segments matched character-for-character after whitespace normalization; caption coverage is 0–1619, without gaps; all statuses remain `NeedsReview`. Source `Rights_Status=Unknown`. [Sf Bash evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/35#issuecomment-6853084476).
+
+**Interpretation:** transcript persistence fidelity is **VERIFIED**, but semantic boundaries, speaker correctness, 45-second narration timing, original storytelling, and audio clearance are **not proven**.
+
+## Additional fail-closed guards — 13 Nov 2026
+
+- Reject a knowledge unit that crosses the stored segment boundary: explicit `UNIT_CROSSES_SEGMENTS`, to avoid a hidden semantic handoff.
+- Reject malformed/null knowledge units and evidence entries without runtime crashes.
+- Even when an input claims `human_review=approved` with reviewer fields, the machine emits `STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW` rather than asserting publish or editorial clearance. Editorial signoff must be independently established outside a self-reported JSON field.
+- Node tests in repository expanded to 17 cases. A V8 compatibility harness executed 17/17 successfully, but the official Node test runner still needs validation.
+
+**Publishing gate:** do not automatically approve, distribute or monetize any content while `Rights_Status=Unknown`, voice/audio verification is pending, or independent editorial approval is missing. This is not a generic restriction on authoring original text; it is a safeguard against implying that rights or factual reviews have occurred.
