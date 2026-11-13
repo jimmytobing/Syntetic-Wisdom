@@ -1,5 +1,6 @@
 // WDE knowledge unit acceptance gate. Read-only, pure functions; no Salesforce mutations.
 import { readFile } from 'node:fs/promises';
+import { parseWdeRawTranscript } from './wde-raw-caption-parser.mjs';
 
 const norm = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 const words = value => norm(value).split(/\s+/).filter(Boolean).length;
@@ -8,7 +9,12 @@ const problem = (code, detail) => ({ code, detail });
 
 export function evaluateKnowledgeUnits(payload) {
   const issues = [];
-  const captions = Array.isArray(payload?.captions) ? payload.captions : [];
+  let captions = Array.isArray(payload?.captions) ? payload.captions : [];
+  if (typeof payload?.raw_transcript === 'string') {
+    if (captions.length) issues.push(problem('CAPTION_SOURCE_AMBIGUOUS','Specify indexed captions or raw transcript, not both.'));
+    try { captions = parseWdeRawTranscript(payload.raw_transcript); }
+    catch (e) { issues.push(problem('RAW_TRANSCRIPT_INVALID',String(e.message))); captions=[]; }
+  }
   const segments = Array.isArray(payload?.segments) ? payload.segments : [];
   const units = Array.isArray(payload?.units) ? payload.units : [];
   const byIndex = new Map();
