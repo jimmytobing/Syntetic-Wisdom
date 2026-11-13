@@ -5,7 +5,7 @@ This gate protects **knowledge units**, not raw transcript segment length. Stage
 ## Usage
 
 ```bash
-node --test scripts/wde-knowledge-qa.test.mjs
+node --test scripts/wde-knowledge-qa.test.mjs scripts/wde-raw-caption-parser.test.mjs
 node scripts/wde-knowledge-qa.mjs /path/to/local-candidates.json
 ```
 
@@ -13,7 +13,7 @@ Candidate JSON shape:
 
 ```json
 {
-  "captions": [{"index":0,"text":"Exact, unmodified caption text"}],
+  "raw_transcript": "0;100;250;Exact, unmodified caption text|",
   "segments": [{"start_index":0,"end_index":0,"segment_type":"Teaching","topic":"Specific topic","summary":"Only what the source states"}],
   "units": [{
     "id":"stable-source-and-concept-key",
@@ -31,7 +31,7 @@ Candidate JSON shape:
 }
 ```
 
-**Source requirement:** retrieve indexed captions from original source before attempting a verified citation. `Sermon_Segment__c.Transcript_Text__c` is aggregated prose, **not** an index-addressable transcript; it is insufficient to prove a claim's exact caption location. Never fabricate caption quotes or indices from concatenated segment text. Extract the actual indexed transcript from the existing source field/job, once its schema and data are verified against WDE org. Do not put personal data into GitHub comments or fixtures.
+**Source field verified in active Flow metadata:** `Sermon_Source__c.Raw_Transcript_Text__c` uses `index;start_ms;duration_ms;text|`. Supply this directly via `raw_transcript` (or `captions`, but never both). Parser rejects missing terminal delimiter, noncontiguous indices, invalid numeric offsets and empty text. **Source requirement:** retrieve indexed captions from original source before attempting a verified citation. `Sermon_Segment__c.Transcript_Text__c` is aggregated prose, **not** an index-addressable transcript; it is insufficient to prove a claim's exact caption location. Never fabricate caption quotes or indices from concatenated segment text. Extract the actual indexed transcript from the existing source field/job, once its schema and data are verified against WDE org. Do not put personal data into GitHub comments or fixtures.
 
 ## Gate behavior
 
