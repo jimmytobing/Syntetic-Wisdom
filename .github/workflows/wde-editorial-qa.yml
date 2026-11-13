@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - "scripts/wde-opener-handoff-qa.mjs"
+      - "scripts/wde-segmentation-acceptance.mjs"
       - "tests/wde-opener-handoff-qa.test.mjs"
+      - "tests/wde-segmentation-acceptance.test.mjs"
       - ".github/workflows/wde-editorial-qa.yml"
   push:
     branches:
@@ -34,5 +36,7 @@ jobs:
         run: |
           node --check scripts/wde-opener-handoff-qa.mjs
           node --check tests/wde-opener-handoff-qa.test.mjs
+          node --check scripts/wde-segmentation-acceptance.mjs
+          node --check tests/wde-segmentation-acceptance.test.mjs
       - name: Run source-anchored editorial QA unit tests
-        run: node --test tests/wde-opener-handoff-qa.test.mjs
+        run: node --test tests/wde-opener-handoff-qa.test.mjs tests/wde-segmentation-acceptance.test.mjs
