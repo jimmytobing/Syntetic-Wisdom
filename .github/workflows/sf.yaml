@@ -51,8 +51,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -s "$RUNNER_TEMP/sf-evidence.md" ]]; then
-            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-evidence.md"
+          if [[ -s "$RUNNER_TEMP/sf-request-comment.md" ]]; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-request-comment.md"
           else
             echo 'No evidence file generated; see job logs.' >&2
             exit 1
@@ -120,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sf-bash-${{ github.run_id }}
-          path: ${{ runner.temp }}/sf-bash-evidence.md
+          path: ${{ runner.temp }}/sf-bash-comment.md
           if-no-files-found: error
           retention-days: 1
 
@@ -144,7 +144,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-bash-result/sf-bash-evidence.md"
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-bash-result/sf-bash-comment.md"
 
   sf-deploy:
     if: >-
@@ -223,7 +223,7 @@ jobs:
           EXECUTE_OUTCOME: ${{ steps.execute.outcome }}
         run: |
           set -euo pipefail
-          FILE="$RUNNER_TEMP/sf-deploy-evidence.md"
+          FILE="$RUNNER_TEMP/sf-deploy-comment.md"
           if [[ ! -s "$FILE" ]]; then
             {
               echo "## Sf Deploy — WDE — Issue $ISSUE_NUMBER"
@@ -240,7 +240,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sf-deploy-${{ github.run_id }}
-          path: ${{ runner.temp }}/sf-deploy-evidence.md
+          path: ${{ runner.temp }}/sf-deploy-comment.md
           if-no-files-found: warn
           retention-days: 1
 
@@ -264,5 +264,5 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
-          test -s "$RUNNER_TEMP/sf-deploy-result/sf-deploy-evidence.md"
-          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-deploy-result/sf-deploy-evidence.md"
+          test -s "$RUNNER_TEMP/sf-deploy-result/sf-deploy-comment.md"
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-deploy-result/sf-deploy-comment.md"
