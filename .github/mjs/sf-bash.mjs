@@ -1,4 +1,7 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
 import childProcess from "node:child_process";
 
 // Bash bebas hanya pada job terpisah, tanpa API key dan tanpa token GitHub tulis.
@@ -102,4 +105,160 @@ async function main() {
     if (error) process.exitCode = 1;
 }
 
-await main();
+// Dispatch dedicated, security-gated metadata deploy mode without an extra module.
+if (process.argv.length > 2) await runDeployGateway();
+else await main();
+
+async function runDeployGateway() {
+  const fs = fsSync;
+  
+  // WDE GitHub Issue-driven metadata gateway. Never execute source-branch scripts.
+  const ORG_ID = '00Dfj00000eVCOVEA4';
+  const INSTANCE = 'https://hdbsf-dev-ed.develop.my.salesforce.com';
+  const HEADING = '### Sf Deploy';
+  const tmp = process.env.RUNNER_TEMP || '/tmp';
+  const evidence = path.join(tmp, 'sf-deploy-evidence.md');
+  
+  function fail(message) { throw new Error(message); }
+  function parseRequest(body) {
+    const lines = body.split(/\r?\n/);
+    const headings = lines.map((line, i) => line.trim() === HEADING ? i : -1).filter(i => i >= 0);
+    if (headings.length !== 1) fail('Wajib tepat satu heading ### Sf Deploy.');
+    if (lines.some(l => /^### Sf (?:Request|Bash)\s*$/.test(l))) fail('Hanya satu gateway aktif dalam Issue.');
+    const section = [];
+    for (const line of lines.slice(headings[0] + 1)) {
+      if (/^#{1,3}\s/.test(line)) break;
+      section.push(line);
+    }
+    const matches = [...section.join('\n').matchAll(/(?:^|\n)```json[ \t]*\n([\s\S]*?)\n```[ \t]*(?=\n|$)/gi)];
+    if (matches.length !== 1 || Buffer.byteLength(matches[0][1]) > 2000) fail('Sf Deploy wajib satu JSON fence maksimal 2000 byte.');
+    let req;
+    try { req = JSON.parse(matches[0][1]); } catch { fail('JSON Sf Deploy tidak valid.'); }
+    if (!req || Array.isArray(req) || typeof req !== 'object') fail('Request harus berupa JSON object.');
+    if (Object.keys(req).some(k => !['mode','commit','manifest','preDestructiveChanges','postDestructiveChanges'].includes(k))) fail('Parameter Sf Deploy tidak dikenal.');
+    if (!['validate','deploy'].includes(req.mode)) fail('mode hanya validate atau deploy.');
+    if (typeof req.commit !== 'string' || !/^[a-f0-9]{40}$/.test(req.commit)) fail('commit wajib full 40-char SHA lowercase.');
+    if (typeof req.manifest !== 'string' || !/^manifest\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,100}\.xml$/.test(req.manifest)) fail('manifest harus file XML di folder manifest/.');
+    for (const key of ['preDestructiveChanges', 'postDestructiveChanges']) {
+      if (req[key] !== undefined && (typeof req[key] !== 'string' || !/^manifest\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,100}\.xml$/.test(req[key]))) {
+        fail(key + ' harus menunjuk manifest/*.xml.');
+      }
+    }
+    return req;
+  }
+  function gate() {
+    const allowedActors = new Set(['jimmytobing', '098595']);
+    if (process.env.GITHUB_REPOSITORY !== 'jimmytobing/Syntetic-Wisdom' ||
+        !allowedActors.has(process.env.GITHUB_ACTOR) ||
+        !allowedActors.has(process.env.ISSUE_AUTHOR) ||
+        !/^\d+$/.test(process.env.ISSUE_NUMBER || '')) fail('GitHub actor/repo/Issue tidak diizinkan.');
+    if ((process.env.SF_INSTANCE_URL || '').replace(/\/$/, '') !== INSTANCE) fail('SF_INSTANCE_URL bukan WDE yang diizinkan.');
+    // The explicit Issue request mode=deploy is sufficient. Keep actor/repo/org verification.
+    return parseRequest(process.env.ISSUE_BODY || '');
+  }
+  function inspectManifest(req) {
+    const candidate = path.resolve(process.env.CANDIDATE_DIR || 'candidate');
+    const actual = path.resolve(candidate, req.manifest);
+    if (!actual.startsWith(candidate + path.sep)) fail('Manifest di luar source.');
+    const xml = fs.readFileSync(actual, 'utf8');
+    if (xml.length > 30000 || !xml.includes('<Package xmlns="http://soap.sforce.com/2006/04/metadata">')) fail('Manifest tidak sesuai format metadata.');
+    const blocks = [...xml.matchAll(/<types>([\s\S]*?)<\/types>/g)];
+    // Empty package.xml may accompany a destructive-only deployment.
+    if (blocks.length === 0 && !req.preDestructiveChanges && !req.postDestructiveChanges) fail('Manifest kosong tanpa destructive changes.');
+    let count = 0;
+    for (const [, content] of blocks) {
+      const types = [...content.matchAll(/<name>([^<]+)<\/name>/g)].map(m=>m[1]);
+      if (types.length !== 1 || !/^[A-Za-z][A-Za-z0-9_]{0,127}$/.test(types[0])) fail('Metadata type tidak valid.');
+      const members = [...content.matchAll(/<members>([^<]+)<\/members>/g)].map(m=>m[1]);
+      if (members.length < 1 || members.length > 100) fail('Metadata member terlalu banyak.');
+      for (const member of members) {
+        // Salesforce decides wildcard matching and metadata component names. Do not
+        // prevent Active Flows; activation/deactivation can be in the manifest source.
+        if (member.trim().length === 0 || member.length > 255) fail('Metadata member name tidak valid.');
+      }
+      count += members.length;
+    }
+    if (count > 120) fail('Jumlah metadata melebihi batas.');
+    for (const key of ['preDestructiveChanges', 'postDestructiveChanges']) {
+      if (req[key]) {
+        const file = path.resolve(candidate, req[key]);
+        if (!file.startsWith(candidate + path.sep)) fail('Destructive manifest di luar source.');
+        const content = fs.readFileSync(file, 'utf8');
+        if (!content.includes('<Package xmlns="http://soap.sforce.com/2006/04/metadata">')) fail('Destructive manifest bukan package.xml.');
+      }
+    }
+    return { count, types: blocks.length, candidate };
+  }
+  function callSf(args, cwd, timeout=30000) {
+    const p = spawnSync('sf', args, { cwd, encoding:'utf8', timeout, maxBuffer:2_000_000,
+      env: { ...process.env, SF_AUTOUPDATE_DISABLE:'true', SF_DISABLE_TELEMETRY:'true' } });
+    if (p.error) fail('Salesforce CLI error: ' + (p.error.code || 'process error'));
+    let response;
+    try { response = JSON.parse(p.stdout); } catch { fail('Salesforce CLI output bukan JSON (exit ' + p.status + ').'); }
+    return { response, exitCode:p.status };
+  }
+  function verifyOrg() {
+    const {response,exitCode} = callSf(['data','query','--target-org','hdbsf','--query','SELECT Id, OrganizationType FROM Organization LIMIT 1','--json'], process.cwd(), 30000);
+    const org = response.result?.records?.[0];
+    if (exitCode !== 0 || response.status !== 0 || response.result?.records?.length !== 1 ||
+        org.Id !== ORG_ID || org.OrganizationType !== 'Developer Edition') fail('Salesforce LIVE Org ID / edition verification failed.');
+    return org.Id;
+  }
+  function summary(result, code, req, scope) {
+    const r = result.result || {};
+    const rawFailures = r.details?.componentFailures;
+    const failures = (Array.isArray(rawFailures) ? rawFailures : rawFailures ? [rawFailures] : []).slice(0, 10)
+      .map(x => ({ type:String(x.componentType||'').slice(0,60), name:String(x.fullName||'').slice(0,120),
+        error:String(x.problemType||'').slice(0,80), message:String(x.problem||'').slice(0,280) }));
+    const ok = code === 0 && result.status === 0 && r.done === true && r.success === true &&
+      r.status === 'Succeeded' && r.checkOnly === (req.mode === 'validate') &&
+      (r.numberComponentErrors || 0) === 0;
+    return { success:ok, mode:req.mode, sha:req.commit, manifest:req.manifest, orgId:ORG_ID,
+      deploymentId:r.id || null, status:r.status || 'Unknown', checkOnly:r.checkOnly === true,
+      totalComponents:r.numberComponentsTotal ?? null, componentErrors:r.numberComponentErrors ?? null,
+      testErrors:r.numberTestErrors ?? null, manifestMembers:scope.count, failures };
+  }
+  function publish(obj, command = null) {
+    const safe = JSON.stringify(obj,null,2);
+    const status = obj.success ? 'SUCCESS' : 'FAILED';
+    const lines = ['## Sf Deploy — WDE — Issue #' + process.env.ISSUE_NUMBER, '',
+      'Status: **' + status + '**', '', '### Terminal Command', '', '```bash',
+      // Reproduce only the trusted, allowlisted CLI argv; never print credentials.
+      command || 'Not executed (failed before Salesforce CLI deploy command).', '```', '',
+      '<details>', '<summary>Terminal Output</summary>', '', '```json', safe, '```', '', '</details>', ''];
+    fs.writeFileSync(evidence,lines.join('\n'),{mode:0o600});
+    process.stdout.write('Sf Deploy result: '+safe+'\n');
+  }
+  try {
+    const req=gate();
+    const cmd=process.argv[2];
+    if(cmd==='preflight') {
+      const out=process.env.GITHUB_OUTPUT;
+      if(!out) fail('GITHUB_OUTPUT tidak tersedia.');
+      fs.appendFileSync(out,'sha='+req.commit+'\nmode='+req.mode+'\n');
+      console.log('Sf Deploy preflight PASS for mode '+req.mode+' commit '+req.commit);
+    } else if(cmd==='inspect') {
+      const scope=inspectManifest(req);
+      console.log('Sf Deploy manifest inspection PASS, members '+scope.count);
+    } else if(cmd==='run') {
+      const scope=inspectManifest(req);
+      verifyOrg();
+      const args=['project','deploy','start','--target-org','hdbsf','--manifest',req.manifest,
+        '--test-level','NoTestRun','--wait','8','--json'];
+      if(req.mode==='validate') args.splice(3,0,'--dry-run');
+      if(req.preDestructiveChanges) args.push('--pre-destructive-changes',req.preDestructiveChanges);
+      if(req.postDestructiveChanges) args.push('--post-destructive-changes',req.postDestructiveChanges);
+      const command = 'sf ' + args.join(' ');
+      const {response,exitCode}=callSf(args,scope.candidate,570000);
+      const result=summary(response,exitCode,req,scope);
+      result.exitCode=exitCode;
+      publish(result, command);
+      if(!result.success) process.exitCode=1;
+    } else fail('Mode script hanya preflight, inspect, run.');
+  } catch(e) {
+    const obj={success:false,stage:process.argv[2]||'unknown',error:String(e.message||e).slice(0,300)};
+    publish(obj);
+    process.exitCode=1;
+  }
+  
+}
