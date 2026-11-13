@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 var endpoint = "https://gateway.prod.bravo.bfi.co.id/sf/pbf/ro/dupcheck";
 var apiKey = process.env.SF_BFI_PROD_APIKEY;
 var issueBody = process.env.ISSUE_BODY || "";
-var evidenceFile = (process.env.RUNNER_TEMP || "/tmp") + "/jim-evidence.md";
+var evidenceFile = (process.env.RUNNER_TEMP || "/tmp") + "/jim-request-comment.md";
 var fence = String.fromCharCode(96, 96, 96);
 
 function readRequest(text) {
