@@ -77,7 +77,7 @@ async function main() {
 
     var status = error ? "FAILED" : "SUCCESS";
     var lines = [
-        "## " + bashName + " — Issue #" + issueNumber,
+        "## " + bashName + " — WDE — Issue #" + issueNumber,
         "",
         "Status: **" + status + "**",
         "",
