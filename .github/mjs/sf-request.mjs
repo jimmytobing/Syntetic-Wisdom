@@ -116,7 +116,7 @@ function validateRequest(input) {
 }
 
 var MAX_RESPONSE_BYTES = 50000;
-var EVIDENCE_FILE = (process.env.RUNNER_TEMP || '/tmp') + '/sf-evidence.md';
+var EVIDENCE_FILE = (process.env.RUNNER_TEMP || '/tmp') + '/sf-request-comment.md';
 var maskKey = /(?:token|secret|password|authorization|credential|api[_-]?key)/i;
 
 function sanitize(value, secrets = [], depth = 0) {
