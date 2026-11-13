@@ -32,7 +32,7 @@ for (const [file, heading, prefix] of [
       ISSUE_BODY: '### ' + heading + '\n\n```bash\nprintf SAFE_GATEWAY_TEST\n```\n' });
     try {
       assert.equal(run.status, 0, run.stderr);
-      const evidence = readFileSync(join(run.dir, prefix + '-bash-evidence.md'), 'utf8');
+      const evidence = readFileSync(join(run.dir, prefix + '-bash-comment.md'), 'utf8');
       assert.match(evidence, new RegExp('## ' + heading + ' — WDE — Issue #40'));
       assert.match(evidence, /SAFE_GATEWAY_TEST/);
       assert.match(evidence, /Terminal Output/);
@@ -43,7 +43,7 @@ for (const [file, heading, prefix] of [
       ISSUE_BODY: '### ' + heading + '\n\n```bash\necho NO\n```\n### ' + heading + '\n' });
     try {
       assert.notEqual(run.status, 0);
-      assert.doesNotMatch(readFileSync(join(run.dir, prefix + '-bash-evidence.md'), 'utf8'), /Status: \*\*SUCCESS\*\*/);
+      assert.doesNotMatch(readFileSync(join(run.dir, prefix + '-bash-comment.md'), 'utf8'), /Status: \*\*SUCCESS\*\*/);
     } finally { run.cleanup(); }
   });
 }
@@ -52,7 +52,7 @@ test('Sf Deploy rejects unauthorized actor without CLI call', () => {
     ISSUE_BODY: '### Sf Deploy\n\n```json\n{}\n```\n' });
   try {
     assert.notEqual(run.status, 0);
-    const body = readFileSync(join(run.dir, 'sf-deploy-evidence.md'), 'utf8');
+    const body = readFileSync(join(run.dir, 'sf-deploy-comment.md'), 'utf8');
     assert.match(body, /Sf Deploy — WDE — Issue #40/);
     assert.match(body, /tidak diizinkan/);
   } finally { run.cleanup(); }
@@ -87,7 +87,7 @@ test('Sf Request rejects invalid request before network', () => {
     SF_CLIENT_ID: '', SF_CLIENT_SECRET: '' });
   try {
     assert.notEqual(run.status, 0);
-    assert.match(readFileSync(join(run.dir, 'sf-evidence.md'), 'utf8'), /Sf Request — WDE — Issue #40/);
+    assert.match(readFileSync(join(run.dir, 'sf-request-comment.md'), 'utf8'), /Sf Request — WDE — Issue #40/);
   } finally { run.cleanup(); }
 });
 test('Jim Request rejects invalid request before external POST', () => {
@@ -95,7 +95,7 @@ test('Jim Request rejects invalid request before external POST', () => {
     ISSUE_BODY: '### Jim Request\n\n```json\n{"content":[] }\n```\n', SF_BFI_PROD_APIKEY: '' });
   try {
     assert.notEqual(run.status, 0);
-    assert.match(readFileSync(join(run.dir, 'jim-evidence.md'), 'utf8'), /FAILED/);
+    assert.match(readFileSync(join(run.dir, 'jim-request-comment.md'), 'utf8'), /FAILED/);
   } finally { run.cleanup(); }
 });
 test('expected org remains hard-gated in deploy gateway', () => {
