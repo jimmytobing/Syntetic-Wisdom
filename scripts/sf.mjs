@@ -169,7 +169,7 @@ async function writeEvidence(evidence) {
   var status = response ? response.status : 'N/A';
   var method = parsed ? parsed.method : 'N/A';
   var url = parsed ? parsed.url.toString() : '(request belum valid)';
-  var lines = ['## SF API — WDE — Issue #' + issue, '',
+  var lines = ['## Sf Request — WDE — Issue #' + issue, '',
     'Status: **' + (error ? 'FAILED' : response && response.ok ? 'SUCCESS' : 'FAILED') + '** · HTTP ' + status + ' · Method ' + method, ''];
   if (parsed) {
     var soql = parsed.url.searchParams.get('q');
@@ -192,7 +192,7 @@ async function writeEvidence(evidence) {
   var markdown = lines.join('\n');
   markdown = sanitize(markdown, secrets);
   if (Buffer.byteLength(markdown) > 55000) {
-    markdown = '## SF API — WDE — Issue #' + issue + '\n\nHTTP ' + status + '\n\nResponse terlalu besar untuk satu komentar; batasi query atau payload.';
+    markdown = '## Sf Request — WDE — Issue #' + issue + '\n\nHTTP ' + status + '\n\nResponse terlalu besar untuk satu komentar; batasi query atau payload.';
   }
   await fs.writeFile(EVIDENCE_FILE, markdown, { mode: 0o600 });
 }
