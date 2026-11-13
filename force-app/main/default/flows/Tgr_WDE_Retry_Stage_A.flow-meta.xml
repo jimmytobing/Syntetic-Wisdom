@@ -26,7 +26,7 @@
 <filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
 <filters><field>Retry_Count__c</field><operator>LessThanOrEqualTo</operator><value><numberValue>2.0</numberValue></value></filters>
 <object>WDE_Batch_Run__c</object><recordTriggerType>Update</recordTriggerType>
-<scheduledPaths><connector><targetReference>Requeue_Stage_A</targetReference></connector><label>Retry after Groq quota backoff</label><offsetNumber>24</offsetNumber><offsetUnit>Hours</offsetUnit><timeSource>RecordTriggerEvent</timeSource></scheduledPaths>
+<scheduledPaths><name>Retry_A_Deferred</name><connector><targetReference>Requeue_Stage_A</targetReference></connector><label>Retry after Groq quota backoff</label><offsetNumber>24</offsetNumber><offsetUnit>Hours</offsetUnit><timeSource>RecordTriggerEvent</timeSource></scheduledPaths>
 <triggerType>RecordAfterSave</triggerType>
 </start>
 </Flow>
