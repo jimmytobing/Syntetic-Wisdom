@@ -3,11 +3,12 @@
 // Caller MUST independently verify the source/record version and QA provenance.
 // Do not call this with a Groq-generated "qa" attestation as the evidence authority.
 import { triageStageBFlowResponse } from './wde-flow-editorial-adapter.mjs';
+import { verifyIndependentQaReceipt } from './wde-independent-qa-receipt.mjs';
 
 const value = (s) => typeof s === 'string' && s.trim().length > 0;
 export function inspectCommitReleaseReadiness({
   batch, flowResponse, coverage, handoffs, sourceAuthenticated,
-  independentlyVerifiedAiReview, humanAdjudication
+  independentlyVerifiedAiReview, humanAdjudication, signedQaReceipt, qaReceiptKey, now
 }) {
   if (!batch || typeof batch !== 'object' || Array.isArray(batch) ||
       !value(batch.id) || !value(batch.sourceId) || !value(batch.enrichmentDigest)) {
@@ -16,11 +17,14 @@ export function inspectCommitReleaseReadiness({
   const reasons = [];
   if (batch.status !== 'NeedsCommitReview') reasons.push('BATCH_NOT_HELD_FOR_REVIEW');
   if (batch.isLatestSnapshot !== true) reasons.push('BATCH_SNAPSHOT_NOT_VERIFIED');
-  const attestation = independentlyVerifiedAiReview;
-  if (attestation?.batchId !== batch.id ||
-      attestation?.enrichmentDigest !== batch.enrichmentDigest) {
-    reasons.push('QA_RECEIPT_NOT_BOUND_TO_BATCH');
-  }
+  // Reject the old unsigned caller-provided attestation; it can be forged.
+  // Trust only a HMAC receipt issued by a separate QA authority.
+  const verified = verifyIndependentQaReceipt({
+    receipt:signedQaReceipt,key:qaReceiptKey,batch,
+    ...(now === undefined ? {} : {now})
+  });
+  const attestation = verified.verified ? verified.attestation : undefined;
+  if (!verified.verified) reasons.push(verified.reason);
   const triage = triageStageBFlowResponse({
     flowResponse, coverage, handoffs, sourceAuthenticated,
     sourceId: batch.sourceId, independentlyVerifiedAiReview: attestation
