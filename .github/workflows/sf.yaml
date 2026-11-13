@@ -171,7 +171,7 @@ jobs:
       - name: Strict Sf Deploy request/actor/org preflight
         id: route
         shell: bash
-        run: node trusted/.github/mjs/sf-deploy.mjs preflight
+        run: node trusted/.github/mjs/sf-bash.mjs preflight
       - name: Checkout immutable candidate SHA without persisted credentials
         if: steps.route.outcome == 'success'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -183,7 +183,7 @@ jobs:
         id: inspect
         if: steps.route.outcome == 'success'
         shell: bash
-        run: node trusted/.github/mjs/sf-deploy.mjs inspect
+        run: node trusted/.github/mjs/sf-bash.mjs inspect
       - name: Install official Salesforce CLI (no npm)
         id: install
         if: steps.route.outcome == 'success'
@@ -211,7 +211,7 @@ jobs:
         id: execute
         if: steps.route.outcome == 'success'
         shell: bash
-        run: node trusted/.github/mjs/sf-deploy.mjs run
+        run: node trusted/.github/mjs/sf-bash.mjs run
       - name: Prepare evidence if CLI or checkout failed before execution
         if: always()
         shell: bash
