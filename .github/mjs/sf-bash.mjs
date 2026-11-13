@@ -10,7 +10,7 @@ var bashPrefix = bashName === "Sf Bash" ? "sf" : "jim";
 var issueBody = process.env.ISSUE_BODY || "";
 var issueNumber = process.env.ISSUE_NUMBER || "?";
 var tempDir = process.env.RUNNER_TEMP || "/tmp";
-var evidenceFile = tempDir + "/" + bashPrefix + "-bash-evidence.md";
+var evidenceFile = tempDir + "/" + bashPrefix + "-bash-comment.md";
 var fence = String.fromCharCode(96, 96, 96);
 
 function readBash(text) {
@@ -117,7 +117,7 @@ async function runDeployGateway() {
   const INSTANCE = 'https://hdbsf-dev-ed.develop.my.salesforce.com';
   const HEADING = '### Sf Deploy';
   const tmp = process.env.RUNNER_TEMP || '/tmp';
-  const evidence = path.join(tmp, 'sf-deploy-evidence.md');
+  const evidence = path.join(tmp, 'sf-deploy-comment.md');
   
   function fail(message) { throw new Error(message); }
   function parseRequest(body) {
