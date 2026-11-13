@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <description>Requeue transient Groq Stage A failures 15 minutes after RetryPending. Only Pending state starts Stage A; two retries maximum are counted by Tgr_WDE_Run_Stage_A. Scheduled recheck prevents stale writes.</description>
+    <decisions>
+        <name>Check_Still_RetryPending</name>
+        <label>Still eligible for retry?</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <defaultConnectorLabel>Cancelled or already processed</defaultConnectorLabel>
+        <rules>
+            <name>Requeue</name><conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>Get_Current_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>RetryPending</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Current_Batch.Retry_Count__c</leftValueReference><operator>LessThanOrEqualTo</operator><rightValue><numberValue>2.0</numberValue></rightValue></conditions>
+            <connector><targetReference>Set_Pending</targetReference></connector><label>Retry allowed</label>
+        </rules>
+    </decisions>
+    <interviewLabel>WDE Retry Groq Stage A {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>[Tgr] WDE Retry Groq Stage A</label>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Current_Batch</name><label>Recheck batch status</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector><targetReference>Check_Still_RetryPending</targetReference></connector>
+        <filterLogic>and</filterLogic>
+        <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>$Record.Id</elementReference></value></filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>WDE_Batch_Run__c</object><storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>Set_Pending</name><label>Requeue one Stage A attempt</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <filterLogic>and</filterLogic>
+        <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>Get_Current_Batch.Id</elementReference></value></filters>
+        <filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
+        <inputAssignments><field>Status__c</field><value><stringValue>Pending</stringValue></value></inputAssignments>
+        <object>WDE_Batch_Run__c</object>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX><locationY>0</locationY>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterLogic>and</filterLogic>
+        <filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
+        <object>WDE_Batch_Run__c</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <scheduledPaths>
+            <name>Retry_After_15_Minutes</name>
+            <connector><targetReference>Get_Current_Batch</targetReference></connector>
+            <label>Retry after 15 minutes</label>
+            <offsetNumber>15</offsetNumber><offsetUnit>Minutes</offsetUnit>
+            <recordField>LastModifiedDate</recordField>
+            <pathType>ScheduledPath</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Draft</status>
+</Flow>
