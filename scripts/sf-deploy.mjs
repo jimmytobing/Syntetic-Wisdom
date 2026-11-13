@@ -108,10 +108,15 @@ function summary(result, code, req, scope) {
     totalComponents:r.numberComponentsTotal ?? null, componentErrors:r.numberComponentErrors ?? null,
     testErrors:r.numberTestErrors ?? null, manifestMembers:scope.count, failures };
 }
-function publish(obj) {
+function publish(obj, command = null) {
   const safe = JSON.stringify(obj,null,2);
-  fs.writeFileSync(evidence,'## Sf Deploy — WDE — Issue #' + process.env.ISSUE_NUMBER +
-    '\n\n```json\n' + safe + '\n```\n',{mode:0o600});
+  const status = obj.success ? 'SUCCESS' : 'FAILED';
+  const lines = ['## Sf Deploy — WDE — Issue #' + process.env.ISSUE_NUMBER, '',
+    'Status: **' + status + '**', '', '### Terminal Command', '', '```bash',
+    // Reproduce only the trusted, allowlisted CLI argv; never print credentials.
+    command || 'Not executed (failed before Salesforce CLI deploy command).', '```', '',
+    '<details>', '<summary>Terminal Output</summary>', '', '```json', safe, '```', '', '</details>', ''];
+  fs.writeFileSync(evidence,lines.join('\n'),{mode:0o600});
   process.stdout.write('Sf Deploy result: '+safe+'\n');
 }
 try {
@@ -133,9 +138,11 @@ try {
     if(req.mode==='validate') args.splice(3,0,'--dry-run');
     if(req.preDestructiveChanges) args.push('--pre-destructive-changes',req.preDestructiveChanges);
     if(req.postDestructiveChanges) args.push('--post-destructive-changes',req.postDestructiveChanges);
+    const command = 'sf ' + args.join(' ');
     const {response,exitCode}=callSf(args,scope.candidate,570000);
     const result=summary(response,exitCode,req,scope);
-    publish(result);
+    result.exitCode=exitCode;
+    publish(result, command);
     if(!result.success) process.exitCode=1;
   } else fail('Mode script hanya preflight, inspect, run.');
 } catch(e) {
