@@ -33,3 +33,17 @@ test('claimed manual review never produces publish approval',()=>{
  const a=base();const result=evaluateKnowledgeUnits(a);
  assert.equal(result.status,'STRUCTURALLY_VALID_PENDING_INDEPENDENT_REVIEW');
 });
+
+test('flags a likely mid-sentence cross-segment boundary for review',()=>{
+ const a=base();
+ a.captions=[{index:0,text:'Mungkin keadaan sudah hancur ini'},{index:1,text:'itu, tapi bukan aku.'}];
+ a.segments=[{start_index:0,end_index:0,topic:'Sikap hati',summary:'Sumber bicara tentang keadaan'},{start_index:1,end_index:1,topic:'Sikap hati lanjutan',summary:'Pembicara melanjutkan gagasan'}];
+ a.units[0].source_start_index=1;
+ assert.ok(evaluateKnowledgeUnits(a).boundary_warnings.some(x=>x.code==='POSSIBLE_MID_SENTENCE_SPLIT'));
+});
+test('does not turn a boundary warning into an invented source correction',()=>{
+ const a=base();
+ a.captions=[{index:0,text:'Akan ada kelanjutan'},{index:1,text:'di bagian berikutnya.'}];
+ a.segments=[{start_index:0,end_index:0,topic:'Awal',summary:'Kelanjutan'},{start_index:1,end_index:1,topic:'Lanjutan',summary:'Berikutnya'}];
+ assert.equal(evaluateKnowledgeUnits(a).segments,undefined);
+});
