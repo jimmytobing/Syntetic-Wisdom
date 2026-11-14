@@ -67,16 +67,38 @@ export function extractOutputText(raw) {
   assert(blocks.length>0,'Interaction returned no model output text');
   return blocks.join('\n').trim();
 }
-async function safeResponseError(response,stage) {
-  let status='UNKNOWN';
-  try {
-    const body=await response.json();
-    const code=String(body?.error?.status||'');
-    if (/^[A-Z_]{3,40}$/.test(code)) status=code;
-  } catch {}
-  // Do not expose response body, user text, API key, or media.
-  throw new Error(stage+' HTTP '+response.status+' '+status);
+// Error data is UNTRUSTED: never forward provider messages, headers or bodies.
+// Return only a bounded, hard-coded diagnostic classification.
+export function classifyProviderError(message) {
+  if (typeof message!=='string') return 'UNCLASSIFIED';
+  if (/overloaded|overload|capacity|temporar(?:y|ily) unavailable|high demand|high traffic|busy/i.test(message)) return 'CAPACITY_OR_TEMPORARY_UNAVAILABLE';
+  if (/timeout|timed out|deadline exceeded/i.test(message)) return 'PROVIDER_TIMEOUT';
+  if (/quota|rate limit|resource exhausted|too many requests/i.test(message)) return 'QUOTA_OR_RATE_LIMIT';
+  if (/youtube|video processing|media inaccessible|cannot access video/i.test(message)) return 'VIDEO_ACCESS_OR_PROCESSING';
+  if (/permission|not authorized|api key|authentication/i.test(message)) return 'AUTH_OR_PERMISSION';
+  if (/not found|unsupported|not available/i.test(message)) return 'RESOURCE_UNAVAILABLE';
+  return 'UNCLASSIFIED';
 }
+export function safeErrorDiagnostic(httpStatus,body,retryAfter) {
+  const status=String(body?.error?.status||'');
+  const safeStatus=/^[A-Z_]{3,40}$/.test(status)?status:'UNKNOWN';
+  const code=Number(body?.error?.code);
+  const safeCode=Number.isInteger(code) && code>=400 && code<=599?code:null;
+  const reason=classifyProviderError(body?.error?.message);
+  const ra=typeof retryAfter==='string' && /^\\d{1,5}$/.test(retryAfter)
+    ? Math.min(Number(retryAfter),3600) : null;
+  return {http_status:httpStatus,provider_status:safeStatus,provider_code:safeCode,
+    reason_class:reason,retry_after_seconds:ra};
+}
+async function safeResponseError(response,stage) {
+  let body=null;
+  try { body=await response.json(); } catch {}
+  const detail=safeErrorDiagnostic(response.status,body,response.headers.get('retry-after'));
+  // Restrict stage to a fixed internal set (not provider supplied text).
+  assert(['Model metadata preflight','Gemini Interactions'].includes(stage),'Invalid error stage');
+  throw new Error(stage+' '+JSON.stringify(detail));
+}
+
 async function main(){
   assert(process.env.GITHUB_REPOSITORY==='jimmytobing/Syntetic-Wisdom','Wrong repository');
   assert(process.env.GITHUB_REF==='refs/heads/main','Only main is allowed to execute');
