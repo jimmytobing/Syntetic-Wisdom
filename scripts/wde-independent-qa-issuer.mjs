@@ -16,7 +16,7 @@ const transcriptOf = s => s.Transcript_Text__c ?? s.transcript_text;
 
 export function inspectOriginalCaptionText({ rawTranscript, segments, expectedTotal=null }) {
   if (!text(rawTranscript) || !rawTranscript.endsWith('|') || !Array.isArray(segments) ||
-      !Number.isSafeInteger(expectedTotal) || expectedTotal < 1) {
+      (expectedTotal !== null && (!Number.isSafeInteger(expectedTotal) || expectedTotal < 1))) {
     return {pass:false, findings:['SOURCE_INPUT_INVALID'], total:0, checked:0};
   }
   const captions=rawTranscript.slice(0,-1).split('|');
