@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {adjudicateIndependentSemanticSegments} from '../scripts/wde-independent-semantic-decision.mjs';
+import {provisionalBoundaryCases,inspectEditorialGoldReadiness,WDE_CALIBRATION_SOURCE_ID,WDE_CALIBRATION_CAPTION_COUNT} from '../scripts/wde-semantic-calibration-audit.mjs';
 
 const captions=['Selamat datang semua','Kesaksian awal saya dipulihkan','Tuhan menolong keluarga saya',
   'Sekarang mari kita bernyanyi','Kami memuji Tuhan bersama','Mari kita berdoa bagi bangsa'];
@@ -175,4 +176,49 @@ test('independent evaluator outage cannot be interpreted as semantic PASS',()=>{
   assert.ok(result.reasonCodes.includes('INDEPENDENCE_NOT_AUTHENTICATED'));
   assert.ok(result.reasonCodes.includes('SEGMENTS_MISSING'));
   assert.equal(result.releaseAuthorized,false);
+});
+
+test('all five live boundary triage cases remain provisional, not human-certified gold',()=>{
+  assert.equal(provisionalBoundaryCases.length,5);
+  assert.ok(provisionalBoundaryCases.every(x=>x.status==='PROVISIONAL'));
+  const result=inspectEditorialGoldReadiness({
+    sourceId:WDE_CALIBRATION_SOURCE_ID,captionCount:WDE_CALIBRATION_CAPTION_COUNT
+  });
+  assert.equal(result.status,'HUMAN_REVIEW_REQUIRED');
+  assert.equal(result.goldCaseCount,0);
+  assert.equal(result.pendingCases.length,5);
+  assert.equal(result.falsePassRate,null);
+  assert.equal(result.autoApprovalAllowed,false);
+  assert.ok(result.findingCodes.includes('FALSE_PASS_RATE_NOT_ESTIMABLE'));
+});
+test('model-supplied or forged gold verdict cannot bypass provenance checks',()=>{
+  const digest='sha256:'+'a'.repeat(64);
+  const attestation={caseId:'PRAYER_1568',status:'GOLD_VERIFIED',
+    acceptedBoundaries:[1568],adjudicationId:'claimed-by-model',
+    sourceDigest:digest,trustedReviewerVerified:true,independentOfModel:true};
+  const args={sourceId:WDE_CALIBRATION_SOURCE_ID,
+    captionCount:WDE_CALIBRATION_CAPTION_COUNT,sourceDigest:digest};
+  const untrusted=inspectEditorialGoldReadiness({...args,attestations:[attestation]});
+  assert.equal(untrusted.autoApprovalAllowed,false);
+  assert.equal(untrusted.falsePassRate,null);
+  assert.ok(untrusted.findingCodes.includes('TRUSTED_SOURCE_PROVENANCE_MISSING'));
+  const mismatch=inspectEditorialGoldReadiness({...args,trustedRunnerVerified:true,
+    attestations:[{...attestation,sourceDigest:'sha256:'+'b'.repeat(64)}]});
+  assert.equal(mismatch.goldCaseCount,0);
+  assert.ok(mismatch.findingCodes.includes('EDITORIAL_ATTESTATION_UNVERIFIED'));
+});
+test('even all five claimed attestations cannot certify representative false-PASS rate',()=>{
+  const digest='sha256:'+'a'.repeat(64);
+  const attestations=provisionalBoundaryCases.map((c,i)=>({
+    caseId:c.id,status:'GOLD_VERIFIED',sourceDigest:digest,
+    trustedReviewerVerified:true,independentOfModel:true,
+    adjudicationId:'trusted-synthetic-'+i,acceptedBoundaries:[c.proposedBoundaries[0]]
+  }));
+  const result=inspectEditorialGoldReadiness({sourceId:WDE_CALIBRATION_SOURCE_ID,
+    captionCount:WDE_CALIBRATION_CAPTION_COUNT,sourceDigest:digest,
+    trustedRunnerVerified:true,attestations});
+  assert.equal(result.goldCaseCount,5);
+  assert.equal(result.falsePassRate,null);
+  assert.equal(result.autoApprovalAllowed,false);
+  assert.ok(result.findingCodes.includes('FALSE_PASS_RATE_NOT_ESTIMABLE'));
 });
