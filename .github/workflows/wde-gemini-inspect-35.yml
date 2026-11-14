@@ -1,4 +1,4 @@
-name: WDE - Gemini Existing Interaction Inspect (Issue #35, GET-only)
+name: WDE - Request Gateway (Issue #35, GET-only Gemini diagnostic)
 
 on:
   issues:
@@ -38,7 +38,7 @@ jobs:
       github.actor == 'jimmytobing' &&
       github.event.issue.number == 35 &&
       github.event.issue.user.login == 'jimmytobing' &&
-      contains(github.event.issue.body, '### WDE Gemini Inspect')
+      contains(github.event.issue.body, '### WDE Request')
     runs-on: ubuntu-latest
     timeout-minutes: 4
     permissions:
