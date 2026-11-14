@@ -115,7 +115,7 @@ export function parseModelJsonPayload(text) {
     assert(value.endsWith(fence) && value.length>=fence.length*2,
       'Incomplete JSON code fence');
     value=value.slice(fence.length,-fence.length).trim();
-    if(/^json(?:\\s|$)/i.test(value)) value=value.replace(/^json(?:\\s+|$)/i,'').trim();
+    if(/^json(?:\s|$)/i.test(value)) value=value.replace(/^json(?:\s+|$)/i,'').trim();
     break;
   }
   // Only JSON; never interpret freeform text or multiple fenced blocks.
