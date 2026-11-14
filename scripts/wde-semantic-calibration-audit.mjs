@@ -30,8 +30,11 @@ export function inspectEditorialGoldReadiness({sourceId,captionCount,cases=provi
   if(!Array.isArray(attestations)) findings.push('EDITORIAL_ATTESTATIONS_INVALID');
   const validAttestations=Array.isArray(attestations)?attestations:[];
   const certifiedIds=new Set();
+  const globalProvenanceValid=sourceId===WDE_CALIBRATION_SOURCE_ID &&
+    captionCount===WDE_CALIBRATION_CAPTION_COUNT && validDigest(sourceDigest) &&
+    trustedRunnerVerified===true;
   for(const a of validAttestations) {
-    if(!allowed.has(a?.caseId) || a?.status!=='GOLD_VERIFIED' ||
+    if(!globalProvenanceValid || !allowed.has(a?.caseId) || a?.status!=='GOLD_VERIFIED' ||
        a?.trustedReviewerVerified!==true || a?.independentOfModel!==true ||
        a?.sourceDigest!==sourceDigest || !validDigest(sourceDigest) ||
        typeof a?.adjudicationId!=='string' || !a.adjudicationId.trim() ||
