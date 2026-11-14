@@ -4,7 +4,6 @@ const REPO='jimmytobing/Syntetic-Wisdom';
 const ISSUE=35;
 const SOURCE_RUN=43545052586;
 const HEADING='### WDE Request';
-const OPERATIONS=new Set(['gemini.inspect_error','gemini.status']);
 const API='https://generativelanguage.googleapis.com/v1beta/interactions/';
 const CODES=new Set(['invalid_request','failed_precondition','out_of_range','parameter_unknown',
   'rate_limit_exceeded','quota_exceeded','too_many_requests','cancelled','api_error',
@@ -24,7 +23,9 @@ export function parseInspectIssue(body) {
   let r;try{r=JSON.parse(lines[i+2]);}catch{throw new Error('Malformed inspect JSON');}
   assert(r && typeof r==='object' && !Array.isArray(r),'Invalid inspect JSON');
   assert(Object.keys(r).sort().join(',')==='operation,requestId,sourceRunId','Unexpected request fields');
-  assert(OPERATIONS.has(r.operation) && r.sourceRunId===SOURCE_RUN,'Only registered GET-only operation and pinned source run allowed');
+  assert(typeof r.operation==='string' && /^[a-z][a-z0-9_.-]{1,63}$/.test(r.operation),
+    'Invalid operation identifier');
+  assert(r.sourceRunId===SOURCE_RUN,'Only pinned source run allowed by this diagnostic handler');
   assert(typeof r.requestId==='string' &&
     /^wde35-[0-9]{8}-[0-9]{3,6}$/.test(r.requestId),'Invalid request ID');
   return r;
@@ -144,8 +145,7 @@ export async function main(env=process.env,fetcher=fetch){
     'Provider error status: '+result.provider_status,
     'Error category: '+result.error_category,
     'Provider error object present: '+result.error_present,
-    ...(request.operation==='gemini.inspect_error' ? [
-      'Safe error shape: '+JSON.stringify(result.error_shape)] : []),'',
+    'Safe error shape: '+JSON.stringify(result.error_shape),'',
     'No inference POST, retry, Salesforce mutation, or editorial approval.',
     'This diagnostic is not proof of media access or successful model output.'
   ].join('\n');
