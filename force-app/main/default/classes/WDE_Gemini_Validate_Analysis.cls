@@ -38,7 +38,7 @@ public with sharing class WDE_Gemini_Validate_Analysis {
                     throw new ValidationError('Invalid top-level JSON schema');
                 }
                 if (!(root.get('video_accessible') instanceof Boolean) ||
-                    root.get('video_accessible') != true) {
+                    !((Boolean) root.get('video_accessible'))) {
                     throw new ValidationError('Video was not confirmed accessible by the model');
                 }
                 if (!(root.get('summary') instanceof String) ||
