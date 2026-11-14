@@ -137,3 +137,10 @@ test('known real 0–15 source anchor rejects false model consensus',()=>{
   assert.equal(r.decision,'FAIL');
   assert.ok(r.disputes.some(x=>x.code==='SOURCE_ANCHORED_HANDOFF_MISMATCH'));
 });
+
+test('out-of-order independent segments are canonically sorted before contiguous comparison',()=>{
+  const shuffled=[independent[3],independent[1],independent[0],independent[2]];
+  const r=check({independentSegments:shuffled});
+  assert.equal(r.decision,'PASS');
+  assert.equal(r.checkedCaptionCount,6);
+});
