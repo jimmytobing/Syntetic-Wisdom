@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import {setTimeout as sleep} from 'node:timers/promises';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 const MODEL_METADATA = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash';
@@ -30,7 +31,7 @@ export function buildRequest() {
     'media_access_status=UNAVAILABLE and all windows UNRESOLVED with no transitions.',
     'Do not assign any gold label or approve publication.'
   ].join('\n');
-  return {model: MODEL, input: [
+  return {model: MODEL, background:true, input: [
     {type:'video', uri:VIDEO, processing:'agentic'},
     {type:'text',text:prompt}
   ]};
@@ -99,6 +100,40 @@ async function safeResponseError(response,stage) {
   throw new Error(stage+' '+JSON.stringify(detail));
 }
 
+// Provider interaction IDs are opaque. Never interpolate arbitrary values into URLs.
+export function validateInteractionId(id) {
+  assert(typeof id==='string' && /^[A-Za-z0-9][A-Za-z0-9_-]{4,127}$/.test(id),'Invalid interaction ID');
+  return id;
+}
+export function validateInteractionStatus(interaction) {
+  const state=interaction?.status;
+  assert(['in_progress','completed','failed','cancelled','requires_action'].includes(state),'Unknown interaction status');
+  if (state==='failed' || state==='cancelled' || state==='requires_action') {
+    throw new Error('Background interaction terminal state: '+state);
+  }
+  return state;
+}
+export async function pollExistingInteraction({id,headers,initial=null,
+  fetcher=fetch,wait=sleep,maxPolls=40,intervalMs=12000}) {
+  validateInteractionId(id);
+  assert(Number.isInteger(maxPolls) && maxPolls>=0 && maxPolls<=40,'Polling cap invalid');
+  assert(Number.isInteger(intervalMs) && intervalMs>=0 && intervalMs<=12000,'Polling delay invalid');
+  let current=initial;
+  for(let i=0;i<=maxPolls;i++){
+    if(current!==null){
+      assert(current?.id===id,'Interaction ID mismatch from provider');
+      if(validateInteractionStatus(current)==='completed') return current;
+    }
+    if(i===maxPolls) break;
+    if(current!==null) await wait(intervalMs);
+    const response=await fetcher(API+'/'+encodeURIComponent(id),{method:'GET',headers,
+      redirect:'error',signal:AbortSignal.timeout(15000)});
+    if(!response.ok) await safeResponseError(response,'Gemini Interactions');
+    current=await response.json();
+  }
+  throw new Error('Background still in_progress after bounded polling; resume by ID from artifact, do not create another inference');
+}
+
 async function main(){
   assert(process.env.GITHUB_REPOSITORY==='jimmytobing/Syntetic-Wisdom','Wrong repository');
   assert(process.env.GITHUB_REF==='refs/heads/main','Only main is allowed to execute');
@@ -106,7 +141,7 @@ async function main(){
   assert(process.env.WDE_RIGHTS_ACK==='REVIEW_PERMITTED','Source review permission attestation required');
   const key=process.env.WDE_GEMINI_API_KEY;
   assert(typeof key==='string' && key.length>12,'Missing Gemini API key secret');
-  const headers={'Content-Type':'application/json','x-goog-api-key':key};
+  const headers={'Content-Type':'application/json','x-goog-api-key':key,'Api-Revision':'2026-05-20'};
   // Non-generative metadata preflight. A 200 response DOES NOT establish
   // project entitlement, zero billing, or successful video access.
   const metadata=await fetch(MODEL_METADATA,{method:'GET',redirect:'error',
@@ -115,12 +150,29 @@ async function main(){
   const info=await metadata.json();
   assert(info?.name==='models/'+MODEL,'Unexpected model metadata identity');
   console.log('Non-generative model metadata preflight HTTP 200 (not an entitlement check).');
-  // Exactly one inference request. No fallback, no automatic retry.
-  const response=await fetch(API,{method:'POST',redirect:'error',headers,
-    body:JSON.stringify(buildRequest()),signal:AbortSignal.timeout(180000)});
-  if (!response.ok) await safeResponseError(response,'Gemini Interactions');
-  const raw=await response.json();
-  assert(raw?.status!=='in_progress','Unexpected async status: no polling/retry permitted');
+  // Background: one inference POST at most; subsequent requests are GET of the
+  // SAME interaction. A manual resume ID skips POST entirely.
+  const resume=String(process.env.WDE_RESUME_INTERACTION_ID||'').trim();
+  let raw;
+  let id;
+  if(resume){
+    id=validateInteractionId(resume);
+    console.log('Resuming one existing interaction (GET only; zero inference POST).');
+    raw=await pollExistingInteraction({id,headers});
+  } else {
+    const response=await fetch(API,{method:'POST',redirect:'error',headers,
+      body:JSON.stringify(buildRequest()),signal:AbortSignal.timeout(30000)});
+    if(!response.ok) await safeResponseError(response,'Gemini Interactions');
+    const created=await response.json();
+    id=validateInteractionId(created?.id);
+    // Save the ID immediately, before polling, to permit resume without any
+    // further inference if polling exceeds the workflow budget.
+    await fs.writeFile(process.env.RUNNER_TEMP+'/wde-gemini-receipt.json',
+      JSON.stringify({interaction_id:id,model:MODEL,editorial_status:'BLOCKED',source:'WDE_ISSUE_35'},null,2),{mode:0o600});
+    console.log('Background interaction accepted, receipt stored in short-lived artifact.');
+    raw=await pollExistingInteraction({id,headers,initial:created});
+  }
+  assert(raw.status==='completed','Non-completed background interaction');
   let payload=extractOutputText(raw);
   // Accept one fenced JSON block only; never parse arbitrary prose.
   if (payload.startsWith('~~~json') && payload.endsWith('~~~')) {
@@ -129,11 +181,10 @@ async function main(){
     payload=payload.slice(3,-3).trim();
   }
   const result=sanitizeResult(JSON.parse(payload));
-  result.interaction_reference=typeof raw.id==='string' && /^int_[A-Za-z0-9_-]{3,100}$/.test(raw.id)
-    ? raw.id : 'NOT_RECORDED';
+  result.interaction_reference=id;
   const path=process.env.RUNNER_TEMP+'/wde-gemini-l1.json';
   await fs.writeFile(path,JSON.stringify(result,null,2),{mode:0o600});
-  console.log('Gemini Interactions HTTP 200; response schema accepted. Editorial gold/approval remain BLOCKED.');
+  console.log('Gemini background interaction completed; schema accepted. Editorial gold/approval remain BLOCKED.');
 }
 if (process.argv[1] && import.meta.url===new URL('file://'+process.argv[1]).href){
   main().catch(e=>{console.error('AI L1 FAILED: '+String(e.message).replace(/AIza[0-9A-Za-z_-]+/g,'[HIDDEN]'));process.exitCode=1;});
