@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildRequest,sanitizeResult,extractOutputText} from '../scripts/wde-gemini-editorial-l1.mjs';
+import {buildRequest,sanitizeResult,extractOutputText,safeErrorDiagnostic,classifyProviderError} from '../scripts/wde-gemini-editorial-l1.mjs';
 
 const IDs=['w1','w2','w3','w4','w5'];
 function windows(status='AI_L1_PROPOSED') {
@@ -57,4 +57,28 @@ test('rejects fake category, duplicates and wrong length',()=>{
   const dup=windows();
   dup[1].id='w1';
   assert.throws(()=>sanitizeResult({media_access_status:'ACCESSIBLE',windows:dup}),/duplicate/);
+});
+
+test('HTTP 503 diagnostics classify provider status without exposing raw message',()=>{
+  const secret='AIzaSUPER_SECRET_KEY_SHOULD_NEVER_LEAK';
+  const raw='The model is overloaded for video '+secret+' https://private.example.com/?token=123';
+  const result=safeErrorDiagnostic(503,{error:{status:'UNAVAILABLE',code:503,message:raw}},'12');
+  assert.deepEqual(result,{http_status:503,provider_status:'UNAVAILABLE',provider_code:503,
+    reason_class:'CAPACITY_OR_TEMPORARY_UNAVAILABLE',retry_after_seconds:12});
+  assert.doesNotMatch(JSON.stringify(result),/SUPER_SECRET|private\\.example|token=123|overloaded for video/);
+});
+test('unexpected provider text is not logged and invalid status is discarded',()=>{
+  const suspicious='<script>email@example.com KEY:SUPERSECRET</script>';
+  const result=safeErrorDiagnostic(503,{error:{status:suspicious,code:503,message:suspicious}},'Sun, 14 Nov 2026 01:00:00 GMT');
+  assert.equal(result.provider_status,'UNKNOWN');
+  assert.equal(result.reason_class,'UNCLASSIFIED');
+  assert.equal(result.retry_after_seconds,null);
+  assert.doesNotMatch(JSON.stringify(result),/SUPERSECRET|email@example/);
+});
+test('diagnostics classify failure modes and bound retry header',()=>{
+  assert.equal(classifyProviderError('YouTube video processing failed'),'VIDEO_ACCESS_OR_PROCESSING');
+  assert.equal(classifyProviderError('Resource exhausted due to quota'),'QUOTA_OR_RATE_LIMIT');
+  assert.equal(classifyProviderError('Deadline exceeded'),'PROVIDER_TIMEOUT');
+  assert.equal(safeErrorDiagnostic(503,{},'99999').retry_after_seconds,3600);
+  assert.equal(safeErrorDiagnostic(503,{},'12.5').retry_after_seconds,null);
 });
