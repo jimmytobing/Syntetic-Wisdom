@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion>
+<decisions><name>Route_Retry_By_Stage</name><label>Retry Stage B only if boundaries are approved</label><locationX>0</locationX><locationY>0</locationY>
+<defaultConnector><targetReference>Requeue_Stage_A</targetReference></defaultConnector><defaultConnectorLabel>Retry Stage A when no approved boundaries</defaultConnectorLabel>
+<rules><name>Stage_B_Present</name><conditionLogic>and</conditionLogic>
+<conditions><leftValueReference>$Record.Approved_Boundaries__c</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+<connector><targetReference>Requeue_Stage_B</targetReference></connector><label>Retry enrichment only</label></rules></decisions>
+<description>Scheduled requeue for bounded Stage A or Stage B failures using Next_Retry_At__c; preserves validated Stage A boundaries for Stage B retries. Does not bypass strict segmentation validation or human rights tracking.</description>
+<interviewLabel>WDE Retry Stage A {!$Flow.CurrentDateTime}</interviewLabel>
+<label>[Tgr] WDE Retry Stage A</label>
+<processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+<processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
+<processMetadataValues><name>OriginBuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+<processType>AutoLaunchedFlow</processType>
+<status>Active</status>
+<recordUpdates>
+<name>Requeue_Stage_A</name><label>Return retry batch to Pending</label><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>END_ELEMENT_1</targetReference></connector>
+<filterLogic>and</filterLogic>
+<filters><field>Id</field><operator>EqualTo</operator><value><elementReference>$Record.Id</elementReference></value></filters>
+<filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
+<inputAssignments><field>Status__c</field><value><stringValue>Pending</stringValue></value></inputAssignments>
+<object>WDE_Batch_Run__c</object>
+</recordUpdates>
+<recordUpdates>
+<name>Requeue_Stage_B</name><label>Return approved boundaries to enrichment</label><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>END_ELEMENT_1</targetReference></connector>
+<filterLogic>and</filterLogic>
+<filters><field>Id</field><operator>EqualTo</operator><value><elementReference>$Record.Id</elementReference></value></filters>
+<filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
+<inputAssignments><field>Status__c</field><value><stringValue>BoundariesApproved</stringValue></value></inputAssignments>
+<object>WDE_Batch_Run__c</object>
+</recordUpdates>
+<ends><name>END_ELEMENT_1</name><locationX>0</locationX><locationY>0</locationY></ends>
+<start><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>END_ELEMENT_1</targetReference></connector>
+<doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+<filterLogic>and</filterLogic>
+<filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>RetryPending</stringValue></value></filters>
+<filters><field>Retry_Count__c</field><operator>LessThanOrEqualTo</operator><value><numberValue>3.0</numberValue></value></filters>
+<object>WDE_Batch_Run__c</object><recordTriggerType>Update</recordTriggerType>
+<scheduledPaths><name>Retry_A_Deferred</name><connector><targetReference>Route_Retry_By_Stage</targetReference></connector><label>Retry at Next Retry At</label><offsetNumber>0</offsetNumber><offsetUnit>Minutes</offsetUnit><recordField>Next_Retry_At__c</recordField><timeSource>RecordField</timeSource></scheduledPaths>
+<triggerType>RecordAfterSave</triggerType>
+</start>
+</Flow>

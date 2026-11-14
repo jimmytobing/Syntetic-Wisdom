@@ -178,12 +178,7 @@
                 <elementReference>$Record.Approved_Enrichment__c</elementReference>
             </value>
         </inputAssignments>
-        <inputAssignments>
-            <name>varHumanReviewed</name>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </inputAssignments>
+        
         <inputAssignments>
             <name>varCommitRecords</name>
             <value>

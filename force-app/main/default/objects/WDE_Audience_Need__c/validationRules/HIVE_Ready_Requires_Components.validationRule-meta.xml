@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>HIVE_Ready_Requires_Components</fullName>
+    <active>true</active>
+    <description>Ready status requires all HIVE subscore evidence</description>
+    <errorConditionFormula>AND(ISPICKVAL(HIVE_Evaluation_Status__c,"Ready"), OR(ISBLANK(HIVE_Volume__c),ISBLANK(HIVE_Intensity__c),ISBLANK(HIVE_Growth__c),ISBLANK(HIVE_Recency__c),ISBLANK(HIVE_Quality__c)))</errorConditionFormula>
+    <errorMessage>HIVE Ready requires all five components. Do not invent intensity or quality.</errorMessage>
+</ValidationRule>

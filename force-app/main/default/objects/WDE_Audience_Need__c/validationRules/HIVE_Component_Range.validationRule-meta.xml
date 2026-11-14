@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>HIVE_Component_Range</fullName>
+    <active>true</active>
+    <description>HIVE subscore must be between 0 and 100</description>
+    <errorConditionFormula>OR(AND(NOT(ISBLANK(HIVE_Volume__c)), OR(HIVE_Volume__c &lt; 0, HIVE_Volume__c &gt; 100)),AND(NOT(ISBLANK(HIVE_Intensity__c)), OR(HIVE_Intensity__c &lt; 0, HIVE_Intensity__c &gt; 100)),AND(NOT(ISBLANK(HIVE_Growth__c)), OR(HIVE_Growth__c &lt; 0, HIVE_Growth__c &gt; 100)),AND(NOT(ISBLANK(HIVE_Recency__c)), OR(HIVE_Recency__c &lt; 0, HIVE_Recency__c &gt; 100)),AND(NOT(ISBLANK(HIVE_Quality__c)), OR(HIVE_Quality__c &lt; 0, HIVE_Quality__c &gt; 100)))</errorConditionFormula>
+    <errorMessage>Each HIVE component must be between 0 and 100.</errorMessage>
+</ValidationRule>

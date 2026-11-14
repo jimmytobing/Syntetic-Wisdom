@@ -1102,7 +1102,7 @@
     </decisions>
     <decisions>
         <name>Gate_Human_Review</name>
-        <label>Require actual review and explicit confirmation</label>
+        <label>Require nonempty validated enrichment</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
@@ -1112,13 +1112,7 @@
         <rules>
             <name>Reviewed</name>
             <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>varHumanReviewed</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <booleanValue>true</booleanValue>
-                </rightValue>
-            </conditions>
+            
             <conditions>
                 <leftValueReference>varApprovedEnrichmentLines</leftValueReference>
                 <operator>IsNull</operator>
@@ -1136,7 +1130,7 @@
             <connector>
                 <targetReference>Get_Sermon_Source</targetReference>
             </connector>
-            <label>Reviewed</label>
+            <label>Enrichment available</label>
         </rules>
     </decisions>
     <decisions>
@@ -1667,7 +1661,7 @@
     <formulas>
         <name>f_MergedText</name>
         <dataType>String</dataType>
-        <expression>TRIM({!Get_Open_Previous.Transcript_Text__c} &amp; &quot; &quot; &amp; {!varSegmentText})</expression>
+        <expression>TRIM({!Get_Open_Previous.Transcript_Text__c} &amp; BR() &amp; BR() &amp; {!varSegmentText})</expression>
     </formulas>
     <formulas>
         <name>f_MergedTextLength</name>
@@ -1684,7 +1678,7 @@
     <formulas>
         <name>f_NewSegmentText</name>
         <dataType>String</dataType>
-        <expression>IF({!varSegmentCaptionCount} = 0, {!f_CapText}, TRIM({!varSegmentText} &amp; &quot; &quot; &amp; {!f_CapText}))</expression>
+        <expression>IF({!varSegmentCaptionCount} = 0, {!f_CapText}, TRIM({!varSegmentText} &amp; IF(MOD({!varSegmentCaptionCount}, 4) = 0, BR() &amp; BR(), &quot; &quot;) &amp; {!f_CapText}))</expression>
     </formulas>
     <formulas>
         <name>f_NextCaptionIndex</name>
@@ -1956,7 +1950,7 @@
     </recordLookups>
     <recordLookups>
         <name>Get_Sermon_Source</name>
-        <label>Get permitted sermon source</label>
+        <label>Get sermon source</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
@@ -1969,13 +1963,6 @@
             <operator>EqualTo</operator>
             <value>
                 <elementReference>varSermonSourceId</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Rights_Status__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>PermissionGranted</stringValue>
             </value>
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>

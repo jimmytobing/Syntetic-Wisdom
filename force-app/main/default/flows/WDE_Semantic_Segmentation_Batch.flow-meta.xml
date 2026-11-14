@@ -485,7 +485,7 @@
             <assignToReference>varErrorMessage</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>varS_Error</elementReference>
+                <elementReference>f_GroqHttpError</elementReference>
             </value>
         </assignmentItems>
         <connector>
@@ -555,7 +555,7 @@
             <assignToReference>varErrorMessage</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>Groq output has a gap, overlap, out-of-range index, or invalid prior/next continuation flag.</stringValue>
+                <elementReference>f_RangeFailureDiagnostic</elementReference>
             </value>
         </assignmentItems>
         <connector>
@@ -1033,6 +1033,27 @@
         <scale>0</scale>
     </formulas>
     <formulas>
+        <name>f_RangeFailureDiagnostic</name>
+        <dataType>String</dataType>
+        <expression>&quot;INVALID_AI_RANGE reason=&quot; &amp;
+IF({!f_SegStart} &lt;&gt; {!varExpectedIndex}, &quot;START_MISMATCH&quot;,
+IF({!f_SegEnd} &lt; {!f_SegStart}, &quot;END_BEFORE_START&quot;,
+IF({!f_SegEnd} &gt; {!varBatchEndIndex}, &quot;END_EXCEEDS_BATCH&quot;,
+IF(AND({!varSegmentCount} = 0, ISBLANK({!varPriorOpenTopic}), {!f_FromPrevious}), &quot;UNEXPECTED_FROM_PREVIOUS&quot;,
+IF(AND({!varSegmentCount} = 0, NOT(ISBLANK({!varPriorOpenTopic})), NOT({!f_FromPrevious})), &quot;MISSING_FROM_PREVIOUS&quot;,
+IF(AND({!varSegmentCount} &gt; 0, {!f_FromPrevious}), &quot;FROM_PREVIOUS_NONFIRST&quot;,
+IF(AND({!f_ToNext}, {!f_SegEnd} &lt;&gt; {!varBatchEndIndex}), &quot;TO_NEXT_NOT_LAST&quot;,
+IF(AND(NOT({!f_HasMore}), {!f_ToNext}), &quot;TO_NEXT_WITHOUT_NEXT_BATCH&quot;, &quot;FLAG_MISMATCH&quot;)))))))) &amp;
+&quot;; expectedStart=&quot; &amp; TEXT({!varExpectedIndex}) &amp;
+&quot;; actualStart=&quot; &amp; TEXT({!f_SegStart}) &amp;
+&quot;; actualEnd=&quot; &amp; TEXT({!f_SegEnd}) &amp;
+&quot;; batchEnd=&quot; &amp; TEXT({!varBatchEndIndex}) &amp;
+&quot;; priorOpen=&quot; &amp; IF(ISBLANK({!varPriorOpenTopic}), &quot;false&quot;, &quot;true&quot;) &amp;
+&quot;; fromPrevious=&quot; &amp; IF({!f_FromPrevious}, &quot;true&quot;, &quot;false&quot;) &amp;
+&quot;; toNext=&quot; &amp; IF({!f_ToNext}, &quot;true&quot;, &quot;false&quot;) &amp;
+&quot;; hasMore=&quot; &amp; IF({!f_HasMore}, &quot;true&quot;, &quot;false&quot;)</expression>
+    </formulas>
+    <formulas>
         <name>f_RemainingAfterLine</name>
         <dataType>String</dataType>
         <expression>IF(
@@ -1148,6 +1169,11 @@
         <dataType>String</dataType>
         <expression>IF({!f_BatchEnd} &gt;= {!varStartPosition}, MID({!Get_Sermon_Source.Raw_Transcript_Text__c}, {!varStartPosition}, {!f_BatchEnd} - {!varStartPosition} + 1), &quot;&quot;)</expression>
     </formulas>
+    <formulas>
+        <name>f_GroqHttpError</name>
+        <dataType>String</dataType>
+        <expression>&quot;HTTP &quot; &amp; TEXT({!varResponseCode}) &amp; &quot;: &quot; &amp; BLANKVALUE({!varS_Error}, &quot;Groq request failed&quot;)</expression>
+    </formulas>
     <interviewLabel>WDE_Semantic_Segmentation_Batch {!$Flow.CurrentDateTime}</interviewLabel>
     <label>WDE_Semantic_Segmentation_Batch</label>
     <loops>
@@ -1200,13 +1226,6 @@
                 <elementReference>varSermonSourceId</elementReference>
             </value>
         </filters>
-        <filters>
-            <field>Rights_Status__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>PermissionGranted</stringValue>
-            </value>
-        </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>Sermon_Source__c</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -1257,11 +1276,11 @@ ATURAN ANALISIS:
 
 ATURAN KONTINUITAS ANTARBATCH:
 
-11. from_previous=true hanya diperbolehkan pada segmen pertama. Gunakan true apabila caption pertama melanjutkan aktivitas atau konteks semantik dari batch sebelumnya berdasarkan konteks yang tersedia. Jika konteks batch sebelumnya tidak disediakan, jangan menganggap from_previous=false sebagai keputusan final. Tentukan flag terbaik berdasarkan caption yang tersedia dan pastikan keputusan tersebut dapat diverifikasi melalui human review.
+11. from_previous=true hanya boleh pada segmen pertama. Nilai ini WAJIB true jika kolom konteks topik terbuka dari batch sebelumnya TIDAK KOSONG, dan WAJIB false jika konteks topik terbuka KOSONG. Nilai tersebut mengikuti state batch yang diverifikasi Salesforce, bukan tebakan akhir kalimat oleh AI.
 
-12. to_next=true hanya diperbolehkan pada segmen terakhir dan digunakan jika cerita, kalimat, kesaksian, pembahasan, doa, atau nyanyian masih berlanjut ketika batch berakhir.
+12. to_next=true hanya boleh pada segmen terakhir DAN hanya ketika masih ada caption di batch berikutnya. Jika ini batch terakhir dari SELURUH transkrip, to_next WAJIB false walaupun ucapan atau nyanyian tampak terpotong.
 
-13. Jika caption terakhir berhenti di tengah kalimat atau sebelum cerita, pengajaran, doa, atau nyanyian selesai, WAJIB gunakan to_next=true. Jangan menganggap batas batch teknis sebagai akhir topik.
+13. Jika caption terakhir masih berlanjut DAN masih ada batch berikutnya, WAJIB gunakan to_next=true. Jika sumber transkrip sudah habis (batch terakhir), WAJIB gunakan to_next=false karena tidak ada caption lanjutan; jangan mengarang kelanjutannya.
 
 14. Segmen yang sudah selesai sebelum akhir batch harus menggunakan to_next=false. Segmen selain yang pertama harus menggunakan from_previous=false.
 
@@ -1285,7 +1304,7 @@ ATURAN PRIORITAS PENENTUAN BATAS SEMANTIK:
 
 23. Jika terdapat pergantian lagu yang jelas, buat segmen Worship baru meskipun tidak ada jeda panjang. Pengulangan bait, chorus, dan refrain dari lagu yang sama harus tetap berada dalam satu segmen.
 
-24. Jika sebuah nyanyian masih berlangsung ketika batch berakhir, tandai segmen terakhir dengan to_next=true meskipun satu bait atau refrain sudah selesai.
+24. Jika sebuah nyanyian masih berlangsung dan MASIH ADA batch berikutnya, tandai segmen terakhir dengan to_next=true. Jika ini batch terakhir dari seluruh transkrip, to_next=false tanpa pengecualian.
 
 25. Teaching digunakan untuk penyampaian firman, penjelasan ayat Alkitab, pengajaran rohani, dan penerapan pesan yang disampaikan kepada pendengar.
 
@@ -1305,6 +1324,21 @@ ATURAN AKURASI TOPIC DAN SUMMARY:
 
 32. Jika segmen melanjutkan cerita dari batch sebelumnya, gunakan konteks sebelumnya untuk memahami cerita dan menjaga kesinambungan, tetapi Summary tetap harus didasarkan pada fakta dalam caption segmen saat ini.
 
+GATE KUALITAS EDITORIAL UNTUK WISDOM INSIGHT DAN VIDEO ORIGINAL 45 DETIK:
+
+- Target unit pengetahuan adalah satu gagasan spesifik yang memiliki pernyataan, penjelasan, dan penerapan yang didukung caption. Unit ini kelak dapat dipakai untuk Wisdom Insight dan narasi video 45 detik, tetapi JANGAN memaksakan durasi 45 detik saat menentukan boundary transkrip.
+- Jika Teaching berisi beberapa gagasan yang benar-benar mandiri (misalnya sikap hati saat krisis, respons terhadap tekanan finansial, atau praktik doa), pisahkan di titik perubahan argumentasi atau aplikasi. Jangan memecah sekadar karena panjang teks, jumlah caption, jeda, pergantian batch, atau kemunculan kata kunci.
+- Hindari boundary yang memotong kalimat, kutipan, pembukaan kesaksian, maupun penjelasan yang belum selesai jika boundary semantik yang lebih baik tersedia. Pada ujung batch teknis, gunakan from_previous/to_next sesuai state Salesforce; jangan mengubah kontrak flag untuk menutupi pemotongan.
+- Setiap pergantian kesaksian antarindividu harus dipisah; peralihan ajakan lisan, doa aktual, pengajaran, dan nyanyian aktual diperiksa berdasarkan aktivitas yang terdengar, bukan tag [musik] saja. Pergantian lagu yang jelas dapat membentuk Worship berbeda; pengulangan chorus lagu sama tidak.
+- Jangan memisahkan ucapan terima kasih, doa syukur, atau pesan penutup yang masih disampaikan oleh PEMBERI KESAKSIAN YANG SAMA menjadi Other hanya karena bentuk kalimatnya berubah. Kesaksian baru berakhir saat sumber kesaksian berganti atau pembawa acara benar-benar mengambil alih. Jika host menanggapi, pisahkan tanggapan host berdasarkan bukti perubahan pembicara.
+- Gabungkan pembukaan, salam, dan pengantar pendek yang berurutan oleh pembawa acara menjadi satu Other bila belum terjadi perubahan tujuan komunikasi substantif. Hindari dua segmen Other berdampingan yang tidak memiliki perbedaan gagasan atau aktivitas mandiri.
+- PRIORITAS HANDOFF KESAKSIAN: Baca runtutan caption di sekitar peralihan, bukan hanya tema utamanya. Jika kesaksian seseorang selesai lalu pembawa acara memberi tanggapan, berdoa singkat, atau memperkenalkan kesaksian orang lain, pisahkan interlude pembawa acara sebagai Other sebelum kesaksian baru benar-benar dimulai. Jangan memperluas rentang Testimony berikutnya ke caption reaksi atau pengantar pembawa acara. Jika kesaksian tertulis dibacakan pembawa acara, klasifikasikan isi kutipan sebagai Testimony tetapi bukan komentar host di luarnya. Batas dimulai pada pergantian sumber/aktivitas yang didukung caption; jangan bergantung pada satu kata sapaan atau penanda [musik].
+- UJI TEPAT SEBELUM OUTPUT: Untuk setiap segmen Testimony, periksa apakah caption pertama sudah isi kesaksian, dan apakah caption terakhir belum melewati tanggapan host atau pengantar kesaksian berikutnya. Jika campuran, revisi boundary dan tetap jaga indeks tanpa gap/overlap.
+
+- Topic sebaiknya dapat menjadi satu topik Wisdom Insight yang konkret; Summary harus merepresentasikan fakta/ajaran pada rentang itu saja dan tidak boleh menambahkan janji kesembuhan, hasil finansial, identitas, atau kutipan yang tidak didukung.
+- Teks caption, termasuk ASR nyanyian atau bahasa Inggris yang rusak, adalah bukti yang bisa tidak pasti. Jangan merekonstruksi lirik, mengarang ayat, memperbaiki kutipan seolah terverifikasi, atau menyatakan klaim tidak jelas sebagai fakta.
+- Sebelum output, periksa apakah masing-masing segmen berisi satu tema utama yang jelas, tidak menggabungkan beberapa cerita mandiri, tidak memotong kelanjutan semantik secara tidak perlu, dan tetap memenuhi seluruh aturan indeks, kontinuitas, regex tujuh kolom, serta batas panjang Topic/Summary. Jika ada konflik, utamakan kebenaran sumber dan kontrak indeks, bukan jumlah segmen.
+
 PEMERIKSAAN SEMANTIK SEBELUM OUTPUT:
 
 33. Pastikan setiap batas segmen didukung perubahan semantik yang nyata, bukan hanya pergantian caption atau penanda musik.
@@ -1317,9 +1351,9 @@ PEMERIKSAAN SEMANTIK SEBELUM OUTPUT:
 
 37. Pastikan pergantian lagu benar-benar dikenali sebagai segmen terpisah, tetapi pengulangan lagu yang sama tidak dipecah tanpa alasan.
 
-38. Periksa caption terakhir dalam batch dengan sangat teliti. Jika aktivitas atau kalimat masih berlanjut, segmen terakhir WAJIB memiliki to_next=true.
+38. Periksa caption terakhir dalam batch. Jika aktivitas berlanjut DAN ada batch berikutnya, segmen terakhir to_next=true. Jika batch terakhir seluruh transkrip, segmen terakhir to_next=false.
 
-39. Jangan menebak bahwa cerita atau lagu telah selesai hanya karena mencapai batas batch teknis.
+39. Jangan menebak cerita atau lagu selesai hanya karena batas batch teknis. Namun jangan beri to_next=true jika tidak ada caption berikutnya pada seluruh transkrip.
 
 40. Jangan memaksakan jumlah segmen tertentu. Jumlah segmen harus mengikuti perubahan semantik yang benar-benar didukung transkrip.
 
@@ -1343,6 +1377,8 @@ ATURAN STRUKTUR:
 11. Semua indeks harus bilangan bulat dan membentuk cakupan berurutan tanpa gap maupun overlap.
 12. Gunakan Bahasa Indonesia untuk Topic dan Summary.
 13. Jangan menambahkan JSON, Markdown, header, code fence, komentar, atau penjelasan.
+14. Indeks awal output harus SAMA dengan indeks awal batch; indeks akhir output harus SAMA dengan indeks akhir batch, inklusif.
+15. Jika batch terakhir dari SELURUH transkrip, to_next=false; jika tidak ada konteks topik terbuka dari batch sebelumnya, from_previous=false di segmen pertama.
 
 CONTOH FORMAT VALID:
 
@@ -1358,7 +1394,7 @@ Sebelum mengirim output:
 2. Pastikan karakter terakhir setiap segmen adalah pipe (|).
 3. Pastikan tidak ada delimiter tambahan pada Topic atau Summary.
 4. Pastikan setiap indeks caption tercakup tepat satu kali.
-5. Pastikan from_previous=true hanya digunakan pada segmen pertama apabila segmen itu melanjutkan konteks batch sebelumnya. Pastikan to_next=true hanya digunakan pada segmen terakhir apabila aktivitas masih berlanjut.
+5. Jika konteks topik terbuka dari batch sebelumnya TERISI, from_previous segmen pertama HARUS true, jika KOSONG HARUS false. to_next segmen terakhir HARUS false ketika batch terakhir seluruh transkrip; hanya boleh true jika masih ada batch berikutnya.
 6. Pastikan jumlah segmen mengikuti perubahan semantik, bukan jumlah yang dipaksakan.
 7. Pastikan Topic tidak melebihi 120 karakter dan Summary tidak melebihi 180 karakter.
 8. Pastikan Topic dan Summary tidak kosong.
@@ -1376,7 +1412,10 @@ KELUARKAN HANYA BARIS DATA TANPA TEKS TAMBAHAN.</text>
 Rentang caption batch: {!varBatchStartIndex} sampai {!varBatchEndIndex}, inklusif.
 Konteks topik TERBUKA dari batch sebelumnya (kosong artinya tidak ada): {!varPriorOpenTopic}
 Ringkasan konteks yang terbuka: {!varPriorOpenSummary}
-Bila batch ini adalah kelanjutan dari topik terbuka, tandai from_previous=true pada segmen pertama.
+KONTRAK AWAL (WAJIB): from_previous pada segmen pertama = true JIKA konteks topik TERBUKA di atas tidak kosong, selain itu false. from_previous di semua segmen berikutnya selalu false.
+Batch memiliki caption berikutnya setelah batas batch saat ini: {!f_HasMore}
+KONTRAK AKHIR (WAJIB): Jika nilai di atas false, to_next pada segmen TERAKHIR WAJIB false. Jika true, to_next boleh true HANYA bila aktivitas semantik belum selesai; to_next pada segmen nonterakhir selalu false.
+Segment pertama HARUS mulai pada {!varBatchStartIndex} dan segment terakhir HARUS berakhir pada {!varBatchEndIndex}. Semua indeks di antaranya tercakup tepat sekali tanpa gap/overlap.
 Batas batch hanya teknis dan tidak otomatis berarti akhir topik. Jangan satukan dua orang yang memberi kesaksian berbeda.
 
 TRANSKRIP:

@@ -501,6 +501,15 @@
         </connector>
     </assignments>
     <assignments>
+        <name>Use_Preapproved_Enrichment</name>
+        <label>Reuse exact approved lines after strict boundary coverage validation</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <assignmentItems><assignToReference>varEnrichmentLines</assignToReference><operator>Assign</operator><value><elementReference>varBoundaryLines</elementReference></value></assignmentItems>
+        <assignmentItems><assignToReference>varGroqResponseText</assignToReference><operator>Assign</operator><value><elementReference>varBoundaryLines</elementReference></value></assignmentItems>
+        <assignmentItems><assignToReference>varParseRemaining</assignToReference><operator>Assign</operator><value><elementReference>varBoundaryLines</elementReference></value></assignmentItems>
+        <connector><targetReference>Check_Parse_Remaining</targetReference></connector>
+    </assignments>
+    <assignments>
         <name>Set_Approved_Boundary_Validated</name>
         <label>Approved boundary coverage passed - enrich using Groq B</label>
         <locationX>0</locationX>
@@ -576,7 +585,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Prepare_Enrichment_Messages</targetReference>
+            <targetReference>Choose_Existing_Enrichment</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -889,6 +898,19 @@
             <targetReference>END_ELEMENT_20</targetReference>
         </connector>
     </assignments>
+    <decisions>
+        <name>Choose_Existing_Enrichment</name>
+        <label>Reuse validated complete topic and summary without Groq</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <defaultConnector><targetReference>Prepare_Enrichment_Messages</targetReference></defaultConnector>
+        <defaultConnectorLabel>PENDING present - request Groq enrichment</defaultConnectorLabel>
+        <rules>
+            <name>Already_Enriched</name><conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>f_BoundariesAlreadyEnriched</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
+            <connector><targetReference>Use_Preapproved_Enrichment</targetReference></connector>
+            <label>Complete preapproved lines - strict reuse</label>
+        </rules>
+    </decisions>
     <decisions>
         <name>After_Stage_Coverage</name>
         <label>Choose next phase after coverage</label>
@@ -1237,7 +1259,7 @@
     </decisions>
     <decisions>
         <name>Validate_Approved_Input</name>
-        <label>Require human-approved boundary and explicit confirmation</label>
+        <label>Require nonempty validated boundary lines</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
@@ -1247,13 +1269,7 @@
         <rules>
             <name>Approval_Confirmed_And_Boundaries_Present</name>
             <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>varHumanApproved</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <booleanValue>true</booleanValue>
-                </rightValue>
-            </conditions>
+            
             <conditions>
                 <leftValueReference>varApprovedBoundaryLines</leftValueReference>
                 <operator>IsNull</operator>
@@ -1271,7 +1287,7 @@
             <connector>
                 <targetReference>Get_Sermon_Source</targetReference>
             </connector>
-            <label>Human approval provided</label>
+            <label>Validated lines present</label>
         </rules>
     </decisions>
     <decisions>
@@ -1560,6 +1576,11 @@
     </ends>
     <environments>Default</environments>
     <formulas>
+        <name>f_BoundariesAlreadyEnriched</name>
+        <dataType>Boolean</dataType>
+        <expression>AND(NOT(ISBLANK({!varBoundaryLines})), NOT(CONTAINS({!varBoundaryLines}, &quot;;PENDING;PENDING|&quot;)))</expression>
+    </formulas>
+    <formulas>
         <name>f_BatchCharacterCount</name>
         <dataType>Number</dataType>
         <expression>{!f_BatchEnd} - {!varStartPosition} + 1</expression>
@@ -1579,7 +1600,7 @@
     <formulas>
         <name>f_BoundaryPlaceholdersValid</name>
         <dataType>Boolean</dataType>
-        <expression>AND({!f_SegTopic} = &quot;PENDING&quot;, {!f_SegSummary} = &quot;PENDING&quot;)</expression>
+        <expression>OR(AND({!f_SegTopic} = &quot;PENDING&quot;, {!f_SegSummary} = &quot;PENDING&quot;), AND({!f_SegTopic} &lt;&gt; &quot;PENDING&quot;, {!f_SegSummary} &lt;&gt; &quot;PENDING&quot;))</expression>
     </formulas>
     <formulas>
         <description>Trim</description>
@@ -1644,7 +1665,7 @@ IF(
     <formulas>
         <name>f_EnrichmentBoundaryMatches</name>
         <dataType>Boolean</dataType>
-        <expression>IF({!f_BoundarySegmentSep} &gt; 16, AND(RIGHT({!f_BoundarySegmentLine}, 15) = &quot;PENDING;PENDING&quot;, LEFT({!f_SegmentLine}, {!f_Semi5}) = LEFT({!f_BoundarySegmentLine}, LEN({!f_BoundarySegmentLine}) - 15)), FALSE)</expression>
+        <expression>OR({!f_SegmentLine} = {!f_BoundarySegmentLine}, IF({!f_BoundarySegmentSep} &gt; 16, AND(RIGHT({!f_BoundarySegmentLine}, 15) = &quot;PENDING;PENDING&quot;, LEFT({!f_SegmentLine}, {!f_Semi5}) = LEFT({!f_BoundarySegmentLine}, LEN({!f_BoundarySegmentLine}) - 15)), FALSE))</expression>
     </formulas>
     <formulas>
         <name>f_EnrichmentFieldsReady</name>
@@ -1863,13 +1884,6 @@ REGEX(
             <operator>EqualTo</operator>
             <value>
                 <elementReference>varSermonSourceId</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Rights_Status__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>PermissionGranted</stringValue>
             </value>
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>

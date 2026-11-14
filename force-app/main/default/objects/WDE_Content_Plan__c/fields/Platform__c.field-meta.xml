@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Platform__c</fullName>
+    <label>Platform</label>
+    <type>Picklist</type>
+    <required>false</required>
+    <valueSet><restricted>true</restricted><valueSetDefinition><sorted>false</sorted><value><fullName>YouTube Shorts</fullName><label>YouTube Shorts</label><default>true</default></value><value><fullName>Instagram Reels</fullName><label>Instagram Reels</label><default>false</default></value><value><fullName>Facebook Reels</fullName><label>Facebook Reels</label><default>false</default></value><value><fullName>Multi-platform</fullName><label>Multi-platform</label><default>false</default></value></valueSetDefinition></valueSet>
+</CustomField>

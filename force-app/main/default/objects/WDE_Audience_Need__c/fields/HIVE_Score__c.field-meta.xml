@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>HIVE_Score__c</fullName>
+    <description>Weighted score 0-100. Blank until all five metrics are populated and evaluation status is Ready.</description>
+    <formula>IF(AND(ISPICKVAL(HIVE_Evaluation_Status__c, "Ready"), NOT(ISBLANK(HIVE_Volume__c)), NOT(ISBLANK(HIVE_Intensity__c)), NOT(ISBLANK(HIVE_Growth__c)), NOT(ISBLANK(HIVE_Recency__c)), NOT(ISBLANK(HIVE_Quality__c))), ROUND(0.30 * HIVE_Volume__c + 0.25 * HIVE_Intensity__c + 0.20 * HIVE_Growth__c + 0.15 * HIVE_Recency__c + 0.10 * HIVE_Quality__c, 2), NULL)</formula>
+    <formulaTreatBlanksAs>BlankAsBlank</formulaTreatBlanksAs>
+    <label>HIVE Score</label>
+    <precision>5</precision>
+    <scale>2</scale>
+    <type>Number</type>
+</CustomField>

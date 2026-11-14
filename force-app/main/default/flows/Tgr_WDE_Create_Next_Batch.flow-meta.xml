@@ -33,9 +33,9 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>END_ELEMENT_3</targetReference>
+            <targetReference>Create_Next_Batch</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>Stop safely</defaultConnectorLabel>
+        <defaultConnectorLabel>No open segment; create independent batch</defaultConnectorLabel>
         <rules>
             <name>Open_Found</name>
             <conditionLogic>and</conditionLogic>
@@ -91,7 +91,7 @@
             <label>Has_Remaining_Text</label>
         </rules>
     </decisions>
-    <description>Pilot auto-next batch: creates at most one Pending successor only after explicit Auto_Next_Enabled__c and Completed; guards source length, duplicate Run_Key, and open segment. Next record Auto_Next_Enabled__c=false. Keep Draft until verified.</description>
+    <description>Pilot auto-next batch: creates at most one Pending successor only after Auto_Next_Enabled__c and Completed; guards source length, duplicate Run_Key, and open segment. Next record Auto_Next_Enabled__c=true, continuing after validated completion. Keep Draft until verified.</description>
     <ends>
         <name>END_ELEMENT_2</name>
         <locationX>0</locationX>
@@ -108,6 +108,11 @@
         <dataType>Number</dataType>
         <expression>{!$Record.Batch_Number__c} + 1</expression>
         <scale>0</scale>
+    </formulas>
+    <formulas>
+        <name>f_Next_Batch_Name</name>
+        <dataType>String</dataType>
+        <expression>LEFT(&quot;WDE Batch &quot; &amp; {!$Record.Sermon_Source_External_Key__c} &amp; &quot; #&quot; &amp; TEXT({!f_Next_Batch_Number}),80)</expression>
     </formulas>
     <formulas>
         <name>f_Next_Run_Key</name>
@@ -155,21 +160,25 @@
             <targetReference>END_ELEMENT_3</targetReference>
         </connector>
         <inputAssignments>
+            <field>Name</field>
+            <value><elementReference>f_Next_Batch_Name</elementReference></value>
+        </inputAssignments>
+        <inputAssignments>
             <field>Approval_Mode__c</field>
             <value>
-                <stringValue>ReviewBeforeCommit</stringValue>
+                <stringValue>AutoApproved</stringValue>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Auto_Approved__c</field>
             <value>
-                <booleanValue>false</booleanValue>
+                <booleanValue>true</booleanValue>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Auto_Next_Enabled__c</field>
             <value>
-                <booleanValue>false</booleanValue>
+                <booleanValue>true</booleanValue>
             </value>
         </inputAssignments>
         <inputAssignments>
