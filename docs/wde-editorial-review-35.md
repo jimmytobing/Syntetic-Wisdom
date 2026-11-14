@@ -78,3 +78,27 @@ Salesforce SOQL confirmed `External_Video_Id__c = 4SPC0Ke1Eyg` on the verified s
 | 1811/1812 | 1812 | [67:14](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=4034s) | Spoken goodbye → separate sung section |
 
 Use each link to open approximately 5–10 seconds before the target transition and listen past it. If audio is unavailable, leave the outcome `UNRESOLVED`; captions alone do not authenticate speaker changes, song starts, or spoken prayer boundaries. The table is a convenience queue **not** a certified gold set, audio verification, or approval to modify Salesforce.
+
+
+## AI Reviewer L1 — zero-cost pilot protocol (NOT EXECUTED)
+
+**Status:** `BLOCKED_PRE_FLIGHT` until a known Gemini API project is independently confirmed to be on the **Free Tier**, the chosen model is actually eligible for free video/YouTube input, and source-publication rights/privacy are checked. The Salesforce `Sf Request` gateway is Salesforce-only and **must not** be repurposed to call Gemini. Do not store API keys, raw private audio, or personal identifiers in this worksheet, Issue, PR, or logs.
+
+**Source:** public YouTube URL `https://www.youtube.com/watch?v=4SPC0Ke1Eyg`; candidate times come from Salesforce caption starts and are not verified audio times. Three pilot review windows: approximately 05:45–06:20, 57:25–58:05, and 63:00–63:45. Note that YouTube URL input may process the **entire video per call**, not just the requested window; budget free quotas accordingly. The URL must actually be accessible to the model.
+
+**Before any call:**
+1. Verify billing/project tier using authoritative provider settings (not prompt text), chosen model's current Free Tier eligibility and request/token/YouTube limits, and permissible audio use. No automatic paid fallback. If unverifiable, stay `BLOCKED_PRE_FLIGHT`.
+2. Confirm test mechanism has a supported credential path and safe logging, with no key in GitHub Issue/workflow command. No change to the Salesforce gateway/security gate.
+3. Use blind input: original video + timestamp question only; do **not** supply Groq verdict, persisted left/right categories, candidate caption index or presumed answer to Gemini.
+4. Require the response to distinguish `AUDIO_VERIFIED` from `AUDIO_UNAVAILABLE`; a plausible response without demonstrated media access is `UNRESOLVED`. Cross-check a short audible detail and timestamp with a human before treating it as audio evidence.
+
+**Pilot blind prompts (one reviewed window per response):**
+- 05:45–06:20: Identify the audible boundary between speaking/invitation and actual singing, if present. Report exact approximate video time, audio cues, speaker changes, and uncertainty.
+- 57:25–58:05: Identify whether and when invitation to pray changes into direct spoken prayer. Explain which rule is applied and any ambiguity.
+- 63:00–63:45: Identify spoken blessing and singing changes, if audible, with timestamps and uncertainty.
+
+**Required L1 proposal schema:** `window`, `media_access_status`, `audible_evidence_summary`, `proposed_transition_time`, `proposed_left_category`, `proposed_right_category`, `uncertainty`, `reason`, `reviewer_model`, `provider_request_reference` (redacted), `status=AI_L1_PROPOSED|UNRESOLVED`. Only **after** blind response is frozen, compare with persisted boundaries and map to the exact Salesforce caption index using source timestamps; allow `RETAIN/MOVE/REMOVE/INSERT/UNRESOLVED` and record comparison separately.
+
+**Acceptance:** first test three windows; if video access or cost safety cannot be verified, stop. If successful, review remaining nine windows with the same blind protocol, then independent human adjudication for critical/uncertain decisions. All 23 boundaries and possible missing boundaries remain in editorial scope. No AI-generated gold labels, no PASS receipt, no Salesforce DML/deploy/Flow activation, no automatic content publication; preserve `NeedsReview` and `auto-approval=BLOCKED`.
+
+**Official reference:** [Gemini video understanding / YouTube URL limits](https://ai.google.dev/gemini-api/docs/video-understanding) and [current model pricing and Free Tier](https://ai.google.dev/gemini-api/docs/pricing). Free Tier availability is model- and project-specific and may change.
