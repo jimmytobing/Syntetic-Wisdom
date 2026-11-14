@@ -54,7 +54,7 @@ export function adjudicateIndependentSemanticSegments({
   if(!primarySegments.length||!independentSegments.length)
     reasons.push('SEGMENTS_MISSING');
   const primary=[...primarySegments].sort((a,b)=>startOf(a)-startOf(b));
-  const independent=[...independentSegments].sort((a,b)=>a.start-a.start);
+  const independent=[...independentSegments].sort((a,b)=>a.start-b.start);
   let next=firstIndex, totalChecked=0;
   const disputes=[];
   if(primarySegments.length!==independentSegments.length)
