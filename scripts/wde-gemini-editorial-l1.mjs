@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 
-const API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const API = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+const MODEL_METADATA = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash';
+const MODEL = 'gemini-3.8-flash';
 const VIDEO = 'https://www.youtube.com/watch?v=4SPC0Ke1Eyg';
 const WINDOWS = [
   { id:'w1', time:'14:17-14:43' },
@@ -28,10 +30,10 @@ export function buildRequest() {
     'media_access_status=UNAVAILABLE and all windows UNRESOLVED with no transitions.',
     'Do not assign any gold label or approve publication.'
   ].join('\n');
-  return { contents:[{role:'user',parts:[
-    {file_data:{mime_type:'video/mp4',file_uri:VIDEO}},
-    {text:prompt}
-  ]}], generationConfig:{temperature:0,responseMimeType:'application/json',maxOutputTokens:2200} };
+  return {model: MODEL, input: [
+    {type:'video', uri:VIDEO, processing:'agentic'},
+    {type:'text',text:prompt}
+  ]};
 }
 export function sanitizeResult(parsed) {
   assert(parsed && typeof parsed==='object', 'JSON response is not object');
@@ -53,8 +55,27 @@ export function sanitizeResult(parsed) {
   });
   if (parsed.media_access_status==='UNAVAILABLE') assert(windows.every(w=>w.status==='UNRESOLVED' && w.transitions.length===0),'Unavailable must be unresolved');
   return { media_access_status:'MODEL_REPORTED_'+parsed.media_access_status,
-    model:'gemini-2.5-flash',video_id:'4SPC0Ke1Eyg',
+    model:MODEL,video_id:'4SPC0Ke1Eyg',
     editorial_status:'AI_L1_PROPOSED_NOT_GOLD',windows };
+}
+export function extractOutputText(raw) {
+  assert(raw && typeof raw==='object' && raw.status!=='failed', 'Interaction returned failed status');
+  // Current Interactions API (post-May 2026) responds with model_output steps.
+  const blocks=(raw.steps||[]).filter(s=>s?.type==='model_output')
+    .flatMap(s=>Array.isArray(s.content)?s.content:[])
+    .filter(x=>x?.type==='text' && typeof x.text==='string').map(x=>x.text);
+  assert(blocks.length>0,'Interaction returned no model output text');
+  return blocks.join('\\n').trim();
+}
+async function safeResponseError(response,stage) {
+  let status='UNKNOWN';
+  try {
+    const body=await response.json();
+    const code=String(body?.error?.status||'');
+    if (/^[A-Z_]{3,40}$/.test(code)) status=code;
+  } catch {}
+  // Do not expose response body, user text, API key, or media.
+  throw new Error(stage+' HTTP '+response.status+' '+status);
 }
 async function main(){
   assert(process.env.GITHUB_REPOSITORY==='jimmytobing/Syntetic-Wisdom','Wrong repository');
@@ -63,21 +84,32 @@ async function main(){
   assert(process.env.WDE_RIGHTS_ACK==='REVIEW_PERMITTED','Source review permission attestation required');
   const key=process.env.WDE_GEMINI_API_KEY;
   assert(typeof key==='string' && key.length>12,'Missing Gemini API key secret');
-  const response=await fetch(API,{method:'POST',redirect:'error',
-    headers:{'Content-Type':'application/json','x-goog-api-key':key},
-    body:JSON.stringify(buildRequest()),signal:AbortSignal.timeout(120000)});
-  // No response body, API-key, prompt, raw media, or source text is printed in logs.
-  if (!response.ok) throw new Error('Gemini request failed HTTP '+response.status);
+  const headers={'Content-Type':'application/json','x-goog-api-key':key};
+  // Non-generative metadata preflight. A 200 response DOES NOT establish
+  // project entitlement, zero billing, or successful video access.
+  const metadata=await fetch(MODEL_METADATA,{method:'GET',redirect:'error',
+    headers:{'x-goog-api-key':key},signal:AbortSignal.timeout(15000)});
+  if (!metadata.ok) await safeResponseError(metadata,'Model metadata preflight');
+  const info=await metadata.json();
+  assert(info?.name==='models/'+MODEL,'Unexpected model metadata identity');
+  console.log('Non-generative model metadata preflight HTTP 200 (not an entitlement check).');
+  // Exactly one inference request. No fallback, no automatic retry.
+  const response=await fetch(API,{method:'POST',redirect:'error',headers,
+    body:JSON.stringify(buildRequest()),signal:AbortSignal.timeout(180000)});
+  if (!response.ok) await safeResponseError(response,'Gemini Interactions');
   const raw=await response.json();
-  const candidate=raw.candidates?.[0];
-  assert(candidate?.finishReason==='STOP','Model response incomplete');
-  const data=JSON.parse((candidate.content?.parts||[]).filter(p=>typeof p.text==='string').map(p=>p.text).join(''));
-  const result=sanitizeResult(data);
-  result.usage={prompt_tokens:Number(raw.usageMetadata?.promptTokenCount||0),
-    output_tokens:Number(raw.usageMetadata?.candidatesTokenCount||0)};
+  assert(raw?.status!=='in_progress','Unexpected async status: no polling/retry permitted');
+  let payload=extractOutputText(raw);
+  // Accept a common markdown JSON fence without accepting prose outside it.
+  if (/^\\`\\`\\`(?:json)?\\s*[\\s\\S]*\\`\\`\\`$/i.test(payload)) {
+    payload=payload.replace(/^\\`\\`\\`(?:json)?\\s*/i,'').replace(/\\s*\\`\\`\\`$/,'');
+  }
+  const result=sanitizeResult(JSON.parse(payload));
+  result.interaction_reference=typeof raw.id==='string' && /^int_[A-Za-z0-9_-]{3,100}$/.test(raw.id)
+    ? raw.id : 'NOT_RECORDED';
   const path=process.env.RUNNER_TEMP+'/wde-gemini-l1.json';
   await fs.writeFile(path,JSON.stringify(result,null,2),{mode:0o600});
-  console.log('Model response schema accepted; output saved to private short-lived artifact. Editorial status remains unapproved.');
+  console.log('Gemini Interactions HTTP 200; response schema accepted. Editorial gold/approval remain BLOCKED.');
 }
 if (process.argv[1] && import.meta.url===new URL('file://'+process.argv[1]).href){
   main().catch(e=>{console.error('AI L1 FAILED: '+String(e.message).replace(/AIza[0-9A-Za-z_-]+/g,'[HIDDEN]'));process.exitCode=1;});
