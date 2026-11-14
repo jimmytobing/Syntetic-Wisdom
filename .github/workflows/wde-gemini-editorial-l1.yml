@@ -16,6 +16,10 @@ on:
         description: "Confirm source media may be sent to Gemini for private review; enter REVIEW_PERMITTED"
         required: true
         type: string
+      resume_interaction_id:
+        description: "Optional: existing background interaction ID from prior receipt (GET-only, no new inference)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -47,7 +51,7 @@ jobs:
       inputs.free_tier_ack == 'FREE_TIER_CONFIRMED' &&
       inputs.rights_ack == 'REVIEW_PERMITTED'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     permissions:
       contents: read
     steps:
@@ -59,18 +63,22 @@ jobs:
         run: |
           node --version
           node --check scripts/wde-gemini-editorial-l1.mjs
-      - name: One bounded Gemini API request (no retry, no paid fallback)
+      - name: One background POST or GET-only resume (bounded polling, no fallback)
         env:
           WDE_GEMINI_API_KEY: ${{ secrets.WDE_GEMINI_API_KEY }}
           WDE_FREE_TIER_ACK: ${{ inputs.free_tier_ack }}
           WDE_RIGHTS_ACK: ${{ inputs.rights_ack }}
+          WDE_RESUME_INTERACTION_ID: ${{ inputs.resume_interaction_id }}
         run: node scripts/wde-gemini-editorial-l1.mjs
-      - name: Upload private one-day candidate evidence
+      - name: Upload one-day result and resumable interaction receipt
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: wde-gemini-l1-${{ github.run_id }}
-          path: ${{ runner.temp }}/wde-gemini-l1.json
-          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/wde-gemini-l1.json
+            ${{ runner.temp }}/wde-gemini-receipt.json
+          if-no-files-found: warn
           retention-days: 1
 
   audit:
@@ -91,9 +99,9 @@ jobs:
           {
             printf '## WDE Gemini Editorial L1 — manual workflow\n\n'
             printf 'Job status: **%s**. [Run evidence](%s).\n\n' "$REVIEW_RESULT" "$RUN_URL"
-            printf 'One API request maximum; no retry, no Salesforce mutation or publication.\n'
+            printf 'Background execution: one inference POST maximum, bounded GET polling; resume uses GET only. No retry or publication.\n'
             printf 'Model-reported audio access remains unverified by independent reviewer.\n'
             printf 'Candidates remain AI_L1_PROPOSED; editorial/gold labels and auto-approval stay BLOCKED.\n'
-            printf 'Private output artifact retained for one day only. No keys or transcript excerpts posted.\n'
+            printf 'Result/receipt artifact retained for one day only. No keys or transcript excerpts posted.\n'
           } > "$RUNNER_TEMP/l1-audit.md"
           gh issue comment 35 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/l1-audit.md"
