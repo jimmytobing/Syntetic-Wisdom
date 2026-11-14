@@ -13,7 +13,7 @@ const receipt={interaction_id:'v1_sample_internal_123',model:'gemini-3.8-flash',
 test('only exact Issue header, fixed run ID, strict JSON accepted',()=>{
   assert.deepEqual(parseInspectIssue(issueBody()),req);
   assert.throws(()=>parseInspectIssue(issueBody({...req,sourceRunId:999})),/pinned/);
-  assert.throws(()=>parseInspectIssue(issueBody({...req,operation:'!!unsafe command'})),/pinned/);
+  assert.throws(()=>parseInspectIssue(issueBody({...req,operation:'!!unsafe command'})),/Invalid operation/);
   assert.throws(()=>parseInspectIssue(issueBody({...req,token:'secret'})),/Unexpected/);
   assert.throws(()=>parseInspectIssue(issueBody()+'\n### WDE Request'),/Exactly one/);
 });
@@ -89,7 +89,7 @@ test('first claim posts marker exactly once, never content or key',async()=>{
   await claimOnce(req,{token:'fake_token_very_long',fetcher});
   assert.deepEqual(calls.map(x=>x.method),['GET','POST']);
   const body=JSON.parse(calls[1].body).body;
-  assert.match(body,/WDE_GEMINI_INSPECT:wde35-20261114-001/);
+  assert.match(body,/WDE_REQUEST:wde35-20261114-001/);
   assert.doesNotMatch(body,/AIza|interaction_id|transcript/);
 });
 
