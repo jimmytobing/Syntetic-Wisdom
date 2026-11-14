@@ -144,3 +144,35 @@ test('out-of-order independent segments are canonically sorted before contiguous
   assert.equal(r.decision,'PASS');
   assert.equal(r.checkedCaptionCount,6);
 });
+
+test('shifted prayer entry between exhortation and direct prayer fails closed',()=>{
+  // Structural regression for the observed 1559|1560 vs 1567|1568 disagreement.
+  // Synthetic text is not certified editorial gold.
+  const words=Array.from({length:20},(_,i)=>i<8?'Invitation to pray '+i:'Direct prayer '+i);
+  const raw=words.map((t,i)=>(1559+i)+';0;100;'+t+'|').join('');
+  const original=[{start_index:1559,end_index:1559,segment_type:'Teaching'},
+    {start_index:1560,end_index:1578,segment_type:'Prayer'}];
+  const independentProposal=[
+    {start:1559,end:1567,type:'Teaching',verdict:'PASS',
+      startEvidence:words[0],endEvidence:words[8],
+      rationale:'The initial lines invite the audience before direct prayer begins.'},
+    {start:1568,end:1578,type:'Prayer',verdict:'PASS',
+      startEvidence:words[9],endEvidence:words[19],
+      rationale:'Direct prayer speech starts after the preceding exhortation.'}
+  ];
+  const p={verifiedByTrustedRunner:true,independentProvider:true,
+    sourceDigest:'sha256:'+createHash('sha256').update(raw).digest('hex'),
+    sourceId:'synthetic-prayer-transition',runId:'regression-transition'};
+  const result=check({rawTranscript:raw,primarySegments:original,
+    independentSegments:independentProposal,provenance:p,sourceId:p.sourceId});
+  assert.equal(result.decision,'FAIL');
+  assert.ok(result.disputes.some(x=>x.code==='PRIMARY_INDEPENDENT_DISAGREEMENT'));
+  assert.equal(result.releaseAuthorized,false);
+});
+test('independent evaluator outage cannot be interpreted as semantic PASS',()=>{
+  const result=check({independentSegments:[],provenance:undefined});
+  assert.equal(result.decision,'REVIEW');
+  assert.ok(result.reasonCodes.includes('INDEPENDENCE_NOT_AUTHENTICATED'));
+  assert.ok(result.reasonCodes.includes('SEGMENTS_MISSING'));
+  assert.equal(result.releaseAuthorized,false);
+});
