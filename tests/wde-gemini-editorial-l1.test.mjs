@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildRequest,sanitizeResult,extractOutputText,safeErrorDiagnostic,classifyProviderError} from '../scripts/wde-gemini-editorial-l1.mjs';
+import {buildRequest,sanitizeResult,extractOutputText,safeErrorDiagnostic,classifyProviderError,pollExistingInteraction,validateInteractionId,validateInteractionStatus} from '../scripts/wde-gemini-editorial-l1.mjs';
 
 const IDs=['w1','w2','w3','w4','w5'];
 function windows(status='AI_L1_PROPOSED') {
@@ -10,6 +10,7 @@ function windows(status='AI_L1_PROPOSED') {
 test('Interactions API request uses fixed Gemini 3.8 with agentic YouTube media, blind windows',()=>{
   const request=buildRequest();
   assert.equal(request.model,'gemini-3.8-flash');
+  assert.equal(request.background,true);
   assert.deepEqual(request.input[0],{
     type:'video',uri:'https://www.youtube.com/watch?v=4SPC0Ke1Eyg',processing:'agentic'
   });
@@ -81,4 +82,64 @@ test('diagnostics classify failure modes and bound retry header',()=>{
   assert.equal(classifyProviderError('Deadline exceeded'),'PROVIDER_TIMEOUT');
   assert.equal(safeErrorDiagnostic(503,{},'99999').retry_after_seconds,3600);
   assert.equal(safeErrorDiagnostic(503,{},'12.5').retry_after_seconds,null);
+});
+
+test('background polling GET-only reuses one validated ID to completion',async()=>{
+  const calls=[];
+  let count=0;
+  const fakeFetch=async(url,options)=>{
+    calls.push({url,method:options.method});
+    count++;
+    return {ok:true,json:async()=>({id:'int_example_123',status:count===1?'in_progress':'completed',
+      steps:[{type:'model_output',content:[{type:'text',text:'{}'}]}]})};
+  };
+  const result=await pollExistingInteraction({id:'int_example_123',headers:{},
+    initial:{id:'int_example_123',status:'in_progress'},
+    fetcher:fakeFetch,wait:async()=>{},maxPolls:3,intervalMs:0});
+  assert.equal(result.status,'completed');
+  assert.deepEqual(calls.map(x=>x.method),['GET','GET']);
+  assert.ok(calls.every(x=>x.url.endsWith('/int_example_123')));
+});
+
+test('resume polling retrieves existing interaction without any inference POST',async()=>{
+  const calls=[];
+  const fakeFetch=async(url,options)=>{
+    calls.push(options.method);
+    return {ok:true,json:async()=>({id:'int_resume_123',status:'completed',steps:[]})};
+  };
+  const result=await pollExistingInteraction({id:'int_resume_123',headers:{},fetcher:fakeFetch,
+    maxPolls:2,intervalMs:0});
+  assert.equal(result.status,'completed');
+  assert.deepEqual(calls,['GET']);
+});
+
+test('background poll is bounded and does not create a second inference',async()=>{
+  let requests=0;
+  const fakeFetch=async(url,options)=>{
+    requests++;
+    assert.equal(options.method,'GET');
+    return {ok:true,json:async()=>({id:'int_pending_123',status:'in_progress'})};
+  };
+  await assert.rejects(pollExistingInteraction({id:'int_pending_123',headers:{},
+    initial:{id:'int_pending_123',status:'in_progress'},
+    fetcher:fakeFetch,wait:async()=>{},maxPolls:2,intervalMs:0}),/bounded polling/);
+  assert.equal(requests,2);
+});
+
+test('reject unsafe resume IDs, mismatched provider ID and terminal states',async()=>{
+  for(const bad of ['https://evil.test','../evil','x/y','', 'a'.repeat(200)]){
+    assert.throws(()=>validateInteractionId(bad),/Invalid interaction ID/);
+  }
+  assert.throws(()=>validateInteractionStatus({status:'requires_action'}),/terminal state/);
+  assert.throws(()=>validateInteractionStatus({status:'failed'}),/terminal state/);
+  assert.throws(()=>validateInteractionStatus({status:'weird'}),/Unknown interaction status/);
+  await assert.rejects(pollExistingInteraction({id:'int_safe_123',headers:{},
+    initial:{id:'int_other_123',status:'completed'},maxPolls:0,intervalMs:0}),/ID mismatch/);
+});
+
+test('completed initial interaction does not poll',async()=>{
+  const result=await pollExistingInteraction({id:'int_done_123',headers:{},
+    initial:{id:'int_done_123',status:'completed'},maxPolls:0,intervalMs:0,
+    fetcher:()=>{throw Error('must not call');}});
+  assert.equal(result.status,'completed');
 });
