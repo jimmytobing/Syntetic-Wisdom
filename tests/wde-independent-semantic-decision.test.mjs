@@ -200,6 +200,7 @@ test('model-supplied or forged gold verdict cannot bypass provenance checks',()=
     captionCount:WDE_CALIBRATION_CAPTION_COUNT,sourceDigest:digest};
   const untrusted=inspectEditorialGoldReadiness({...args,attestations:[attestation]});
   assert.equal(untrusted.autoApprovalAllowed,false);
+  assert.equal(untrusted.goldCaseCount,0);
   assert.equal(untrusted.falsePassRate,null);
   assert.ok(untrusted.findingCodes.includes('TRUSTED_SOURCE_PROVENANCE_MISSING'));
   const mismatch=inspectEditorialGoldReadiness({...args,trustedRunnerVerified:true,
