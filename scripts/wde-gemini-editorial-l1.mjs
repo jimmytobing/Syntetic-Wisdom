@@ -106,6 +106,22 @@ export function sanitizeResult(parsed) {
     model:MODEL,video_id:'4SPC0Ke1Eyg',
     editorial_status:'AI_L1_PROPOSED_NOT_GOLD',windows };
 }
+export function parseModelJsonPayload(text) {
+  assert(typeof text==='string','Model output text required');
+  let value=text.trim();
+  const fences=['~~~',String.fromCharCode(96).repeat(3)];
+  for(const fence of fences){
+    if(!value.startsWith(fence)) continue;
+    assert(value.endsWith(fence) && value.length>=fence.length*2,
+      'Incomplete JSON code fence');
+    value=value.slice(fence.length,-fence.length).trim();
+    if(/^json(?:\\s|$)/i.test(value)) value=value.replace(/^json(?:\\s+|$)/i,'').trim();
+    break;
+  }
+  // Only JSON; never interpret freeform text or multiple fenced blocks.
+  return JSON.parse(value);
+}
+
 export function extractOutputText(raw) {
   assert(raw && typeof raw==='object' && raw.status!=='failed', 'Interaction returned failed status');
   // Current Interactions API (post-May 2026) responds with model_output steps.
@@ -225,16 +241,10 @@ async function main(){
     raw=await pollExistingInteraction({id,headers,initial:created});
   }
   assert(raw.status==='completed','Non-completed background interaction');
-  let payload=extractOutputText(raw);
-  // Accept one fenced JSON block only; never parse arbitrary prose.
-  if (payload.startsWith('~~~json') && payload.endsWith('~~~')) {
-    payload=payload.slice(7,-3).trim();
-  } else if (payload.startsWith('~~~') && payload.endsWith('~~~')) {
-    payload=payload.slice(3,-3).trim();
-  }
+  const payload=parseModelJsonPayload(extractOutputText(raw));
   const result=mode==='audio_probe'
-    ? sanitizeAudioProbeResult(JSON.parse(payload))
-    : sanitizeResult(JSON.parse(payload));
+    ? sanitizeAudioProbeResult(payload)
+    : sanitizeResult(payload);
   result.interaction_reference=id;
   const path=process.env.RUNNER_TEMP+(mode==='audio_probe'
     ? '/wde-gemini-audio-probe.json' : '/wde-gemini-l1.json');
