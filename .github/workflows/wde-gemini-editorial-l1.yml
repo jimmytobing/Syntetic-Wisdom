@@ -1,6 +1,11 @@
 name: WDE - Gemini Editorial L1 (manual, Free Tier)
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/wde-gemini-editorial-l1.yml'
+      - 'scripts/wde-gemini-editorial-l1.mjs'
+      - 'tests/wde-gemini-editorial-l1.test.mjs'
   workflow_dispatch:
     inputs:
       free_tier_ack:
@@ -20,6 +25,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  offline-tests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Offline schema and input tests (no secrets / no API)
+        run: |
+          node --check scripts/wde-gemini-editorial-l1.mjs
+          node --test tests/wde-gemini-editorial-l1.test.mjs
+
   review:
     if: >-
       github.repository == 'jimmytobing/Syntetic-Wisdom' &&
