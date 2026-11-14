@@ -85,7 +85,7 @@ export function safeErrorDiagnostic(httpStatus,body,retryAfter) {
   const code=Number(body?.error?.code);
   const safeCode=Number.isInteger(code) && code>=400 && code<=599?code:null;
   const reason=classifyProviderError(body?.error?.message);
-  const ra=typeof retryAfter==='string' && /^\\d{1,5}$/.test(retryAfter)
+  const ra=typeof retryAfter==='string' && /^\d{1,5}$/.test(retryAfter)
     ? Math.min(Number(retryAfter),3600) : null;
   return {http_status:httpStatus,provider_status:safeStatus,provider_code:safeCode,
     reason_class:reason,retry_after_seconds:ra};
