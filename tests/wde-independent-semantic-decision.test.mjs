@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {adjudicateIndependentSemanticSegments} from '../scripts/wde-independent-semantic-decision.mjs';
 import {provisionalBoundaryCases,inspectEditorialGoldReadiness,WDE_CALIBRATION_SOURCE_ID,WDE_CALIBRATION_CAPTION_COUNT} from '../scripts/wde-semantic-calibration-audit.mjs';
+import {persistedEditorialBoundaries,inspectBoundaryReviewInventory} from '../scripts/wde-editorial-boundary-inventory.mjs';
 
 const captions=['Selamat datang semua','Kesaksian awal saya dipulihkan','Tuhan menolong keluarga saya',
   'Sekarang mari kita bernyanyi','Kami memuji Tuhan bersama','Mari kita berdoa bagi bangsa'];
@@ -218,8 +219,28 @@ test('even all five claimed attestations cannot certify representative false-PAS
   const result=inspectEditorialGoldReadiness({sourceId:WDE_CALIBRATION_SOURCE_ID,
     captionCount:WDE_CALIBRATION_CAPTION_COUNT,sourceDigest:digest,
     trustedRunnerVerified:true,attestations});
-  assert.equal(result.goldCaseCount,5);
+  assert.equal(result.goldCaseCount,0);
+  assert.ok(result.findingCodes.includes('EDITORIAL_ATTESTATIONS_NOT_AUTHENTICATED'));
   assert.equal(result.falsePassRate,null);
   assert.equal(result.autoApprovalAllowed,false);
   assert.ok(result.findingCodes.includes('FALSE_PASS_RATE_NOT_ESTIMABLE'));
+});
+
+test('23 persisted boundaries are ordered, contiguous and not human-certified',()=>{
+  const report=inspectBoundaryReviewInventory();
+  assert.equal(report.status,'READY_FOR_HUMAN_REVIEW');
+  assert.equal(report.expectedBoundaries,23);
+  assert.equal(report.certifiedGoldCount,0);
+  assert.equal(report.autoApprovalAllowed,false);
+  assert.equal(persistedEditorialBoundaries.filter(x=>x.priority==='HIGH').length,8);
+  assert.ok(persistedEditorialBoundaries.every(x=>x.rightStart===x.leftEnd+1));
+});
+test('tampered or false-certified boundary inventory is rejected',()=>{
+  const rows=persistedEditorialBoundaries.map(x=>({...x}));
+  rows[17].rightStart++;
+  assert.equal(inspectBoundaryReviewInventory(rows).status,'INVALID_INVENTORY');
+  const claimed=persistedEditorialBoundaries.map(x=>({...x}));
+  claimed[0].goldVerified=true;claimed[0].decision='PASS';
+  assert.ok(inspectBoundaryReviewInventory(claimed).findings.includes('UNVERIFIED_GOLD_CLAIM'));
+  assert.equal(inspectBoundaryReviewInventory(claimed).certifiedGoldCount,0);
 });
