@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Gemini_Analysis_Validated_At__c</fullName>
+    <label>Gemini Analysis Validated At</label>
+    <description>Time of successful deterministic JSON structure and clip-range verification, not independent semantic review of original media.</description>
+    <type>DateTime</type>
+    <required>false</required>
+</CustomField>
