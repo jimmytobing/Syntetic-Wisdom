@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildRequest,sanitizeResult,extractOutputText,safeErrorDiagnostic,classifyProviderError,pollExistingInteraction,validateInteractionId,validateInteractionStatus,buildAudioProbeRequest,sanitizeAudioProbeResult,AUDIO_PROBE} from '../scripts/wde-gemini-editorial-l1.mjs';
+import {buildRequest,sanitizeResult,extractOutputText,safeErrorDiagnostic,classifyProviderError,pollExistingInteraction,validateInteractionId,validateInteractionStatus,buildAudioProbeRequest,sanitizeAudioProbeResult,AUDIO_PROBE,parseModelJsonPayload} from '../scripts/wde-gemini-editorial-l1.mjs';
 
 const IDs=['w1','w2','w3','w4','w5'];
 function windows(status='AI_L1_PROPOSED') {
@@ -181,4 +181,21 @@ test('audio unavailable, fabricated category, unverifiable claims and injected e
     audio_observation:'SINGING'}),/Unverifiable/);
   assert.throws(()=>sanitizeAudioProbeResult({...a,audio_observation:'FAKE'}),/Invalid audio observation/);
   assert.throws(()=>sanitizeAudioProbeResult({...a,raw_transcript:'SECRET'}),/schema/);
+});
+
+test('Gemini JSON output accepts direct, backtick and tilde fenced JSON',()=>{
+  const json='{"media_access_status":"UNAVAILABLE","audio_observation":"UNRESOLVED","background_audio":"UNRESOLVED","evidence_type":"UNVERIFIABLE"}';
+  const backtick=String.fromCharCode(96).repeat(3);
+  for(const raw of [json,backtick+'json\n'+json+'\n'+backtick,
+    backtick+'\n'+json+'\n'+backtick,'~~~json\n'+json+'\n~~~']){
+    const result=sanitizeAudioProbeResult(parseModelJsonPayload(raw));
+    assert.equal(result.media_access_status,'MODEL_REPORTED_UNAVAILABLE');
+  }
+});
+test('Gemini JSON output fails closed on prose, partial fences and double objects',()=>{
+  const tick=String.fromCharCode(96).repeat(3);
+  assert.throws(()=>parseModelJsonPayload('The answer is {"x":1}'),/Unexpected token|Unexpected/);
+  assert.throws(()=>parseModelJsonPayload(tick+'json\n{}'),/Incomplete/);
+  assert.throws(()=>parseModelJsonPayload('{}\n{}'),/Unexpected/);
+  assert.throws(()=>parseModelJsonPayload(tick+'json\n{}\n'+tick+'\nignored'),/Incomplete/);
 });
