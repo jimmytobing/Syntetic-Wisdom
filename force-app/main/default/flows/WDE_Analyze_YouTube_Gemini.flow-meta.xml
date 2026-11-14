@@ -36,8 +36,9 @@
     <name>Build_Request</name><label>Build Gemini Request</label><locationX>0</locationX><locationY>0</locationY>
     <assignmentItems><assignToReference>varS_Body.model</assignToReference><operator>Assign</operator><value><stringValue>gemini-3.8-flash</stringValue></value></assignmentItems>
     <assignmentItems><assignToReference>varS_Body.store</assignToReference><operator>Assign</operator><value><booleanValue>false</booleanValue></value></assignmentItems>
-    <assignmentItems><assignToReference>varS_Body.response_format.type</assignToReference><operator>Assign</operator><value><stringValue>text</stringValue></value></assignmentItems>
-    <assignmentItems><assignToReference>varS_Body.response_format.mime_type</assignToReference><operator>Assign</operator><value><stringValue>application/json</stringValue></value></assignmentItems>
+    <assignmentItems><assignToReference>varS_Format.type</assignToReference><operator>Assign</operator><value><stringValue>text</stringValue></value></assignmentItems>
+    <assignmentItems><assignToReference>varS_Format.mime_type</assignToReference><operator>Assign</operator><value><stringValue>application/json</stringValue></value></assignmentItems>
+    <assignmentItems><assignToReference>varS_Body.response_format</assignToReference><operator>Assign</operator><value><elementReference>varS_Format</elementReference></value></assignmentItems>
     <assignmentItems><assignToReference>varS_Body.input</assignToReference><operator>Add</operator><value><elementReference>varS_TextInput</elementReference></value></assignmentItems>
     <assignmentItems><assignToReference>varS_Body.input</assignToReference><operator>Add</operator><value><elementReference>varS_VideoInput</elementReference></value></assignmentItems>
     <connector><targetReference>Call_Gemini_Interactions</targetReference></connector>
@@ -82,11 +83,12 @@
   <status>Draft</status>
 <variables><name>varT_YouTubeUrl</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
 <variables><name>varT_Prompt</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
-<variables><name>varS_TextInput</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_interactions_IN_body_input</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
-<variables><name>varS_VideoInput</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_interactions_IN_body_input</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
-<variables><name>varS_Body</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_interactions_IN_body</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
-<variables><name>varS_Response</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_interactions_OUT_2XX</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
+<variables><name>varS_TextInput</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_InputContent</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
+<variables><name>varS_VideoInput</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_InputContent</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
+<variables><name>varS_Body</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_InteractionRequest</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
+<variables><name>varS_Response</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_InteractionResponse</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
 <variables><name>varN_ResponseCode</name><dataType>Number</dataType><scale>0</scale><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
 <variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
 <variables><name>varB_Success</name><dataType>Boolean</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput><value><booleanValue>false</booleanValue></value></variables>
+<variables><name>varS_Format</name><dataType>Apex</dataType><apexClass>ExternalService__WDEGeminiInteractions_ResponseFormat</apexClass><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 </Flow>
