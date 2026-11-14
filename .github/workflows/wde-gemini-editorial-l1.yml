@@ -20,6 +20,12 @@ on:
         description: "Optional: existing background interaction ID from prior receipt (GET-only, no new inference)"
         required: false
         type: string
+      test_mode:
+        description: "editorial = previous five windows; audio_probe = one fixed 26-second static clip"
+        required: true
+        type: choice
+        default: audio_probe
+        options: [audio_probe, editorial]
 
 permissions:
   contents: read
@@ -66,6 +72,7 @@ jobs:
       - name: One background POST or GET-only resume (bounded polling, no fallback)
         env:
           WDE_GEMINI_API_KEY: ${{ secrets.WDE_GEMINI_API_KEY }}
+          WDE_TEST_MODE: ${{ inputs.test_mode }}
           WDE_FREE_TIER_ACK: ${{ inputs.free_tier_ack }}
           WDE_RIGHTS_ACK: ${{ inputs.rights_ack }}
           WDE_RESUME_INTERACTION_ID: ${{ inputs.resume_interaction_id }}
@@ -77,6 +84,7 @@ jobs:
           name: wde-gemini-l1-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/wde-gemini-l1.json
+            ${{ runner.temp }}/wde-gemini-audio-probe.json
             ${{ runner.temp }}/wde-gemini-receipt.json
           if-no-files-found: warn
           retention-days: 1
