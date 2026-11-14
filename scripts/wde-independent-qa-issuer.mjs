@@ -14,13 +14,14 @@ const startOf = s => s.Start_Index__c ?? s.start_index;
 const endOf = s => s.End_Index__c ?? s.end_index;
 const transcriptOf = s => s.Transcript_Text__c ?? s.transcript_text;
 
-export function inspectOriginalCaptionText({ rawTranscript, segments, expectedTotal=1620 }) {
+export function inspectOriginalCaptionText({ rawTranscript, segments, expectedTotal=null }) {
   if (!text(rawTranscript) || !rawTranscript.endsWith('|') || !Array.isArray(segments) ||
       !Number.isSafeInteger(expectedTotal) || expectedTotal < 1) {
     return {pass:false, findings:['SOURCE_INPUT_INVALID'], total:0, checked:0};
   }
   const captions=rawTranscript.slice(0,-1).split('|');
-  if (captions.length !== expectedTotal) {
+  const total=expectedTotal ?? captions.length;
+  if (!Number.isSafeInteger(total) || total < 1 || captions.length !== total) {
     return {pass:false, findings:['SOURCE_COUNT_MISMATCH'], total:captions.length, checked:0};
   }
   const values=[];
@@ -36,14 +37,14 @@ export function inspectOriginalCaptionText({ rawTranscript, segments, expectedTo
   for(const s of segments) {
     const start=startOf(s),end=endOf(s);
     if(!Number.isSafeInteger(start) || !Number.isSafeInteger(end) ||
-      start<0 || end<start || end>=expectedTotal) {
+      start<0 || end<start || end>=total) {
       findings.push('INVALID_SEGMENT_RANGE');continue;
     }
     const original=normalize(values.slice(start,end+1).join(' '));
     if (!original || original !== normalize(transcriptOf(s))) findings.push('SOURCE_TEXT_MISMATCH');
     else checked += end-start+1;
   }
-  return {pass:findings.length===0 && checked===expectedTotal,findings:[...new Set(findings)],
+  return {pass:findings.length===0 && checked===total,findings:[...new Set(findings)],
     total:captions.length,checked};
 }
 
@@ -62,11 +63,17 @@ export function issueIndependentQaReviewReceipt({
     !text(enriched) || 'sha256:'+createHash('sha256').update(enriched,'utf8').digest('hex') !== batch.enrichmentDigest) {
     throw Error('STAGE_B_SOURCE_MISMATCH');
   }
-  const expectedTotal=1620;
+  // Derive the total from the authenticated raw snapshot rather than another video's fixed count.
+  const expectedTotal=text(rawTranscript) && rawTranscript.endsWith('|')
+    ? rawTranscript.slice(0,-1).split('|').length : 0;
+  if(expectedTotal < 1) throw Error('SOURCE_CAPTION_COUNT_INVALID');
   const indices=Array.from({length:expectedTotal},(_,i)=>i);
   const coverage=inspectSegmentationCoverage(segments,indices,{expectedTotal});
   const textCheck=inspectOriginalCaptionText({rawTranscript,segments,expectedTotal});
-  const handoffs=inspectOpeningHandoffs(segments,indices);
+  // Opening-handoff fixture is verified only for this specific 1,620-caption video.
+  const handoffs=batch.sourceId==='a07fj00001J9PShAAN'
+    ? inspectOpeningHandoffs(segments,indices)
+    : {pass:false,findings:[{code:'SOURCE_SPECIFIC_HANDOFF_NOT_CALIBRATED'}]};
   const flags=[];
   if(!coverage.pass) flags.push('COVERAGE_FAILED');
   if(!textCheck.pass) flags.push('ORIGINAL_TEXT_MISMATCH');
@@ -87,7 +94,7 @@ export function issueIndependentQaReviewReceipt({
   // AI-clear even if the independent transcript semantic verdict is PASS.
   flags.push('SEMANTIC_CALIBRATION_NOT_VERIFIED');
   const review={
-    verdict:flags.some(x=>x!=='SEMANTIC_CALIBRATION_NOT_VERIFIED') ? 'REVIEW' : 'PASS',
+    verdict:'REVIEW',
     confidence:0,sourceAnchored:textCheck.pass,
     evidenceId:'qa:'+createHash('sha256').update(batch.id+'\n'+batch.enrichmentDigest).digest('hex').slice(0,32),
     qaVersion:'deterministic-transcript-review-v1',
