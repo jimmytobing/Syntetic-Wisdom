@@ -207,7 +207,7 @@ test('model-supplied or forged gold verdict cannot bypass provenance checks',()=
   const mismatch=inspectEditorialGoldReadiness({...args,trustedRunnerVerified:true,
     attestations:[{...attestation,sourceDigest:'sha256:'+'b'.repeat(64)}]});
   assert.equal(mismatch.goldCaseCount,0);
-  assert.ok(mismatch.findingCodes.includes('EDITORIAL_ATTESTATION_UNVERIFIED'));
+  assert.ok(mismatch.findingCodes.includes('EDITORIAL_ATTESTATIONS_NOT_AUTHENTICATED'));
 });
 test('even all five claimed attestations cannot certify representative false-PASS rate',()=>{
   const digest='sha256:'+'a'.repeat(64);
