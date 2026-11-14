@@ -14,6 +14,16 @@
     </externalCredentialPrincipalAccesses>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Sermon_Source__c.Gemini_Analysis_Validated_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Sermon_Source__c.Gemini_Video_Analysis_JSON__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Sermon_Segment__c.End_Index__c</field>
         <readable>true</readable>
     </fieldPermissions>
