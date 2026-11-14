@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <types><members>WDE_Gemini_Validate_Analysis</members><members>WDE_Gemini_Validate_Analysis_Test</members><name>ApexClass</name></types>
+  <types><members>Sermon_Source__c.Gemini_Video_Analysis_JSON__c</members><members>Sermon_Source__c.Gemini_Analysis_Validated_At__c</members><name>CustomField</name></types>
+  <version>68.0</version>
+</Package>
