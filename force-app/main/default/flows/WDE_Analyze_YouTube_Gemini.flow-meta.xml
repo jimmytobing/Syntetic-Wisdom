@@ -38,6 +38,8 @@
     <name>Build_Request</name><label>Build Gemini Request</label><locationX>0</locationX><locationY>0</locationY>
     <assignmentItems><assignToReference>varS_Body.model</assignToReference><operator>Assign</operator><value><stringValue>gemini-3.8-flash</stringValue></value></assignmentItems>
     <assignmentItems><assignToReference>varS_Body.store</assignToReference><operator>Assign</operator><value><booleanValue>false</booleanValue></value></assignmentItems>
+    <assignmentItems><assignToReference>varS_Body.response_format.type</assignToReference><operator>Assign</operator><value><stringValue>text</stringValue></value></assignmentItems>
+    <assignmentItems><assignToReference>varS_Body.response_format.mime_type</assignToReference><operator>Assign</operator><value><stringValue>application/json</stringValue></value></assignmentItems>
     <assignmentItems><assignToReference>varS_Body.input</assignToReference><operator>Add</operator><value><elementReference>varS_TextInput</elementReference></value></assignmentItems>
     <assignmentItems><assignToReference>varS_Body.input</assignToReference><operator>Add</operator><value><elementReference>varS_VideoInput</elementReference></value></assignmentItems>
     <connector><targetReference>Call_Gemini_Interactions</targetReference></connector>
