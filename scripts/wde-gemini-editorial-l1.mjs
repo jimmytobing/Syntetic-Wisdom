@@ -65,7 +65,7 @@ export function extractOutputText(raw) {
     .flatMap(s=>Array.isArray(s.content)?s.content:[])
     .filter(x=>x?.type==='text' && typeof x.text==='string').map(x=>x.text);
   assert(blocks.length>0,'Interaction returned no model output text');
-  return blocks.join('\\n').trim();
+  return blocks.join('\n').trim();
 }
 async function safeResponseError(response,stage) {
   let status='UNKNOWN';
@@ -100,9 +100,11 @@ async function main(){
   const raw=await response.json();
   assert(raw?.status!=='in_progress','Unexpected async status: no polling/retry permitted');
   let payload=extractOutputText(raw);
-  // Accept a common markdown JSON fence without accepting prose outside it.
-  if (/^\\`\\`\\`(?:json)?\\s*[\\s\\S]*\\`\\`\\`$/i.test(payload)) {
-    payload=payload.replace(/^\\`\\`\\`(?:json)?\\s*/i,'').replace(/\\s*\\`\\`\\`$/,'');
+  // Accept one fenced JSON block only; never parse arbitrary prose.
+  if (payload.startsWith('~~~json') && payload.endsWith('~~~')) {
+    payload=payload.slice(7,-3).trim();
+  } else if (payload.startsWith('~~~') && payload.endsWith('~~~')) {
+    payload=payload.slice(3,-3).trim();
   }
   const result=sanitizeResult(JSON.parse(payload));
   result.interaction_reference=typeof raw.id==='string' && /^int_[A-Za-z0-9_-]{3,100}$/.test(raw.id)
