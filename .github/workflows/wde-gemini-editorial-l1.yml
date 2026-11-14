@@ -1,11 +1,15 @@
 name: WDE - Gemini Editorial L1 (manual, Free Tier)
 
 on:
+  issues:
+    types: [edited]
   pull_request:
     paths:
       - '.github/workflows/wde-gemini-editorial-l1.yml'
       - 'scripts/wde-gemini-editorial-l1.mjs'
       - 'tests/wde-gemini-editorial-l1.test.mjs'
+      - '.github/mjs/wde-gemini-audio-issue-gate.mjs'
+      - 'tests/wde-gemini-audio-issue-gate.test.mjs'
   workflow_dispatch:
     inputs:
       free_tier_ack:
@@ -47,19 +51,30 @@ jobs:
       - name: Offline schema and input tests (no secrets / no API)
         run: |
           node --check scripts/wde-gemini-editorial-l1.mjs
-          node --test tests/wde-gemini-editorial-l1.test.mjs
+          node --check .github/mjs/wde-gemini-audio-issue-gate.mjs
+          node --test tests/wde-gemini-editorial-l1.test.mjs tests/wde-gemini-audio-issue-gate.test.mjs
 
   review:
     if: >-
       github.repository == 'jimmytobing/Syntetic-Wisdom' &&
       github.ref == 'refs/heads/main' &&
       github.actor == 'jimmytobing' &&
-      inputs.free_tier_ack == 'FREE_TIER_CONFIRMED' &&
-      inputs.rights_ack == 'REVIEW_PERMITTED'
+      (
+        (github.event_name == 'workflow_dispatch' &&
+          inputs.free_tier_ack == 'FREE_TIER_CONFIRMED' &&
+          inputs.rights_ack == 'REVIEW_PERMITTED') ||
+        (github.event_name == 'issues' &&
+          github.event.action == 'edited' &&
+          github.event.issue.number == 35 &&
+          github.event.issue.user.login == 'jimmytobing' &&
+          contains(github.event.issue.body, '### WDE Request') &&
+          contains(github.event.issue.body, 'gemini.audio_probe'))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
       contents: read
+      issues: write
     steps:
       - name: Checkout approved main without stored credentials
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -69,13 +84,17 @@ jobs:
         run: |
           node --version
           node --check scripts/wde-gemini-editorial-l1.mjs
+      - name: Validate actor and attestations, claim Issue request before inference
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_FREE_TIER_ACK: ${{ inputs.free_tier_ack }}
+          INPUT_RIGHTS_ACK: ${{ inputs.rights_ack }}
+          INPUT_TEST_MODE: ${{ inputs.test_mode }}
+          INPUT_RESUME_INTERACTION_ID: ${{ inputs.resume_interaction_id }}
+        run: node .github/mjs/wde-gemini-audio-issue-gate.mjs
       - name: One background POST or GET-only resume (bounded polling, no fallback)
         env:
           WDE_GEMINI_API_KEY: ${{ secrets.WDE_GEMINI_API_KEY }}
-          WDE_TEST_MODE: ${{ inputs.test_mode }}
-          WDE_FREE_TIER_ACK: ${{ inputs.free_tier_ack }}
-          WDE_RIGHTS_ACK: ${{ inputs.rights_ack }}
-          WDE_RESUME_INTERACTION_ID: ${{ inputs.resume_interaction_id }}
         run: node scripts/wde-gemini-editorial-l1.mjs
       - name: Upload one-day result and resumable interaction receipt
         if: always()
@@ -91,7 +110,19 @@ jobs:
 
   audit:
     needs: review
-    if: always() && github.event_name == 'workflow_dispatch' && github.repository == 'jimmytobing/Syntetic-Wisdom' && github.actor == 'jimmytobing'
+    if: >-
+      always() &&
+      github.repository == 'jimmytobing/Syntetic-Wisdom' &&
+      github.actor == 'jimmytobing' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'issues' &&
+          github.event.action == 'edited' &&
+          github.event.issue.number == 35 &&
+          github.event.issue.user.login == 'jimmytobing' &&
+          contains(github.event.issue.body, '### WDE Request') &&
+          contains(github.event.issue.body, 'gemini.audio_probe'))
+      )
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -105,7 +136,7 @@ jobs:
         run: |
           set -euo pipefail
           {
-            printf '## WDE Gemini Editorial L1 — manual workflow\n\n'
+            printf '## WDE Gemini Editorial L1 — manual/Issue-triggered workflow\n\n'
             printf 'Job status: **%s**. [Run evidence](%s).\n\n' "$REVIEW_RESULT" "$RUN_URL"
             printf 'Background execution: one inference POST maximum, bounded GET polling; resume uses GET only. No retry or publication.\n'
             printf 'Model-reported audio access remains unverified by independent reviewer.\n'
