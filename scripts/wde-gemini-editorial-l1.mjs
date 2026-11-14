@@ -43,7 +43,7 @@ export const AUDIO_PROBE = Object.freeze({start:857,end:883,range:'14:17-14:43'}
 export function buildAudioProbeRequest() {
   return {model:MODEL,background:true,input:[
     {type:'video',uri:VIDEO,processing:{type:'static',
-      start_offset:AUDIO_PROBE.start,end_offset:AUDIO_PROBE.end}},
+      start_offset:String(AUDIO_PROBE.start)+'s',end_offset:String(AUDIO_PROBE.end)+'s'}},
     {type:'text',text:[
       'Inspect only the ACTUAL audible sound in this clipped source media.',
       'Do not infer from captions, visual frames, metadata, the video title, or previous reports.',

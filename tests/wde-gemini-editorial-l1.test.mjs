@@ -151,11 +151,15 @@ test('Proof of Audio Access uses fixed 26-second actual static clip, not agentic
   assert.deepEqual(AUDIO_PROBE,{start:857,end:883,range:'14:17-14:43'});
   assert.deepEqual(request.input[0],{
     type:'video',uri:'https://www.youtube.com/watch?v=4SPC0Ke1Eyg',
-    processing:{type:'static',start_offset:857,end_offset:883}
+    processing:{type:'static',start_offset:'857s',end_offset:'883s'}
   });
   assert.match(request.input[1].text,/ACTUAL audible sound/);
   assert.doesNotMatch(request.input[1].text,/14:27|14:33|Groq|gold label/);
-  assert.equal(request.input[0].processing.end_offset-request.input[0].processing.start_offset,26);
+  assert.equal(Number.parseInt(request.input[0].processing.end_offset)-Number.parseInt(request.input[0].processing.start_offset),26);
+  const wire=JSON.parse(JSON.stringify(request));
+  assert.equal(typeof wire.input[0].processing.start_offset,'string');
+  assert.equal(typeof wire.input[0].processing.end_offset,'string');
+  assert.deepEqual([wire.input[0].processing.start_offset,wire.input[0].processing.end_offset],['857s','883s']);
 });
 test('Proof of Audio Access remains model-reported, not independently verified, with approval blocked',()=>{
   const result=sanitizeAudioProbeResult({media_access_status:'ACCESSIBLE',
