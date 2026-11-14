@@ -57,3 +57,24 @@
 ## False-PASS measurement prerequisites
 
 Blindly evaluate a **representative sample** including model agreements, disagreements, ordinary boundaries and difficult transitions. Define what counts as a false automated PASS *before* testing; measure numerator/denominator and uncertainty interval. Five selected disagreements are not representative, and a perfect score on this worksheet cannot authorize automatic editorial approval. Audio and publication-rights checks remain independent gates.
+
+## Timecoded priority audio-review queue
+
+Salesforce SOQL confirmed `External_Video_Id__c = 4SPC0Ke1Eyg` on the verified sermon source ([REST evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/35#issuecomment-6868525953)). The raw indexed transcript has monotonically increasing numeric caption starts, with millisecond-like magnitudes ([CLI evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/35#issuecomment-6868504996)). Times below are **derived from caption start values divided by 1,000 and rounded down**, not independently checked against playback. The linked YouTube video may be inaccessible or time-shifted; reviewer must verify audio/video alignment, not assume it.
+
+| Persisted/candidate boundary | Caption index | Start | Review cue |
+|---|---:|---|---|
+| 186/187 | 187 | [05:55](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=355s) | Testimony → Worship; invitation before singing |
+| 193/194 | 194 | [06:09](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=369s) | Candidate first sung line |
+| 396/397 | 397 | [14:27](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=867s) | Worship → spoken interlude |
+| 400/401 | 401 | [14:33](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=873s) | Spoken interlude → singing |
+| 1195/1196 | 1196 | [43:39](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=2619s) | Teaching → personal account |
+| 1253/1254 | 1254 | [45:40](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=2740s) | Personal account → Peter teaching |
+| 1559/1560 | 1560 | [57:35](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=3455s) | Invitation to prayer |
+| 1567/1568 | 1568 | [57:50](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=3470s) | Candidate beginning of direct prayer |
+| 1672/1673 | 1673 | [61:55](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=3715s) | Prayer → possible worship cue |
+| 1712/1713 | 1713 | [63:11](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=3791s) | Worship → spoken blessing |
+| 1722/1723 | 1723 | [63:30](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=3810s) | Blessing → singing |
+| 1811/1812 | 1812 | [67:14](https://www.youtube.com/watch?v=4SPC0Ke1Eyg&t=4034s) | Spoken goodbye → separate sung section |
+
+Use each link to open approximately 5–10 seconds before the target transition and listen past it. If audio is unavailable, leave the outcome `UNRESOLVED`; captions alone do not authenticate speaker changes, song starts, or spoken prayer boundaries. The table is a convenience queue **not** a certified gold set, audio verification, or approval to modify Salesforce.
