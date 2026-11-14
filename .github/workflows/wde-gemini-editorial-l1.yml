@@ -75,7 +75,7 @@ jobs:
 
   audit:
     needs: review
-    if: always() && github.repository == 'jimmytobing/Syntetic-Wisdom' && github.actor == 'jimmytobing'
+    if: always() && github.event_name == 'workflow_dispatch' && github.repository == 'jimmytobing/Syntetic-Wisdom' && github.actor == 'jimmytobing'
     runs-on: ubuntu-latest
     permissions:
       issues: write
