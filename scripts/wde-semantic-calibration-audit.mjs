@@ -28,29 +28,16 @@ export function inspectEditorialGoldReadiness({sourceId,captionCount,cases=provi
      new Set(cases.map(c=>c?.id)).size!==allowed.size || cases.some(c=>!allowed.has(c?.id)))
     findings.push('REVIEW_CASE_INVENTORY_INCOMPLETE');
   if(!Array.isArray(attestations)) findings.push('EDITORIAL_ATTESTATIONS_INVALID');
-  const validAttestations=Array.isArray(attestations)?attestations:[];
-  const certifiedIds=new Set();
-  const globalProvenanceValid=sourceId===WDE_CALIBRATION_SOURCE_ID &&
-    captionCount===WDE_CALIBRATION_CAPTION_COUNT && validDigest(sourceDigest) &&
-    trustedRunnerVerified===true;
-  for(const a of validAttestations) {
-    if(!globalProvenanceValid || !allowed.has(a?.caseId) || a?.status!=='GOLD_VERIFIED' ||
-       a?.trustedReviewerVerified!==true || a?.independentOfModel!==true ||
-       a?.sourceDigest!==sourceDigest || !validDigest(sourceDigest) ||
-       typeof a?.adjudicationId!=='string' || !a.adjudicationId.trim() ||
-       !Array.isArray(a?.acceptedBoundaries) || !a.acceptedBoundaries.length ||
-       a.acceptedBoundaries.some(n=>!Number.isSafeInteger(n)||n<1||n>=captionCount))
-      findings.push('EDITORIAL_ATTESTATION_UNVERIFIED');
-    else if(certifiedIds.has(a.caseId))
-      findings.push('DUPLICATE_EDITORIAL_ATTESTATION');
-    else certifiedIds.add(a.caseId);
-  }
-  const pending=provisionalBoundaryCases.filter(c=>!certifiedIds.has(c.id)).map(c=>c.id);
-  if(pending.length)findings.push('EDITORIAL_GOLD_INCOMPLETE');
+  // No production trusted issuer or external signature verifier exists yet.
+  // Never promote self-reported booleans/attestations into certified gold.
+  if(Array.isArray(attestations) && attestations.length)
+    findings.push('EDITORIAL_ATTESTATIONS_NOT_AUTHENTICATED');
+  const pending=provisionalBoundaryCases.map(c=>c.id);
+  findings.push('EDITORIAL_GOLD_INCOMPLETE');
   // Do not calculate accuracy/false-PASS from selected conflict cases:
   // calibration needs representative, independently adjudicated AI outcomes.
   findings.push('FALSE_PASS_RATE_NOT_ESTIMABLE');
-  return {status:'HUMAN_REVIEW_REQUIRED',goldCaseCount:certifiedIds.size,
+  return {status:'HUMAN_REVIEW_REQUIRED',goldCaseCount:0,
     totalCandidateCases:provisionalBoundaryCases.length,pendingCases:pending,
     findingCodes:[...new Set(findings)],falsePassRate:null,
     autoApprovalAllowed:false,certifiedSemanticPass:false,
