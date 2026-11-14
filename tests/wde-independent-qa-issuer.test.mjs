@@ -78,7 +78,7 @@ test('authenticated independent semantic agreement yields signed transcript PASS
     runId:'independent-qa-synthetic-run-1'};
   const result=issue({independentEditorial:{segments:segmentsEvidence,provenance}});
   assert.equal(result.semanticDecision,'PASS');
-  assert.equal(result.receipt.payload.review.verdict,'PASS');
+  assert.equal(result.receipt.payload.review.verdict,'REVIEW');
   assert.equal(result.receipt.payload.review.confidence,0);
   assert.deepEqual(result.receipt.payload.review.flags,['SEMANTIC_CALIBRATION_NOT_VERIFIED']);
   assert.equal(result.editorialRoute,'HUMAN_REVIEW_REQUIRED');
@@ -107,4 +107,18 @@ test('signed payload cannot be silently promoted to PASS',()=>{
   const result=verifyIndependentQaReceipt({receipt,key,batch,now});
   assert.equal(result.verified,false);
   assert.equal(result.reason,'QA_SIGNATURE_INVALID');
+});
+
+test('1,921-caption source is counted dynamically but cannot auto-pass without source-specific calibration',()=>{
+  const t=Array.from({length:1921},(_,i)=>'Verified caption '+i);
+  const raw=t.map((s,i)=>i+';0;100;'+s+'|').join('');
+  const s=[{Start_Index__c:0,End_Index__c:1920,Segment_Type__c:'Teaching',
+    Transcript_Text__c:t.join(' '),WDE_Stitch_Open__c:false}];
+  const result=issue({rawTranscript:raw,segments:s,
+    batch:{...batch,sourceId:'a07fj00001F216TAAR'}});
+  assert.equal(inspectOriginalCaptionText({rawTranscript:raw,segments:s}).checked,1921);
+  assert.equal(result.receipt.payload.review.verdict,'REVIEW');
+  assert.ok(result.receipt.payload.review.flags.includes('EDITORIAL_HANDOFF_FAILED'));
+  assert.ok(result.receipt.payload.review.flags.includes('SEMANTIC_CALIBRATION_NOT_VERIFIED'));
+  assert.equal(result.canWriteSalesforce,false);
 });
