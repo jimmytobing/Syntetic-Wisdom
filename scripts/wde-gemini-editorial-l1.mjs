@@ -36,6 +36,53 @@ export function buildRequest() {
     {type:'text',text:prompt}
   ]};
 }
+// Proof-of-audio-access: one fixed short video span (26 s), not the full video.
+// Static clipping is a media-processing option; timestamps in prompt alone
+// would not restrict the actual input.
+export const AUDIO_PROBE = Object.freeze({start:857,end:883,range:'14:17-14:43'});
+export function buildAudioProbeRequest() {
+  return {model:MODEL,background:true,input:[
+    {type:'video',uri:VIDEO,processing:{type:'static',
+      start_offset:AUDIO_PROBE.start,end_offset:AUDIO_PROBE.end}},
+    {type:'text',text:[
+      'Inspect only the ACTUAL audible sound in this clipped source media.',
+      'Do not infer from captions, visual frames, metadata, the video title, or previous reports.',
+      'Do not quote lyrics, spoken text, names, or personally identifying details.',
+      'Reply as a single JSON object with media_access_status: ACCESSIBLE or UNAVAILABLE;',
+      'audio_observation: SPEECH, SINGING, MIXED, SILENCE, or UNRESOLVED;',
+      'background_audio: MUSIC, NO_MUSIC, or UNRESOLVED;',
+      'evidence_type: AUDIO_SPECIFIC or UNVERIFIABLE.',
+      'If audio is unavailable or cannot be distinguished, set UNAVAILABLE,',
+      'UNRESOLVED, UNRESOLVED, UNVERIFIABLE. No editorial approvals.'
+    ].join('\\n')}
+  ]};
+}
+export function sanitizeAudioProbeResult(parsed) {
+  assert(parsed && typeof parsed==='object' && !Array.isArray(parsed),'Audio probe is not an object');
+  const allowed=['media_access_status','audio_observation','background_audio','evidence_type'];
+  assert(Object.keys(parsed).sort().join(',')===allowed.sort().join(','),'Invalid probe schema');
+  assert(['ACCESSIBLE','UNAVAILABLE'].includes(parsed.media_access_status),'Invalid probe access status');
+  assert(['SPEECH','SINGING','MIXED','SILENCE','UNRESOLVED'].includes(parsed.audio_observation),
+    'Invalid audio observation');
+  assert(['MUSIC','NO_MUSIC','UNRESOLVED'].includes(parsed.background_audio),'Invalid background audio');
+  assert(['AUDIO_SPECIFIC','UNVERIFIABLE'].includes(parsed.evidence_type),'Invalid evidence type');
+  if(parsed.media_access_status==='UNAVAILABLE'){
+    assert(parsed.audio_observation==='UNRESOLVED' && parsed.background_audio==='UNRESOLVED' &&
+      parsed.evidence_type==='UNVERIFIABLE','Unavailable audio must remain unresolved');
+  }
+  if(parsed.evidence_type==='UNVERIFIABLE'){
+    assert(parsed.audio_observation==='UNRESOLVED' && parsed.background_audio==='UNRESOLVED',
+      'Unverifiable observation must remain unresolved');
+  }
+  return {test:'PROOF_OF_AUDIO_ACCESS',video_id:'4SPC0Ke1Eyg',clip_range:AUDIO_PROBE.range,
+    clip_start_seconds:AUDIO_PROBE.start,clip_end_seconds:AUDIO_PROBE.end,
+    model:MODEL,media_access_status:'MODEL_REPORTED_'+parsed.media_access_status,
+    audio_observation:parsed.audio_observation,background_audio:parsed.background_audio,
+    evidence_type:'MODEL_REPORTED_'+parsed.evidence_type,
+    independently_verified_audio:false,editorial_status:'AI_L1_PROPOSED_NOT_GOLD',
+    autoapproval:'BLOCKED'};
+}
+
 export function sanitizeResult(parsed) {
   assert(parsed && typeof parsed==='object', 'JSON response is not object');
   assert(['ACCESSIBLE','UNAVAILABLE'].includes(parsed.media_access_status), 'Invalid media status');
@@ -139,6 +186,8 @@ async function main(){
   assert(process.env.GITHUB_REF==='refs/heads/main','Only main is allowed to execute');
   assert(process.env.WDE_FREE_TIER_ACK==='FREE_TIER_CONFIRMED','Free Tier attestation required');
   assert(process.env.WDE_RIGHTS_ACK==='REVIEW_PERMITTED','Source review permission attestation required');
+  const mode=process.env.WDE_TEST_MODE||'editorial';
+  assert(['editorial','audio_probe'].includes(mode),'Invalid test mode');
   const key=process.env.WDE_GEMINI_API_KEY;
   assert(typeof key==='string' && key.length>12,'Missing Gemini API key secret');
   const headers={'Content-Type':'application/json','x-goog-api-key':key,'Api-Revision':'2026-05-20'};
@@ -153,6 +202,7 @@ async function main(){
   // Background: one inference POST at most; subsequent requests are GET of the
   // SAME interaction. A manual resume ID skips POST entirely.
   const resume=String(process.env.WDE_RESUME_INTERACTION_ID||'').trim();
+  assert(!(mode==='audio_probe' && resume),'Audio probe cannot resume unrelated editorial interaction');
   let raw;
   let id;
   if(resume){
@@ -161,14 +211,16 @@ async function main(){
     raw=await pollExistingInteraction({id,headers});
   } else {
     const response=await fetch(API,{method:'POST',redirect:'error',headers,
-      body:JSON.stringify(buildRequest()),signal:AbortSignal.timeout(30000)});
+      body:JSON.stringify(mode==='audio_probe'?buildAudioProbeRequest():buildRequest()),
+      signal:AbortSignal.timeout(30000)});
     if(!response.ok) await safeResponseError(response,'Gemini Interactions');
     const created=await response.json();
     id=validateInteractionId(created?.id);
     // Save the ID immediately, before polling, to permit resume without any
     // further inference if polling exceeds the workflow budget.
     await fs.writeFile(process.env.RUNNER_TEMP+'/wde-gemini-receipt.json',
-      JSON.stringify({interaction_id:id,model:MODEL,editorial_status:'BLOCKED',source:'WDE_ISSUE_35'},null,2),{mode:0o600});
+      JSON.stringify({interaction_id:id,model:MODEL,editorial_status:'BLOCKED',source:'WDE_ISSUE_35',
+        mode},null,2),{mode:0o600});
     console.log('Background interaction accepted, receipt stored in short-lived artifact.');
     raw=await pollExistingInteraction({id,headers,initial:created});
   }
@@ -180,11 +232,14 @@ async function main(){
   } else if (payload.startsWith('~~~') && payload.endsWith('~~~')) {
     payload=payload.slice(3,-3).trim();
   }
-  const result=sanitizeResult(JSON.parse(payload));
+  const result=mode==='audio_probe'
+    ? sanitizeAudioProbeResult(JSON.parse(payload))
+    : sanitizeResult(JSON.parse(payload));
   result.interaction_reference=id;
-  const path=process.env.RUNNER_TEMP+'/wde-gemini-l1.json';
+  const path=process.env.RUNNER_TEMP+(mode==='audio_probe'
+    ? '/wde-gemini-audio-probe.json' : '/wde-gemini-l1.json');
   await fs.writeFile(path,JSON.stringify(result,null,2),{mode:0o600});
-  console.log('Gemini background interaction completed; schema accepted. Editorial gold/approval remain BLOCKED.');
+  console.log('Gemini interaction completed; schema accepted, mode='+mode+'. Independent audio verification and editorial approval remain BLOCKED.');
 }
 if (process.argv[1] && import.meta.url===new URL('file://'+process.argv[1]).href){
   main().catch(e=>{console.error('AI L1 FAILED: '+String(e.message).replace(/AIza[0-9A-Za-z_-]+/g,'[HIDDEN]'));process.exitCode=1;});
