@@ -80,7 +80,7 @@ Salesforce SOQL confirmed `External_Video_Id__c = 4SPC0Ke1Eyg` on the verified s
 Use each link to open approximately 5–10 seconds before the target transition and listen past it. If audio is unavailable, leave the outcome `UNRESOLVED`; captions alone do not authenticate speaker changes, song starts, or spoken prayer boundaries. The table is a convenience queue **not** a certified gold set, audio verification, or approval to modify Salesforce.
 
 
-## AI Reviewer L1 — zero-cost pilot protocol (NOT EXECUTED)
+## AI Reviewer L1 — zero-cost pilot protocol (manual pilot complete; automated run pending)
 
 **Status:** `BLOCKED_PRE_FLIGHT` until a known Gemini API project is independently confirmed to be on the **Free Tier**, the chosen model is actually eligible for free video/YouTube input, and source-publication rights/privacy are checked. The Salesforce `Sf Request` gateway is Salesforce-only and **must not** be repurposed to call Gemini. Do not store API keys, raw private audio, or personal identifiers in this worksheet, Issue, PR, or logs.
 
@@ -102,3 +102,16 @@ Use each link to open approximately 5–10 seconds before the target transition 
 **Acceptance:** first test three windows; if video access or cost safety cannot be verified, stop. If successful, review remaining nine windows with the same blind protocol, then independent human adjudication for critical/uncertain decisions. All 23 boundaries and possible missing boundaries remain in editorial scope. No AI-generated gold labels, no PASS receipt, no Salesforce DML/deploy/Flow activation, no automatic content publication; preserve `NeedsReview` and `auto-approval=BLOCKED`.
 
 **Official reference:** [Gemini video understanding / YouTube URL limits](https://ai.google.dev/gemini-api/docs/video-understanding) and [current model pricing and Free Tier](https://ai.google.dev/gemini-api/docs/pricing). Free Tier availability is model- and project-specific and may change.
+
+
+## Automation candidate — Gemini L1 (PR #36, NOT RUN)
+
+Files: `.github/workflows/wde-gemini-editorial-l1.yml`, `scripts/wde-gemini-editorial-l1.mjs`, `tests/wde-gemini-editorial-l1.test.mjs`.
+
+Six remaining timecoded review points are packed into **five blind audio windows** (14:17–14:43 covers both 14:27 and 14:33; 43:29–43:51; 45:30–45:52; 61:45–62:08; 67:04–67:28). No existing Groq conclusions, expected categories, or persisted caption indexes are passed to Gemini. Output is only model-reported candidate evidence, never authenticated audio proof or approved gold.
+
+Execution is deliberately manual via `workflow_dispatch` on **main only** and actor `jimmytobing`, no scheduled runs, retries or paid fallback. The workflow file must first reach the default branch via normal PR review/merge; do **not** bypass protected branch policy or make this PR non-draft just to execute. Secret `WDE_GEMINI_API_KEY` must be provisioned safely for a key owned by the **unbilled Free Tier project** `coba-oauth-375505`, never pasted into GitHub Issue, workflow inputs or comments. Only a repository owner should configure it. The operator explicitly attests billing Free Tier and permission to send video to Gemini before triggering; this is **not** a machine-check of billing tier. If the key belongs to a paid project, this manual acknowledgement cannot prevent charges. Thus never execute on a paid or unverified project.
+
+The runner performs **at most one** Gemini 2.5 Flash REST `generateContent` request with a structured YouTube media part; rejects HTTP failures, invalid schema, model truncation, and missing credentials without automatic retry. It does not call Salesforce. It uploads a one-day GitHub Actions artifact and posts a **status-only** audit comment to existing Issue #35. The raw API response, API key, transcript excerpts and sensitive media are not written to the Issue. The model's `ACCESSIBLE` claim requires independent review before any gold label.
+
+**Manual checks still required:** media URL and rights permission, Free Tier billing and rate limits at execution time, valid project-scoped key, API video access, GitHub Actions run success, and human cross-check. CI syntax/unit-test success does not constitute Gemini audio runtime success. Keep Salesforce `NeedsReview`, auto-approval `BLOCKED`, and PR #36 Draft until editorial acceptance.
