@@ -33,7 +33,7 @@
 <loops><name>Loop_Parts</name><label>Read Candidate Text</label><locationX>0</locationX><locationY>0</locationY><collectionReference>Loop_Candidates.content.parts</collectionReference><iterationOrder>Asc</iterationOrder><nextValueConnector><targetReference>Capture_Analysis_Text</targetReference></nextValueConnector><noMoreValuesConnector><targetReference>Loop_Candidates</targetReference></noMoreValuesConnector></loops>
 <processType>AutoLaunchedFlow</processType>
 <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Validate_URL</targetReference></connector></start>
-<status>Draft</status>
+<status>Active</status>
 
 
 <variables><name>varA_VideoPart</name><apexClass>ExternalService__WDEGeminiVideo_analyzeVideo_IN_body_contents_parts</apexClass><dataType>Apex</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
