@@ -35,13 +35,27 @@ test('Salesforce metadata uses two minimal optional QA evidence fields',()=>{
   assert.match(hash,/<length>71<\/length>/);
   assert.doesNotMatch(signed+hash,/<required>true<\/required>/);
 });
-test('signed stored receipt and exact enrichment produce verified read-only evidence',()=>{
+test('signed stored receipt authenticates evidence but unregistered QA version fails closed',()=>{
   const r=verify();
   assert.equal(r.verified,true);
   assert.equal(r.releasePerformed,false);
+  assert.equal(r.releaseCandidate,false);
+  assert.ok(r.releaseBlockers.includes('QA_SEMANTIC_CALIBRATION_NOT_VERIFIED'));
+  assert.equal(r.attestation.source,'INDEPENDENT_QA');
+});
+test('read-only release candidate requires verifier-owned calibrated-version allowlist',()=>{
+  const r=verify({trustedQaVersions:['editorial-v1']});
+  assert.equal(r.verified,true);
   assert.equal(r.releaseCandidate,true);
   assert.deepEqual(r.releaseBlockers,[]);
-  assert.equal(r.attestation.source,'INDEPENDENT_QA');
+  assert.equal(r.releasePerformed,false);
+});
+test('unknown model cannot self-declare calibration via a valid signed receipt',()=>{
+  const p={...payload,review:{...payload.review,qaVersion:'attacker-new-qa-v999'}};
+  const r=verify({record:{...record,QA_Signed_Receipt__c:receipt(p)},trustedQaVersions:['editorial-v1']});
+  assert.equal(r.verified,true);
+  assert.equal(r.releaseCandidate,false);
+  assert.ok(r.releaseBlockers.includes('QA_SEMANTIC_CALIBRATION_NOT_VERIFIED'));
 });
 test('stored receipt missing, malformed or wrong signature fails closed',()=>{
   for(const value of ['',null,'{}','not-json',
