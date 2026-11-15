@@ -39,12 +39,25 @@
     </decisions>
     <decisions>
         <name>Decide_Retry_A</name><label>Retry transient or invalid AI output up to three times</label><locationX>0</locationX><locationY>0</locationY>
-        <defaultConnector><targetReference>Set_A_Failure</targetReference></defaultConnector>
+        <defaultConnector><targetReference>Decide_Terminal_A_Error</targetReference></defaultConnector>
         <defaultConnectorLabel>Fail closed</defaultConnectorLabel>
         <rules><name>Retry_A</name><conditionLogic>and</conditionLogic>
         <conditions><leftValueReference>f_Retry_A_Eligible</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
         <connector><targetReference>Set_A_Retry_Pending</targetReference></connector><label>Safe bounded retry</label></rules>
     </decisions>
+    <decisions>
+        <name>Decide_Terminal_A_Error</name><label>Terminal provider rejection after bounded attempts</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <defaultConnector><targetReference>Set_A_Failure</targetReference></defaultConnector>
+        <defaultConnectorLabel>Other permanent failure</defaultConnectorLabel>
+        <rules><name>Provider_Unrecoverable</name><conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>Get_Batch.Retry_Count__c</leftValueReference><operator>GreaterThanOrEqualTo</operator><rightValue><numberValue>3</numberValue></rightValue></conditions>
+            <conditions><leftValueReference>f_Provider_Error_A</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
+            <connector><targetReference>Set_A_System_Error</targetReference></connector>
+            <label>Provider retry exhausted</label>
+        </rules>
+    </decisions>
+
     <formulas>
         <name>f_Retry_A_Eligible</name><dataType>Boolean</dataType>
         <expression>AND(
@@ -199,6 +212,42 @@
         <object>WDE_Batch_Run__c</object>
     </recordUpdates>
     <recordUpdates>
+        <name>Set_A_System_Error</name>
+        <label>Stage A provider retry exhausted</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>END_ELEMENT_5</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Batch.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Draft_Boundaries__c</field>
+            <value>
+                <elementReference>aRaw</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Error_Message__c</field>
+            <value>
+                <elementReference>varT_Error</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>SYSTEM_ERROR</stringValue>
+            </value>
+        </inputAssignments>
+        <object>WDE_Batch_Run__c</object>
+    </recordUpdates>
+    <recordUpdates>
         <name>Set_A_Review</name>
         <label>Auto-validate Stage A and advance to enrichment</label>
         <locationX>0</locationX>
@@ -343,4 +392,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables><name>varRecordId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+    <formulas><name>f_Provider_Error_A</name><dataType>Boolean</dataType>
+    <expression>OR({!aResult} = "INVALID_AI_FORMAT", {!aResult} = "INVALID_AI_RANGE", {!aResult} = "EMPTY_RESPONSE", {!aResult} = "GROQ_ERROR")</expression>
+</formulas>
 </Flow>
