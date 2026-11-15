@@ -39,6 +39,8 @@ test('signed stored receipt and exact enrichment produce verified read-only evid
   const r=verify();
   assert.equal(r.verified,true);
   assert.equal(r.releasePerformed,false);
+  assert.equal(r.releaseCandidate,true);
+  assert.deepEqual(r.releaseBlockers,[]);
   assert.equal(r.attestation.source,'INDEPENDENT_QA');
 });
 test('stored receipt missing, malformed or wrong signature fails closed',()=>{
@@ -68,4 +70,48 @@ test('stored QA verification does not create a stage C transition',()=>{
   assert.equal('statusUpdate' in r,false);
   assert.equal('dml' in r,false);
   assert.equal('approvalPerformed' in r,false);
+});
+
+test('signed REVIEW/FAIL can be genuine evidence but never a release candidate',()=>{
+  for(const verdict of ['REVIEW','FAIL']){
+    const changed={...payload,review:{...payload.review,verdict}};
+    const r=verify({record:{...record,QA_Signed_Receipt__c:receipt(changed)}});
+    assert.equal(r.verified,true);
+    assert.equal(r.releaseCandidate,false);
+    assert.ok(r.releaseBlockers.includes('QA_VERDICT_NOT_PASS'));
+    assert.equal(r.releasePerformed,false);
+  }
+});
+
+test('weak confidence, failed bounds, unresolved flags, prototype QA version block release',()=>{
+  const cases=[
+    [{confidence:0.6},'QA_CONFIDENCE_INSUFFICIENT'],
+    [{sourceAnchored:false},'QA_SOURCE_OR_COVERAGE_FAILED'],
+    [{boundaryChecksPassed:false},'QA_SOURCE_OR_COVERAGE_FAILED'],
+    [{crossSegmentChecksPassed:false},'QA_SOURCE_OR_COVERAGE_FAILED'],
+    [{flags:['SOURCE_MISMATCH']},'QA_UNRESOLVED_FLAGS'],
+    [{qaVersion:'deterministic-transcript-review-v1'},'QA_SEMANTIC_CALIBRATION_NOT_VERIFIED']
+  ];
+  for(const [reviewPatch,reason] of cases){
+    const changed={...payload,review:{...payload.review,...reviewPatch}};
+    const r=verify({record:{...record,QA_Signed_Receipt__c:receipt(changed)}});
+    assert.equal(r.verified,true);
+    assert.equal(r.releaseCandidate,false);
+    assert.ok(r.releaseBlockers.includes(reason));
+  }
+});
+
+test('tampered signature, missing signed QA or changed snapshot never become release candidate',()=>{
+  for (const change of [
+    {record:{...record,QA_Signed_Receipt__c:JSON.stringify({payload,signature:'0'.repeat(64)})}},
+    {record:{...record,QA_Signed_Receipt__c:null}},
+    {record:{...record,Approved_Enrichment__c:'changed'}},
+    {record:{...record,Status__c:'CommitApproved'}},
+    {now:now+500000}
+  ]){
+    const r=verify(change);
+    assert.equal(r.verified,false);
+    assert.equal(r.releaseCandidate,false);
+    assert.equal(r.releasePerformed,false);
+  }
 });
