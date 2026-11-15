@@ -4,5 +4,6 @@
   <types><members>WDE_QA_Release__c.Batch_Claim_Key__c</members><name>CustomField</name></types>
   <types><members>WDE_QA_OAuth_Commit</members><name>PermissionSet</name></types>
   <types><members>WDE_QA_OAuth_Commit_Release</members><name>Flow</name></types>
+  <types><members>WDE_QA_Release__c.Require_Actual_QA_Commit</members><name>ValidationRule</name></types>
   <version>68.0</version>
 </Package>
