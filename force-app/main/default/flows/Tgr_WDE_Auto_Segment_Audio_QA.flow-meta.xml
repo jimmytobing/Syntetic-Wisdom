@@ -1,18 +1,104 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-<apiVersion>68.0</apiVersion><areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-<description>Async after-commit automatic audio QA for closed Sermon Segments. PENDING/RETRY_PENDING only, max 3 attempts; retrigger on status or attempt-counter change. No HIVE or Audience writes. Provider fault is tracked by QA subflow.</description>
-<ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
-<ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
-<interviewLabel>[Tgr] WDE Segment Audio QA {!$Flow.CurrentDateTime}</interviewLabel><label>[Tgr] WDE Segment Audio QA</label><processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues><processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues><processType>AutoLaunchedFlow</processType>
-<start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>END_SYNC</targetReference></connector>
-<filterLogic>1 AND (2 OR 3) AND 4 AND (5 OR 6)</filterLogic>
-<filters><field>WDE_Stitch_Open__c</field><operator>EqualTo</operator><value><booleanValue>false</booleanValue></value></filters>
-<filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>PENDING</stringValue></value></filters>
-<filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>RETRY_PENDING</stringValue></value></filters>
-<filters><field>Audio_QA_Attempts__c</field><operator>LessThan</operator><value><numberValue>3</numberValue></value></filters>
-<filters><field>Audio_QA_Status__c</field><operator>IsChanged</operator><value><booleanValue>true</booleanValue></value></filters><filters><field>Audio_QA_Attempts__c</field><operator>IsChanged</operator><value><booleanValue>true</booleanValue></value></filters><object>Sermon_Segment__c</object><recordTriggerType>CreateAndUpdate</recordTriggerType><scheduledPaths><connector><targetReference>Run_Audio_QA</targetReference></connector><pathType>AsyncAfterCommit</pathType></scheduledPaths><triggerType>RecordAfterSave</triggerType></start>
-<status>Active</status>
-<subflows><name>Run_Audio_QA</name><label>AI audio QA only, one closed Segment</label><locationX>0</locationX><locationY>0</locationY><connector><targetReference>END_ASYNC</targetReference></connector><flowName>WDE_Verify_Sermon_Segment_Audio</flowName><inputAssignments><name>varS_SegmentId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments></subflows>
-
+    <apiVersion>68.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Thin asynchronous trigger: invoke the autonomous segment QA subflow and persist its varT_Error on this segment's Async Error field. All Gemini, retry, correction and QA business logic stays in the subflow. No Custom Error in async path and no Audience/HIVE writes.</description>
+    <assignments>
+        <name>Capture_Subflow_Fault</name>
+        <label>Capture unexpected asynchronous subflow fault</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varT_Error</assignToReference>
+            <operator>Assign</operator>
+            <value><stringValue>Audio QA subflow fault; inspect Salesforce failed Flow interview for details.</stringValue></value>
+        </assignmentItems>
+        <connector><targetReference>Save_Async_Error</targetReference></connector>
+    </assignments>
+    <decisions>
+        <name>Check_Async_Error</name>
+        <label>Did autolaunched QA return an error?</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <defaultConnector><targetReference>END_ASYNC</targetReference></defaultConnector>
+        <defaultConnectorLabel>No returned error</defaultConnectorLabel>
+        <rules>
+            <name>Has_Error</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>f_Has_Error</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue><booleanValue>true</booleanValue></rightValue>
+            </conditions>
+            <connector><targetReference>Save_Async_Error</targetReference></connector>
+            <label>Error returned</label>
+        </rules>
+    </decisions>
+    <ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+    <ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+    <formulas>
+        <name>f_Has_Error</name><dataType>Boolean</dataType>
+        <expression>NOT(ISBLANK({!varT_Error}))</expression>
+    </formulas>
+    <formulas>
+        <name>f_Bounded_Error</name><dataType>String</dataType>
+        <expression>LEFT({!varT_Error},8000)</expression>
+    </formulas>
+    <interviewLabel>[Tgr] WDE Segment Audio QA {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>[Tgr] WDE Segment Audio QA</label>
+    <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+    <processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Save_Async_Error</name>
+        <label>Persist asynchronous failure on originating segment</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <connector><targetReference>END_ASYNC</targetReference></connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field><operator>EqualTo</operator>
+            <value><elementReference>$Record.Id</elementReference></value>
+        </filters>
+        <inputAssignments>
+            <field>Async_Error__c</field>
+            <value><elementReference>f_Bounded_Error</elementReference></value>
+        </inputAssignments>
+        <object>Sermon_Segment__c</object>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX><locationY>0</locationY>
+        <connector><targetReference>END_SYNC</targetReference></connector>
+        <filterLogic>1 AND (2 OR 3) AND 4 AND (5 OR 6)</filterLogic>
+        <filters><field>WDE_Stitch_Open__c</field><operator>EqualTo</operator><value><booleanValue>false</booleanValue></value></filters>
+        <filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>PENDING</stringValue></value></filters>
+        <filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>RETRY_PENDING</stringValue></value></filters>
+        <filters><field>Audio_QA_Attempts__c</field><operator>LessThan</operator><value><numberValue>3</numberValue></value></filters>
+        <filters><field>Audio_QA_Status__c</field><operator>IsChanged</operator><value><booleanValue>true</booleanValue></value></filters>
+        <filters><field>Audio_QA_Attempts__c</field><operator>IsChanged</operator><value><booleanValue>true</booleanValue></value></filters>
+        <object>Sermon_Segment__c</object><recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <scheduledPaths>
+            <connector><targetReference>Run_Audio_QA</targetReference></connector>
+            <pathType>AsyncAfterCommit</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <subflows>
+        <name>Run_Audio_QA</name>
+        <label>Run autolaunched segment QA worker</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <connector><targetReference>Check_Async_Error</targetReference></connector>
+        <faultConnector><targetReference>Capture_Subflow_Fault</targetReference></faultConnector>
+        <flowName>WDE_Verify_Sermon_Segment_Audio</flowName>
+        <inputAssignments>
+            <name>varS_SegmentId</name>
+            <value><elementReference>$Record.Id</elementReference></value>
+        </inputAssignments>
+        <outputAssignments>
+            <assignToReference>varT_Error</assignToReference>
+            <name>varT_Error</name>
+        </outputAssignments>
+    </subflows>
+    <variables>
+        <name>varT_Error</name><dataType>String</dataType>
+        <isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput>
+    </variables>
 </Flow>
