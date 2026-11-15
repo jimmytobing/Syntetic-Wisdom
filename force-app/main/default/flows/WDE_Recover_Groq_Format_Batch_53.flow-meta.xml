@@ -45,6 +45,7 @@
             <conditions><leftValueReference>Get_Batch.Max_Batch_Characters__c</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>3000</numberValue></rightValue></conditions>
             <conditions><leftValueReference>Get_Batch.Start_Position__c</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>31684</numberValue></rightValue></conditions>
             <connector><targetReference>Requeue_Batch8_1500_Once</targetReference></connector><label>Exactly one controlled smaller-input retry after terminal proof</label>
+        </rules>
     </decisions>
     <formulas><name>f_Batch6_Due_At</name><dataType>DateTime</dataType><expression>NOW() + 1</expression></formulas>
     <formulas><name>f_Batch6_Wait_Over_Hour</name><dataType>Boolean</dataType><expression>{!Get_Batch.Next_Retry_At__c} &gt; NOW() + 1 / 24</expression></formulas>
