@@ -9,6 +9,8 @@ on:
       - "scripts/wde-commit-release-readiness.mjs"
       - "scripts/wde-independent-qa-receipt.mjs"
       - "scripts/wde-autonomous-media-preflight.mjs"
+      - "scripts/wde-audio-qa-calibration.mjs"
+      - "tests/wde-audio-qa-calibration.test.mjs"
       - "tests/wde-autonomous-media-preflight.test.mjs"
       - "scripts/wde-independent-qa-issuer.mjs"
       - "scripts/wde-independent-semantic-decision.mjs"
@@ -37,6 +39,8 @@ on:
       - "scripts/wde-commit-release-readiness.mjs"
       - "scripts/wde-independent-qa-receipt.mjs"
       - "scripts/wde-autonomous-media-preflight.mjs"
+      - "scripts/wde-audio-qa-calibration.mjs"
+      - "tests/wde-audio-qa-calibration.test.mjs"
       - "tests/wde-autonomous-media-preflight.test.mjs"
       - "scripts/wde-independent-qa-issuer.mjs"
       - "scripts/wde-independent-semantic-decision.mjs"
@@ -85,7 +89,9 @@ jobs:
           node --check tests/wde-commit-release-readiness.test.mjs
           node --check scripts/wde-independent-qa-receipt.mjs
           node --check scripts/wde-autonomous-media-preflight.mjs
-          node --check tests/wde-autonomous-media-preflight.test.mjs
+          node --check scripts/wde-audio-qa-calibration.mjs
+          node --check tests/wde-audio-qa-calibration.test.mjs
+          node --check tests/wde-autonomous-media-preflight.test.mjs tests/wde-audio-qa-calibration.test.mjs
           node --check scripts/wde-stored-qa-evidence.mjs
           node --check tests/wde-stored-qa-evidence.test.mjs
           node --check scripts/wde-independent-qa-issuer.mjs
