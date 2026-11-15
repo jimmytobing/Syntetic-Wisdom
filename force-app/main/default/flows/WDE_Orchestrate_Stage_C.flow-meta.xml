@@ -11,6 +11,14 @@
             <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>CommitApproved</stringValue></rightValue></conditions>
             <connector><targetReference>Call_C</targetReference></connector><label>Expected state</label>
         </rules>
+            <rules>
+            <name>Retry_Verified_Stitching_Error</name><conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>Failed</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Error_Message__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>First segment continues from prior batch, but no stored OPEN segment ends exactly at start-1 with matching type. Persist earlier batches first.</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Retry_Count__c</leftValueReference><operator>LessThan</operator><rightValue><numberValue>3.0</numberValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Approved_Enrichment__c</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+            <connector><targetReference>Call_C</targetReference></connector><label>Recovery for known boundary mismatch only (max 3)</label>
+        </rules>
     </decisions>
     <decisions>
         <name>Check_C</name>
@@ -107,6 +115,7 @@
                 <stringValue>Completed</stringValue>
             </value>
         </inputAssignments>
+        <inputAssignments><field>Error_Message__c</field><value><stringValue/></value></inputAssignments>
         <object>WDE_Batch_Run__c</object>
     </recordUpdates>
     <recordUpdates>
@@ -137,6 +146,7 @@
                 <stringValue>Failed</stringValue>
             </value>
         </inputAssignments>
+        <inputAssignments><field>Retry_Count__c</field><value><elementReference>f_IncrementedRetry</elementReference></value></inputAssignments>
         <object>WDE_Batch_Run__c</object>
     </recordUpdates>
     <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Get_Batch</targetReference></connector></start>
@@ -217,4 +227,5 @@
         <isOutput>false</isOutput>
     </variables>
     <variables><name>varRecordId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+<formulas><name>f_IncrementedRetry</name><dataType>Number</dataType><expression>BLANKVALUE({!Get_Batch.Retry_Count__c}, 0) + 1</expression><scale>0</scale></formulas>
 </Flow>
