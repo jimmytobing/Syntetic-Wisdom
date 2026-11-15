@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
 <apiVersion>68.0</apiVersion>
-<description>Advance validated Stage A seven-field AI outputs directly to persistence, bypassing Stage B's PENDING-placeholder-only contract. Advance legacy Stage B results when present. No human approval. Fail-closed when generated lines are empty; preserves Stage A/B/C runtime validation.</description>
+<description>Advance legacy structurally validated Stage A boundaries to Stage B only. Never automatically transition NeedsCommitReview to CommitApproved or persist unreviewed enrichment; Stage C requires separately authorized independent QA release.</description>
 <interviewLabel>WDE Auto Advance Batch {!$Flow.CurrentDateTime}</interviewLabel>
 <label>WDE Auto Advance Batch</label>
 <processType>AutoLaunchedFlow</processType>
@@ -23,20 +23,16 @@
 <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>NeedsCommitReview</stringValue></rightValue></conditions>
 <conditions><leftValueReference>Get_Batch.Approved_Enrichment__c</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
 <conditions><leftValueReference>Get_Batch.Approved_Enrichment__c</leftValueReference><operator>NotEqualTo</operator><rightValue><stringValue></stringValue></rightValue></conditions>
-<connector><targetReference>Save_Validated_Enrichment</targetReference></connector><label>Stage B ready</label></rules>
+<connector><targetReference>Hold_For_Independent_QA</targetReference></connector><label>Stage B review required; no automatic release</label></rules>
 </decisions>
-<recordUpdates><name>Save_Validated_Boundaries</name><label>Advance Stage A output directly to Stage C without human checkpoint</label><locationX>0</locationX><locationY>0</locationY>
+<recordUpdates><name>Save_Validated_Boundaries</name><label>Advance validated Stage A boundaries to Stage B; never auto-approve commit</label><locationX>0</locationX><locationY>0</locationY>
 <connector><targetReference>Mark_Advanced</targetReference></connector>
 <filterLogic>and</filterLogic><filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_BatchId</elementReference></value></filters>
 <inputAssignments><field>Approved_Boundaries__c</field><value><elementReference>Get_Batch.Draft_Boundaries__c</elementReference></value></inputAssignments>
-<inputAssignments><field>Approved_Enrichment__c</field><value><elementReference>Get_Batch.Draft_Boundaries__c</elementReference></value></inputAssignments>
-<inputAssignments><field>Status__c</field><value><stringValue>CommitApproved</stringValue></value></inputAssignments>
+<inputAssignments><field>Status__c</field><value><stringValue>BoundariesApproved</stringValue></value></inputAssignments>
 <object>WDE_Batch_Run__c</object></recordUpdates>
-<recordUpdates><name>Save_Validated_Enrichment</name><label>Advance to Stage C without human checkpoint</label><locationX>0</locationX><locationY>0</locationY>
-<connector><targetReference>Mark_Advanced</targetReference></connector>
-<filterLogic>and</filterLogic><filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_BatchId</elementReference></value></filters>
-<inputAssignments><field>Status__c</field><value><stringValue>CommitApproved</stringValue></value></inputAssignments>
-<object>WDE_Batch_Run__c</object></recordUpdates>
+
+<assignments><name>Hold_For_Independent_QA</name><label>No-op until independent signed QA authorization</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varB_Advanced</assignToReference><operator>Assign</operator><value><booleanValue>false</booleanValue></value></assignmentItems></assignments>
 <assignments><name>Mark_Advanced</name><label>Mark advanced</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varB_Advanced</assignToReference><operator>Assign</operator><value><booleanValue>true</booleanValue></value></assignmentItems></assignments>
 <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Get_Batch</targetReference></connector></start>
 </Flow>
