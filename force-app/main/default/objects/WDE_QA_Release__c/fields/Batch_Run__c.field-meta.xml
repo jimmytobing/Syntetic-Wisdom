@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Batch_Run__c</fullName><label>Batch Run</label>
+  <description>Exact WDE Batch Run whose fresh held snapshot was independently verified.</description>
+  <type>Lookup</type><referenceTo>WDE_Batch_Run__c</referenceTo>
+  <relationshipLabel>QA Releases</relationshipLabel><relationshipName>QA_Releases</relationshipName>
+  <required>true</required><deleteConstraint>Restrict</deleteConstraint>
+</CustomField>

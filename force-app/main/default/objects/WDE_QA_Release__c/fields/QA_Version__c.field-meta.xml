@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>QA_Version__c</fullName><label>QA Version</label>
+  <description>Version of independently calibrated audio QA with machine-verified benchmark lineage.</description>
+  <type>Text</type><length>80</length><required>true</required><unique>false</unique><externalId>false</externalId>
+</CustomField>

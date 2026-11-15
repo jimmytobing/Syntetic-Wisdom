@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Release_Key__c</fullName><label>Release Key</label>
+  <description>Lowercase SHA-256 of canonical immutable org|batch|enrichment-digest|calibrated-QA-version; unique External ID prevents parallel duplicate release claims.</description>
+  <type>Text</type><length>64</length><required>true</required><unique>true</unique><externalId>true</externalId>
+</CustomField>
