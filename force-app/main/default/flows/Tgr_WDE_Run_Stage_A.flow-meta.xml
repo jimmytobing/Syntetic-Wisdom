@@ -4,7 +4,7 @@
     <description>Issue 53: thin asynchronous Stage A trigger. All business DML, fault recovery and status transitions execute in the autolaunched orchestrator.</description>
     <decisions>
         <name>Check_Returned_Error</name><label>Orchestrator error check</label><locationX>0</locationX><locationY>0</locationY>
-        <defaultConnector><targetReference>END_ASYNC</targetReference></defaultConnector>
+        <defaultConnector><targetReference>END_ASYNC</targetReference></defaultConnector><defaultConnectorLabel>No returned error</defaultConnectorLabel>
         <rules><name>Error_Returned</name><conditionLogic>and</conditionLogic>
           <conditions><leftValueReference>f_Has_Error</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
           <connector><targetReference>END_ASYNC</targetReference></connector><label>Error persisted by orchestrator</label>
