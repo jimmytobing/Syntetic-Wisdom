@@ -1,124 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>68.0</apiVersion>
-    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <apiVersion>68.0</apiVersion><areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Issue 53: thin asynchronous Stage C trigger. All business DML, fault recovery and status transitions execute in the autolaunched orchestrator.</description>
     <decisions>
-        <name>Check_C</name>
-        <label>C succeeded?</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Set_C_Failure</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>Other result / failed</defaultConnectorLabel>
-        <rules>
-            <name>C_Success</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>cResult</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <stringValue>SUCCESS</stringValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Set_C_Complete</targetReference>
-            </connector>
-            <label>C_Success</label>
+        <name>Check_Returned_Error</name><label>Orchestrator error check</label><locationX>0</locationX><locationY>0</locationY>
+        <defaultConnector><targetReference>END_ASYNC</targetReference></defaultConnector>
+        <rules><name>Error_Returned</name><conditionLogic>and</conditionLogic>
+          <conditions><leftValueReference>f_Has_Error</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
+          <connector><targetReference>END_ASYNC</targetReference></connector><label>Error persisted by orchestrator</label>
         </rules>
     </decisions>
-    <description>Stage C runs automatically after Stage B strict AI enrichment validation changes Batch Run Status to CommitApproved. Persists idempotent segments with transcript coverage checks; each closed segment receives separate async AI Audio QA before final knowledge summary. Human investigation only for system faults, no HIVE changes.</description>
-    <ends>
-        <name>END_ELEMENT_4</name>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-    </ends>
-    <ends>
-        <name>END_ELEMENT_5</name>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-    </ends>
-    <ends>
-        <name>END_ELEMENT_6</name>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-    </ends>
-    <environments>Default</environments>
+    <ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+    <ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+    <formulas><name>f_Has_Error</name><dataType>Boolean</dataType><expression>NOT(ISBLANK({!varT_Error}))</expression></formulas>
     <interviewLabel>[Tgr] WDE Run Stage C {!$Flow.CurrentDateTime}</interviewLabel>
     <label>[Tgr] WDE Run Stage C</label>
-    <processMetadataValues>
-        <name>BuilderType</name>
-        <value>
-            <stringValue>LightningFlowBuilder</stringValue>
-        </value>
-    </processMetadataValues>
-    <processMetadataValues>
-        <name>CanvasMode</name>
-        <value>
-            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
-        </value>
-    </processMetadataValues>
+    <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+    <processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
-    <recordUpdates>
-        <name>Set_C_Complete</name>
-        <label>Batch completed</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>END_ELEMENT_5</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.Id</elementReference>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>Next_Start_Position__c</field>
-            <value>
-                <elementReference>cNext</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>Status__c</field>
-            <value>
-                <stringValue>Completed</stringValue>
-            </value>
-        </inputAssignments>
-        <object>WDE_Batch_Run__c</object>
-    </recordUpdates>
-    <recordUpdates>
-        <name>Set_C_Failure</name>
-        <label>Stage C failed</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>END_ELEMENT_6</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.Id</elementReference>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>Error_Message__c</field>
-            <value>
-                <elementReference>cError</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>Status__c</field>
-            <value>
-                <stringValue>Failed</stringValue>
-            </value>
-        </inputAssignments>
-        <object>WDE_Batch_Run__c</object>
-    </recordUpdates>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -138,86 +37,18 @@
         <recordTriggerType>CreateAndUpdate</recordTriggerType>
         <scheduledPaths>
             <connector>
-                <targetReference>Call_C</targetReference>
+                <targetReference>Run_Orchestrator</targetReference>
             </connector>
             <pathType>AsyncAfterCommit</pathType>
         </scheduledPaths>
         <triggerType>RecordAfterSave</triggerType>
     </start>
     <status>Active</status>
-    <subflows>
-        <name>Call_C</name>
-        <label>Call_C</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>Check_C</targetReference>
-        </connector>
-        <flowName>WDE_Persist_Reviewed_Segments</flowName>
-        <inputAssignments>
-            <name>varSermonSourceId</name>
-            <value>
-                <elementReference>$Record.Sermon_Source__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <name>varStartPosition</name>
-            <value>
-                <elementReference>$Record.Start_Position__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <name>varMaxBatchCharacters</name>
-            <value>
-                <elementReference>$Record.Max_Batch_Characters__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <name>varApprovedEnrichmentLines</name>
-            <value>
-                <elementReference>$Record.Approved_Enrichment__c</elementReference>
-            </value>
-        </inputAssignments>
-        
-        <inputAssignments>
-            <name>varCommitRecords</name>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </inputAssignments>
-        <outputAssignments>
-            <assignToReference>cResult</assignToReference>
-            <name>varResultStatus</name>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>cError</assignToReference>
-            <name>varErrorMessage</name>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>cNext</assignToReference>
-            <name>varNextStartPosition</name>
-        </outputAssignments>
+    <subflows><name>Run_Orchestrator</name><label>Run Stage C orchestrator</label><locationX>0</locationX><locationY>0</locationY>
+       <connector><targetReference>Check_Returned_Error</targetReference></connector>
+       <flowName>WDE_Orchestrate_Stage_C</flowName>
+       <inputAssignments><name>varRecordId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments>
+       <outputAssignments><assignToReference>varT_Error</assignToReference><name>varT_Error</name></outputAssignments>
     </subflows>
-    <variables>
-        <name>cError</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <name>cNext</name>
-        <dataType>Number</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-        <scale>0</scale>
-    </variables>
-    <variables>
-        <name>cResult</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
+    <variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 </Flow>
