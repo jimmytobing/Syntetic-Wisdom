@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion>
+<areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+<description>Pure retry decision shared by production audio QA and deterministic fault harness. This Flow never calls a provider or writes records. Next attempt 1-2 RETRY_PENDING, attempt 3 or greater SYSTEM_ERROR.</description>
+<assignments><name>Retry_Pending</name><label>Retry when attempts remain</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varT_NextStatus</assignToReference><operator>Assign</operator><value><stringValue>RETRY_PENDING</stringValue></value></assignmentItems></assignments>
+<assignments><name>Terminal_System_Error</name><label>Escalate exhausted error only</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varT_NextStatus</assignToReference><operator>Assign</operator><value><stringValue>SYSTEM_ERROR</stringValue></value></assignmentItems></assignments>
+<decisions><name>Check_Next_Attempt</name><label>Technical error retry budget available?</label><locationX>0</locationX><locationY>0</locationY><defaultConnector><targetReference>Terminal_System_Error</targetReference></defaultConnector><defaultConnectorLabel>Exhausted or invalid</defaultConnectorLabel><rules><name>Retry_Available</name><conditionLogic>and</conditionLogic><conditions><leftValueReference>varN_NextAttempt</leftValueReference><operator>LessThan</operator><rightValue><numberValue>3</numberValue></rightValue></conditions><conditions><leftValueReference>varN_NextAttempt</leftValueReference><operator>GreaterThan</operator><rightValue><numberValue>0</numberValue></rightValue></conditions><connector><targetReference>Retry_Pending</targetReference></connector><label>Retry</label></rules></decisions>
+<environments>Default</environments>
+<interviewLabel>WDE Audio QA Decide Retry {!$Flow.CurrentDateTime}</interviewLabel><label>WDE Audio QA Decide Retry</label>
+<processType>AutoLaunchedFlow</processType>
+<start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Check_Next_Attempt</targetReference></connector></start>
+<status>Active</status>
+<variables><name>varN_NextAttempt</name><dataType>Number</dataType><scale>0</scale><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+<variables><name>varT_NextStatus</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
+</Flow>
