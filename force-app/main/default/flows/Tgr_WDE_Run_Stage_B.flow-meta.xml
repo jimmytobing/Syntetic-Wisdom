@@ -7,11 +7,11 @@
         <defaultConnector><targetReference>END_ASYNC</targetReference></defaultConnector><defaultConnectorLabel>No returned error</defaultConnectorLabel>
         <rules><name>Error_Returned</name><conditionLogic>and</conditionLogic>
           <conditions><leftValueReference>f_Has_Error</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
-          <connector><targetReference>END_ASYNC</targetReference></connector><label>Error persisted by orchestrator</label>
+          <connector><targetReference>END_ASYNC_ERROR</targetReference></connector><label>Error persisted by orchestrator</label>
         </rules>
     </decisions>
     <ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
-    <ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+    <ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends><ends><name>END_ASYNC_ERROR</name><locationX>0</locationX><locationY>0</locationY></ends>
     <formulas><name>f_Has_Error</name><dataType>Boolean</dataType><expression>NOT(ISBLANK({!varT_Error}))</expression></formulas>
     <interviewLabel>[Tgr] WDE Run Stage B {!$Flow.CurrentDateTime}</interviewLabel>
     <label>[Tgr] WDE Run Stage B</label>
