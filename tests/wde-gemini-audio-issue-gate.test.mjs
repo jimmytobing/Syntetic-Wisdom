@@ -6,8 +6,8 @@ import {
 
 const fence=String.fromCharCode(96).repeat(3);
 const req={operation:'gemini.audio_probe',testMode:'audio_probe',requestId:'wde54-20261115-004'};
-const body=(r=req)=>'Context\\n### WDE Request\\n'+fence+'json\\n'+
-  JSON.stringify(r)+'\\n'+fence+'\\n';
+const body=(r=req)=>'Context\n### WDE Request\n'+fence+'json\n'+
+  JSON.stringify(r)+'\n'+fence+'\n';
 const env={GITHUB_REPOSITORY:'jimmytobing/Syntetic-Wisdom',
   GITHUB_REF:'refs/heads/main',GITHUB_ACTOR:'jimmytobing',
   GITHUB_EVENT_NAME:'issues'};
@@ -19,7 +19,7 @@ test('strict Issue request needs no manual attestations but forbids extra caller
   assert.throws(()=>parseIssueAudioProbe(body({...req,operation:'shell.exec'})),/only the fixed/);
   assert.throws(()=>parseIssueAudioProbe(body({...req,testMode:'editorial'})),/only the fixed/);
   assert.throws(()=>parseIssueAudioProbe(body({...req,rightsAck:'REVIEW_PERMITTED'})),/Unexpected/);
-  assert.throws(()=>parseIssueAudioProbe(body()+'\\n### WDE Request'),/Exactly one/);
+  assert.throws(()=>parseIssueAudioProbe(body()+'\n### WDE Request'),/Exactly one/);
   assert.throws(()=>parseIssueAudioProbe(body({...req,requestId:'bad'})),/Invalid requestId/);
 });
 
