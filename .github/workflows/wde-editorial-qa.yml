@@ -10,6 +10,8 @@ on:
       - "scripts/wde-independent-qa-receipt.mjs"
       - "scripts/wde-autonomous-media-preflight.mjs"
       - "scripts/wde-audio-qa-calibration.mjs"
+      - "scripts/wde-qa-release-key.mjs"
+      - "tests/wde-qa-release-key.test.mjs"
       - "tests/wde-audio-qa-calibration.test.mjs"
       - "tests/wde-autonomous-media-preflight.test.mjs"
       - "scripts/wde-independent-qa-issuer.mjs"
@@ -40,6 +42,8 @@ on:
       - "scripts/wde-independent-qa-receipt.mjs"
       - "scripts/wde-autonomous-media-preflight.mjs"
       - "scripts/wde-audio-qa-calibration.mjs"
+      - "scripts/wde-qa-release-key.mjs"
+      - "tests/wde-qa-release-key.test.mjs"
       - "tests/wde-audio-qa-calibration.test.mjs"
       - "tests/wde-autonomous-media-preflight.test.mjs"
       - "scripts/wde-independent-qa-issuer.mjs"
@@ -90,6 +94,8 @@ jobs:
           node --check scripts/wde-independent-qa-receipt.mjs
           node --check scripts/wde-autonomous-media-preflight.mjs
           node --check scripts/wde-audio-qa-calibration.mjs
+          node --check scripts/wde-qa-release-key.mjs
+          node --check tests/wde-qa-release-key.test.mjs
           node --check tests/wde-audio-qa-calibration.test.mjs
           node --check tests/wde-autonomous-media-preflight.test.mjs
           node --check scripts/wde-stored-qa-evidence.mjs
@@ -99,4 +105,4 @@ jobs:
           node --check scripts/wde-independent-semantic-decision.mjs
           node --check tests/wde-independent-semantic-decision.test.mjs
       - name: Run source-anchored editorial QA unit tests
-        run: node --test tests/wde-opener-handoff-qa.test.mjs tests/wde-segmentation-acceptance.test.mjs tests/wde-flow-editorial-adapter.test.mjs tests/wde-flow-commit-gate.test.mjs tests/wde-commit-release-readiness.test.mjs tests/wde-stored-qa-evidence.test.mjs tests/wde-independent-qa-issuer.test.mjs tests/wde-independent-semantic-decision.test.mjs tests/wde-autonomous-media-preflight.test.mjs tests/wde-audio-qa-calibration.test.mjs
+        run: node --test tests/wde-opener-handoff-qa.test.mjs tests/wde-segmentation-acceptance.test.mjs tests/wde-flow-editorial-adapter.test.mjs tests/wde-flow-commit-gate.test.mjs tests/wde-commit-release-readiness.test.mjs tests/wde-stored-qa-evidence.test.mjs tests/wde-independent-qa-issuer.test.mjs tests/wde-independent-semantic-decision.test.mjs tests/wde-autonomous-media-preflight.test.mjs tests/wde-audio-qa-calibration.test.mjs tests/wde-qa-release-key.test.mjs
