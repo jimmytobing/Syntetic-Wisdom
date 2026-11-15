@@ -2,7 +2,12 @@
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-        <decisions>
+            <assignments><name>Queue_Exact_Batch6_Backoff</name><label>Preserve rate limit reason for 24-hour backoff</label>
+      <locationX>0</locationX><locationY>0</locationY>
+      <assignmentItems><assignToReference>varT_Error</assignToReference><operator>Assign</operator><value><stringValue>Too Many Requests</stringValue></value></assignmentItems>
+      <connector><targetReference>Set_A_Retry_Pending</targetReference></connector>
+    </assignments>
+    <decisions>
         <name>Check_Batch_State</name><label>Process only expected Stage A state</label>
         <locationX>0</locationX><locationY>0</locationY>
         <defaultConnector><targetReference>END_ELEMENT_4</targetReference></defaultConnector>
@@ -10,6 +15,15 @@
         <rules><name>Ready_For_A</name><conditionLogic>and</conditionLogic>
             <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>Pending</stringValue></rightValue></conditions>
             <connector><targetReference>Get_Open_Segment</targetReference></connector><label>Expected state</label>
+        </rules>
+        <rules><name>Recover_Exact_Batch6_Rate_Limit</name><conditionLogic>and</conditionLogic>
+          <conditions><leftValueReference>Get_Batch.Id</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>a0Ifj000003f6ZBEAY</stringValue></rightValue></conditions>
+          <conditions><leftValueReference>Get_Batch.Sermon_Source__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>a07fj00001K0zwEAAR</stringValue></rightValue></conditions>
+          <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>Failed</stringValue></rightValue></conditions>
+          <conditions><leftValueReference>Get_Batch.Error_Message__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>Too Many Requests</stringValue></rightValue></conditions>
+          <conditions><leftValueReference>Get_Batch.Retry_Count__c</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>0</numberValue></rightValue></conditions>
+          <conditions><leftValueReference>Get_Batch.Max_Batch_Characters__c</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>3000</numberValue></rightValue></conditions>
+          <connector><targetReference>Queue_Exact_Batch6_Backoff</targetReference></connector><label>One-time bounded recovery for verified 429</label>
         </rules>
     </decisions>
     <decisions>
