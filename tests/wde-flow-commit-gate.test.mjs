@@ -42,3 +42,22 @@ test('Stage C still requires a separately reviewed transition before persisting'
   assert.doesNotMatch(block(b, 'recordUpdates', 'Set_B_Review'), /<stringValue>CommitApproved<\/stringValue>/);
   assert.match(c, /<stringValue>CommitApproved<\/stringValue>/);
 });
+
+test('legacy auto advance cannot bypass signed independent QA approval', () => {
+  const xml = load('flows/WDE_Auto_Advance_Batch.flow-meta.xml');
+  const a = block(xml, 'recordUpdates', 'Save_Validated_Boundaries');
+  assert.match(a, /<field>Status__c<\/field>[\s\S]*?<stringValue>BoundariesApproved<\/stringValue>/);
+  assert.doesNotMatch(a, /<field>Approved_Enrichment__c<\/field>/);
+  assert.doesNotMatch(xml, /<stringValue>CommitApproved<\/stringValue>/);
+  assert.match(xml, /<name>Hold_For_Independent_QA<\/name>/);
+  assert.match(xml, /<name>Advance_B<\/name>[\s\S]*?<targetReference>Hold_For_Independent_QA<\/targetReference>/);
+});
+
+test('Stage B to Stage C requires an explicit independent release', () => {
+  const b = load('flows/WDE_Orchestrate_Stage_B.flow-meta.xml');
+  const c = load('flows/WDE_Orchestrate_Stage_C.flow-meta.xml');
+  const reviewUpdate = block(b, 'recordUpdates', 'Set_B_Review');
+  assert.match(reviewUpdate, /<stringValue>NeedsCommitReview<\/stringValue>/);
+  assert.doesNotMatch(reviewUpdate, /<stringValue>CommitApproved<\/stringValue>/);
+  assert.match(c, /<name>Ready_For_C<\/name>[\s\S]*?<stringValue>CommitApproved<\/stringValue>/);
+});
