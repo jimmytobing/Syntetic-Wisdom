@@ -27,7 +27,7 @@
             <label>C_Success</label>
         </rules>
     </decisions>
-    <description>WDE Batch 8 pilot — asynchronous stage C; no automatic approval. Deploy inactive and validate in sandbox first.</description>
+    <description>Stage C runs automatically after Stage B strict AI enrichment validation changes Batch Run Status to CommitApproved. Persists idempotent segments with transcript coverage checks; each closed segment receives separate async AI Audio QA before final knowledge summary. Human investigation only for system faults, no HIVE changes.</description>
     <ends>
         <name>END_ELEMENT_4</name>
         <locationX>0</locationX>
