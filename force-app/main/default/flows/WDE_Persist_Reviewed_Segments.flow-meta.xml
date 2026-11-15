@@ -3,6 +3,16 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <name>Close_Prior_On_Type_Change</name>
+        <label>Finalize OPEN predecessor when next semantic type differs</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <assignmentItems><assignToReference>varMergedRecord</assignToReference><operator>Assign</operator><value><elementReference>Get_Open_Previous</elementReference></value></assignmentItems>
+        <assignmentItems><assignToReference>varMergedRecord.WDE_Stitch_Open__c</assignToReference><operator>Assign</operator><value><booleanValue>false</booleanValue></value></assignmentItems>
+        <assignmentItems><assignToReference>colToUpdate</assignToReference><operator>Add</operator><value><elementReference>varMergedRecord</elementReference></value></assignmentItems>
+        <assignmentItems><assignToReference>varUpdatedCount</assignToReference><operator>Add</operator><value><numberValue>1.0</numberValue></value></assignmentItems>
+        <connector><targetReference>Find_Covering_Segment</targetReference></connector>
+    </assignments>
+    <assignments>
         <name>Advance_Boundary_Line</name>
         <label>Advance to next reviewed segment after collection</label>
         <locationX>0</locationX>
@@ -879,6 +889,15 @@
                 <targetReference>Check_Merged_Size</targetReference>
             </connector>
             <label>Valid Open Prior</label>
+        </rules>
+            <rules>
+            <name>Type_Changed_Close_Prior</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>Get_Open_Previous.Id</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Open_Previous.Segment_Type__c</leftValueReference><operator>NotEqualTo</operator><rightValue><elementReference>f_SegType</elementReference></rightValue></conditions>
+            <conditions><leftValueReference>varSegmentCount</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>1.0</numberValue></rightValue></conditions>
+            <connector><targetReference>Close_Prior_On_Type_Change</targetReference></connector>
+            <label>Boundary type changed: finalize prior OPEN without merging</label>
         </rules>
     </decisions>
     <decisions>
