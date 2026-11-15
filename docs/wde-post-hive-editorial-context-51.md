@@ -24,3 +24,9 @@ The returned note is capped at 1,200 characters. It is labeled **untrusted edito
 
 ## Earlier A/B caveat
 The 12-synthetic-comment A/B in `docs/wde-audience-context-ab-51.md` changed 3 classifications when audio context was injected *before* HIVE. That approach was rejected and the ingest Flow was reverted to main. Post-HIVE context is an editorial convenience only, not proof of audience demand or quality gains.
+
+## Actual Salesforce result — 15 Nov 2026
+- Check-only **SUCCESS** `0Affj00000ZM8ArCAL` (1 Flow, 0 component errors, org `00Dfj00000eVCOVEA4`). [Audit](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6887680272)
+- Draft metadata actual deployment **SUCCESS** `0Affj00000ZM8XRCA1` (`checkOnly=false`, 1 Flow, 0 component errors, org verified). [Audit](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6887692782)
+- Tooling GET verifies `WDE_Get_Editorial_Audio_Context` latest `301fj00002FGJ6fAAH` and **ActiveVersionId=null**; it is **not activated**, scheduled, or wired into Content Planning. Existing `WDE_Fetch_YouTube_Comments` active `301fj00002EA0SHAA1`, `WDE_Propose_Content_Plan` active `301fj00002EASLJAA5`, and `WDE_Recalculate_HIVE` active `301fj00002EBEjJAAX` unchanged. [Audit](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6887698548)
+- **Not verified:** runtime editorial context availability for a real eligible Need/Plan/Source triplet (Flow is Draft); no user-facing editorial UI or integration exists yet. Human approval and rights clearance remain independent gates. Do not represent deploy success as end-to-end behavior.
