@@ -102,6 +102,9 @@
   CASE(TEXT(BLANKVALUE({!Get_Batch.Retry_Count__c}, 0)), &quot;0&quot;, 1, &quot;1&quot;, 5, 15)
 ) / 1440</expression>
     </formulas>
+    <formulas><name>f_Provider_Error_A</name><dataType>Boolean</dataType>
+    <expression>OR({!aResult} = "INVALID_AI_FORMAT", {!aResult} = "INVALID_AI_RANGE", {!aResult} = "EMPTY_RESPONSE", {!aResult} = "GROQ_ERROR")</expression>
+</formulas>
     <description>Autolaunched orchestration extracted from Stage A async trigger. Owns the worker, status transitions, retry handling, and persisted batch errors. Issue 53.</description>
     <ends>
         <name>END_ELEMENT_4</name>
@@ -392,7 +395,4 @@
         <isOutput>false</isOutput>
     </variables>
     <variables><name>varRecordId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
-    <formulas><name>f_Provider_Error_A</name><dataType>Boolean</dataType>
-    <expression>OR({!aResult} = "INVALID_AI_FORMAT", {!aResult} = "INVALID_AI_RANGE", {!aResult} = "EMPTY_RESPONSE", {!aResult} = "GROQ_ERROR")</expression>
-</formulas>
 </Flow>
