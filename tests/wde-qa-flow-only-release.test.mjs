@@ -37,3 +37,12 @@ test('Committed QA journal fails closed unless exact user updated approved Batch
   assert.match(xml,/Batch_Run__r.LastModifiedById/);
   assert.match(xml,/CommitApproved/);
 });
+
+test('QA release remains fail-closed until trusted in-Flow verifier is configured',()=>{
+  const flow=read('flows/WDE_QA_OAuth_Commit_Release.flow-meta.xml');
+  const auth=flow.match(/<name>f_RequestAuthorized<\/name>[\s\S]*?<\/formulas>/)?.[0];
+  assert.ok(auth,'Authorization formula must exist');
+  assert.match(auth,/\$Permission.WDE_QA_Commit_Release/);
+  assert.match(auth,/\bFALSE\s*,/,'No direct OAuth invocation may release without cryptographic verification inside Flow');
+  assert.match(flow,/<status>Draft<\/status>/);
+});
