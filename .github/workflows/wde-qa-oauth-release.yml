@@ -1,0 +1,71 @@
+name: WDE - OAuth QA Batch Release (Flow only)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/wde-qa-oauth-release.yml'
+      - 'scripts/wde-qa-oauth-release.mjs'
+      - 'scripts/wde-qa-oauth-preflight.mjs'
+      - 'tests/wde-qa-oauth-preflight.test.mjs'
+      - 'force-app/main/default/permissionsets/WDE_QA_OAuth_Commit.permissionset-meta.xml'
+  workflow_dispatch:
+  schedule:
+    - cron: '25 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wde-qa-oauth-release
+  cancel-in-progress: false
+
+jobs:
+  static-tests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify release code without Salesforce access
+        run: |
+          node --check scripts/wde-qa-oauth-release.mjs
+          node --check scripts/wde-qa-oauth-preflight.mjs
+          node --test tests/wde-qa-oauth-preflight.test.mjs tests/wde-qa-flow-only-release.test.mjs
+
+  release:
+    if: >-
+      github.repository == 'jimmytobing/Syntetic-Wisdom' &&
+      github.ref == 'refs/heads/main' &&
+      vars.WDE_QA_RELEASE_ENABLED == 'true' &&
+      (github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+      contains(fromJSON('["jimmytobing","098595"]'), github.actor)))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: wde-qa
+    permissions:
+      contents: read
+    env:
+      SF_INSTANCE_URL: ${{ vars.SF_INSTANCE_URL }}
+      WDE_QA_RELEASE_EXECUTE: 'YES'
+      WDE_QA_BATCH_ID: ${{ vars.WDE_QA_BATCH_ID }}
+      WDE_QA_TRUSTED_VERSIONS: ${{ vars.WDE_QA_TRUSTED_VERSIONS }}
+      WDE_QA_OAUTH_USER_ID: ${{ secrets.WDE_QA_OAUTH_USER_ID }}
+      WDE_PRIMARY_API_USER_ID: ${{ secrets.WDE_PRIMARY_API_USER_ID }}
+      WDE_QA_SF_CLIENT_ID: ${{ secrets.WDE_QA_SF_CLIENT_ID }}
+      WDE_QA_SF_CLIENT_SECRET: ${{ secrets.WDE_QA_SF_CLIENT_SECRET }}
+      WDE_QA_RECEIPT_HMAC_KEY: ${{ secrets.WDE_QA_RECEIPT_HMAC_KEY }}
+    steps:
+      - name: Checkout immutable protected main without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Guard release with offline fail-closed tests
+        run: |
+          node --check scripts/wde-qa-oauth-release.mjs
+          node --test tests/wde-qa-oauth-preflight.test.mjs tests/wde-qa-flow-only-release.test.mjs
+      - name: Authenticated single-attempt QA release through Salesforce Flow
+        run: node scripts/wde-qa-oauth-release.mjs
