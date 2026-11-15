@@ -24,3 +24,16 @@ test('QA principal permission is explicit and independent of generic Groq access
   const flow=read('flows/WDE_QA_OAuth_Commit_Release.flow-meta.xml');
   assert.match(flow,/<field>Authority_Reference__c<\/field>[\s\S]*?<elementReference>\$User.Id<\/elementReference>/);
 });
+
+test('QA permission must never enable direct REST update or claim creation bypassing Flow',()=>{
+  const ps=read('permissionsets/WDE_QA_OAuth_Commit.permissionset-meta.xml');
+  assert.doesNotMatch(ps,/<allowCreate>true<\/allowCreate>|<allowEdit>true<\/allowEdit>|<editable>true<\/editable>/);
+  assert.match(ps,/<name>WDE_QA_Commit_Release<\/name>/);
+  assert.match(read('flows/WDE_QA_OAuth_Commit_Release.flow-meta.xml'),/<runInMode>SystemModeWithSharing<\/runInMode>/);
+});
+test('Committed QA journal fails closed unless exact user updated approved Batch',()=>{
+  const xml=read('objects/WDE_QA_Release__c/validationRules/Require_Actual_QA_Commit.validationRule-meta.xml');
+  assert.match(xml,/<active>true<\/active>/);
+  assert.match(xml,/Batch_Run__r.LastModifiedById/);
+  assert.match(xml,/CommitApproved/);
+});
