@@ -25,3 +25,17 @@
 - Preserve original Gemini analysis JSON, rights status, ingest status, credentials and existing reviewed segments.
 
 Source QA reference: docs/wde-gemini-flow-only-51.md; Issue: https://github.com/jimmytobing/Syntetic-Wisdom/issues/51.
+
+## Cache hardening and Audience Intelligence handoff — 15 Nov 2026
+- Draft PR Flow guard now requires a non-null QA checked-at timestamp, a non-null analysis validated-at timestamp, QA checked-at >= analysis validated-at, a non-null status and non-null notes before `Return_Cached_QA`. Otherwise the Flow proceeds to a fresh second-pass video QA. This is a source-only change until separately validated/deployed; the active org version is not changed by a GitHub commit.
+- This timestamp guard handles normal re-analysis, but if raw JSON is overwritten without updating validated-at, it cannot detect staleness. The producer must atomically refresh the analysis timestamp alongside analysis JSON; a future source hash can enforce strict content identity if the producer cannot guarantee that invariant.
+- Acceptance test for existing video `_tYB8TLFizQ`: invoke the currently active QA Flow once with canonical URL and inspect `varB_Cached=true`, `varT_QA_Status=AI_VERIFIED`, `varB_Success=true`; `varN_ResponseCode` should be unset on cache path and the checked-at timestamp should not change. Independent SOQL readback is required. A completed invocation by itself does not prove no callout unless response and branch observations agree.
+- If status is `NEEDS_REVIEW`, cache represents a completed QA decision, **not** approval. Only `AI_VERIFIED` is eligible to contribute verified audio context; null and incomplete values fail closed. QA status never substitutes for rights review or human script approval.
+
+## Audience Intelligence integration design (not deployed)
+- Keep audience comments as the authoritative source of audience needs; do not generate a need, a signal count or urgency from the sermon analysis alone.
+- Existing `WDE_Fetch_YouTube_Comments` already resolves `Sermon_Source__c` by the video ID and connects signals to their source. Add a guarded context template only when source audio QA status is `AI_VERIFIED`, notes and analysis JSON exist, and QA checked-at >= analysis validated-at. Otherwise keep the current comment-only prompt exactly as before.
+- Template context must be explicitly labeled **untrusted source-background**, capped to a bounded size, and instruct the model not to treat it as audience evidence or override actual comment text. Video context may disambiguate terminology and quoted sermon references but never assert a user's feeling, request or urgency without direct evidence in a comment.
+- Retain stable `Signal_Key__c` upsert, existing audience need mapping by `Need_Key__c`, and the HIVE rubric (volume 30%, intensity 25%, growth 20%, recency 15%, quality 10%). Do not write HIVE metrics or content plans from video analysis.
+- Initial evaluation: same 10–20 comments with and without context, measure category consistency, false positive needs, and evidence-code accuracy; confirm identical unique signal keys and no duplicate writes. A mismatch sends the output to review rather than automatically influencing ranking.
+- No new object, Apex, scheduler, automatic promotion to reviewed segments, or auto-publication. Actual implementation and runtime E2E require separate Flow metadata review and scoped org validation.
