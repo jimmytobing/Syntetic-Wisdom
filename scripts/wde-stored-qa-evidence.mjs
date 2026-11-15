@@ -6,7 +6,10 @@ import { verifyIndependentQaReceipt } from './wde-independent-qa-receipt.mjs';
 
 const isText = value => typeof value === 'string' && value.trim().length > 0;
 export function inspectStoredBatchQaEvidence({
-  record, enrichmentText, verificationKey, now = Date.now()
+  record, enrichmentText, verificationKey, now = Date.now(),
+  // Supplied only by independently authenticated/verifier-owned deployment policy.
+  // Default empty: a signed PASS cannot promote an uncalibrated QA model.
+  trustedQaVersions = []
 }) {
   const reasons = [];
   if (!record || !isText(record.Id) || !isText(record.Sermon_Source__c)) {
@@ -52,7 +55,9 @@ export function inspectStoredBatchQaEvidence({
     if (!Array.isArray(review.flags) || review.flags.length > 0) {
       releaseBlockers.push('QA_UNRESOLVED_FLAGS');
     }
-    if (review.qaVersion === 'deterministic-transcript-review-v1') {
+    if (!Array.isArray(trustedQaVersions) ||
+        !trustedQaVersions.includes(review.qaVersion) ||
+        review.qaVersion === 'deterministic-transcript-review-v1') {
       releaseBlockers.push('QA_SEMANTIC_CALIBRATION_NOT_VERIFIED');
     }
   } else {
