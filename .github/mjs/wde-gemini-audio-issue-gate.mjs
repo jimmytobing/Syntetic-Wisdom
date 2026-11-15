@@ -80,7 +80,7 @@ export async function claimAudioProbeRequest(request,{token,fetcher=fetch}){
 export async function claimDailyGeminiCall({token,runId,day,fetcher=fetch}){
   check(typeof token==='string'&&token.length>12,'GitHub claim token missing');
   check(typeof runId==='string'&&/^[0-9]{5,20}$/.test(runId),'GitHub run identity missing');
-  check(typeof day==='string'&&/^\\d{8}$/.test(day),'UTC day invalid');
+  check(typeof day==='string'&&/^\d{8}$/.test(day),'UTC day invalid');
   const url='https://api.github.com/repos/'+REPO+'/issues/'+ISSUE+'/comments';
   const headers={Authorization:'Bearer '+token,Accept:'application/vnd.github+json',
     'X-GitHub-Api-Version':'2022-11-28'};
@@ -93,7 +93,7 @@ export async function claimDailyGeminiCall({token,runId,day,fetcher=fetch}){
     check(Array.isArray(items),'Invalid claim history');
     for(const x of items){
       const m=typeof x?.body==='string' ?
-        x.body.match(/WDE_GEMINI_AUTONOMOUS_CALL:(\\d{8}):([0-9]{5,20})/):null;
+        x.body.match(/WDE_GEMINI_AUTONOMOUS_CALL:(\d{8}):([0-9]{5,20})/):null;
       if(m?.[1]===day)claims.push(m[2]);
     }
     if(items.length<100)break;
@@ -103,7 +103,7 @@ export async function claimDailyGeminiCall({token,runId,day,fetcher=fetch}){
   const marker='<!-- '+DAILY_CLAIM+day+':'+runId+' -->';
   const post=await fetcher(url,{method:'POST',headers:{...headers,'Content-Type':'application/json'},
     redirect:'error',signal:AbortSignal.timeout(15000),
-    body:JSON.stringify({body:marker+'\\nOne bounded Gemini inference slot claimed; no success or free-tier implied.'})});
+    body:JSON.stringify({body:marker+'\nOne bounded Gemini inference slot claimed; no success or free-tier implied.'})});
   check(post.ok,'Failed to claim bounded provider-call slot');
 }
 export async function prepare(env=process.env,{fetcher=fetch}={}){
@@ -124,7 +124,7 @@ export async function prepare(env=process.env,{fetcher=fetch}={}){
     'WDE_SOURCE_RIGHTS_VERIFIED=true',
     'WDE_PROVIDER_CALL_GUARD_VERIFIED=true',
     'WDE_RESUME_INTERACTION_ID='+request.resume
-  ].join('\\n')+'\\n');
+  ].join('\n')+'\n');
   console.log('WDE gateway prepared with authenticated WDE source clearance and bounded provider-call claim.');
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href)
