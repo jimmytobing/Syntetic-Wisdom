@@ -36,7 +36,7 @@
         </rules>
     </decisions>
     
-    <description>WDE Stage B Groq enrichment. Strict format and boundary validation. Retry malformed or transient Groq output up to three times using existing timed Stage A worker. Never persist invalid segment data.</description>
+    <description>AI Stage B validates enriched 7-field candidate against transcript boundaries, with bounded retries on technical failures. Successful validated enrichment advances automatically to Stage C; human intervention is reserved for unrecoverable system errors. Segment audio accuracy is independently checked by segment-level Gemini QA. No audience HIVE modification.</description>
     <ends>
         <name>END_ELEMENT_4</name>
         <locationX>0</locationX>
@@ -168,7 +168,7 @@
     
     <recordUpdates>
         <name>Set_B_Review</name>
-        <label>Hold Stage B for independently verified editorial review</label>
+        <label>Automatically advance validated AI enrichment to Stage C</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
@@ -191,7 +191,7 @@
         <inputAssignments>
             <field>Status__c</field>
             <value>
-                <stringValue>NeedsCommitReview</stringValue>
+                <stringValue>CommitApproved</stringValue>
             </value>
         </inputAssignments>
         <object>WDE_Batch_Run__c</object>
