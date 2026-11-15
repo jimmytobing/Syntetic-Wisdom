@@ -20,6 +20,11 @@
     <name>f_RequestAuthorized</name><dataType>Boolean</dataType>
     <expression>AND(
       $Permission.WDE_QA_Commit_Release,
+      /* ISSUE54: fail-closed until trusted QA receipt validation is performed INSIDE Flow.
+         JS-side HMAC preflight is bypassable via direct Flow API invocation.
+         Never remove this FALSE condition without a verified External Service
+         action preceding DML and independent security validation. */
+      FALSE,
       {!varS_QaVerdict} = "PASS",
       REGEX({!varS_EnrichmentDigest},"sha256:[0-9a-f]{64}"),
       REGEX({!varS_EvidenceDigest},"sha256:[0-9a-f]{64}"),
