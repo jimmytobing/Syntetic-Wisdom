@@ -16,7 +16,18 @@
             <conditions><leftValueReference>Get_Batch.Error_Message__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>Groq output is not the specified semicolon-and-pipe contract; data is rejected without DML.</stringValue></rightValue></conditions>
             <connector><targetReference>Requeue_Smaller_Batch</targetReference></connector><label>Exact previously verified failure</label>
         </rules>
+        <rules><name>Exact_Batch6_Rate_Limit</name><conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>Get_Batch.Id</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>a0Ifj000003f6ZBEAY</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Sermon_Source__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>a07fj00001K0zwEAAR</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>Failed</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Error_Message__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>Too Many Requests</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Retry_Count__c</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>0</numberValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Max_Batch_Characters__c</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>3000</numberValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Start_Position__c</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>25667</numberValue></rightValue></conditions>
+            <connector><targetReference>Schedule_Batch6_RateLimit_Retry</targetReference></connector><label>One-time daily backoff of exact Batch 6</label>
+        </rules>
     </decisions>
+    <formulas><name>f_Batch6_Due_At</name><dataType>DateTime</dataType><expression>NOW() + 1</expression></formulas>
     <interviewLabel>WDE Recover Batch 4 Groq {!$Flow.CurrentDateTime}</interviewLabel>
     <label>WDE Recover Groq Format Batch 53</label>
     <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
@@ -39,6 +50,16 @@
         <inputAssignments><field>Max_Batch_Characters__c</field><value><numberValue>3000</numberValue></value></inputAssignments>
         <inputAssignments><field>Retry_Count__c</field><value><numberValue>0</numberValue></value></inputAssignments>
         <inputAssignments><field>Status__c</field><value><stringValue>Pending</stringValue></value></inputAssignments>
+        <object>WDE_Batch_Run__c</object>
+    </recordUpdates>
+    <recordUpdates><name>Schedule_Batch6_RateLimit_Retry</name><label>Schedule exact failed Batch 6 after 24 hours</label><locationX>0</locationX><locationY>0</locationY>
+        <filterLogic>and</filterLogic>
+        <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>Get_Batch.Id</elementReference></value></filters>
+        <filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>Failed</stringValue></value></filters>
+        <filters><field>Retry_Count__c</field><operator>EqualTo</operator><value><numberValue>0</numberValue></value></filters>
+        <inputAssignments><field>Status__c</field><value><stringValue>RetryPending</stringValue></value></inputAssignments>
+        <inputAssignments><field>Retry_Count__c</field><value><numberValue>1</numberValue></value></inputAssignments>
+        <inputAssignments><field>Next_Retry_At__c</field><value><elementReference>f_Batch6_Due_At</elementReference></value></inputAssignments>
         <object>WDE_Batch_Run__c</object>
     </recordUpdates>
     <runInMode>SystemModeWithSharing</runInMode>
