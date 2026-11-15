@@ -4,8 +4,8 @@
 <assignments><name>Reset_Audio_QA</name><label>Invalidate QA on material segment edit</label><locationX>0</locationX><locationY>0</locationY>
 <assignmentItems><assignToReference>$Record.Audio_QA_Status__c</assignToReference><operator>Assign</operator><value><stringValue>PENDING</stringValue></value></assignmentItems>
 <assignmentItems><assignToReference>$Record.Audio_QA_Attempts__c</assignToReference><operator>Assign</operator><value><numberValue>0</numberValue></value></assignmentItems>
-<assignmentItems><assignToReference>$Record.Audio_QA_Checked_At__c</assignToReference><operator>Assign</operator><value><elementReference>$GlobalConstant.Null</elementReference></value></assignmentItems>
-<assignmentItems><assignToReference>$Record.Audio_QA_Notes__c</assignToReference><operator>Assign</operator><value><elementReference>$GlobalConstant.Null</elementReference></value></assignmentItems>
+<assignmentItems><assignToReference>$Record.Audio_QA_Checked_At__c</assignToReference><operator>Assign</operator><value><nullValue>true</nullValue></value></assignmentItems>
+<assignmentItems><assignToReference>$Record.Audio_QA_Notes__c</assignToReference><operator>Assign</operator><value><nullValue>true</nullValue></value></assignmentItems>
 <connector><targetReference>END_RESET</targetReference></connector></assignments>
 <decisions><name>Check_Material_Change</name><label>Has transcript or audio-boundary input changed?</label><locationX>0</locationX><locationY>0</locationY>
 <defaultConnector><targetReference>END_UNCHANGED</targetReference></defaultConnector><defaultConnectorLabel>QA fields only; retain verdict</defaultConnectorLabel>
