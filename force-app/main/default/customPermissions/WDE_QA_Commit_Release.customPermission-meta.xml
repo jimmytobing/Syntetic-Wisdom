@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>May atomically release an independently verified WDE Batch. Assign only to the dedicated Salesforce OAuth QA integration user.</description>
+  <label>WDE QA Commit Release</label>
+</CustomPermission>
