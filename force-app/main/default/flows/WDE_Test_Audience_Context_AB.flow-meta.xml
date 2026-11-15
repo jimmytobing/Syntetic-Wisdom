@@ -36,7 +36,7 @@
 <loops><name>Loop_Choices</name><label>Read Choices</label><locationX>0</locationX><locationY>0</locationY><collectionReference>varA_Response.choices</collectionReference><iterationOrder>Asc</iterationOrder><nextValueConnector><targetReference>Capture_Result</targetReference></nextValueConnector><noMoreValuesConnector><targetReference>Check_Output</targetReference></noMoreValuesConnector></loops>
 
 <interviewLabel>WDE A B comment classification test {!$Flow.CurrentDateTime}</interviewLabel><label>WDE Test Audience Context AB</label>
-<processType>AutoLaunchedFlow</processType><start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Prepare_Messages</targetReference></connector></start><status>Active</status>
+<processType>AutoLaunchedFlow</processType><start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Prepare_Messages</targetReference></connector></start><status>Draft</status>
 <variables><name>varA_SystemMessage</name><apexClass>ExternalService__WDEGroqService_Generatex20Wisdom_IN_body_messages</apexClass><dataType>Apex</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 <variables><name>varA_UserMessage</name><apexClass>ExternalService__WDEGroqService_Generatex20Wisdom_IN_body_messages</apexClass><dataType>Apex</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 <variables><name>colA_Messages</name><apexClass>ExternalService__WDEGroqService_Generatex20Wisdom_IN_body_messages</apexClass><dataType>Apex</dataType><isCollection>true</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
