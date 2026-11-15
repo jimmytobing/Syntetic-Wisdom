@@ -62,3 +62,17 @@ The user has clarified the trust boundary:
 6. Segment-level design must be preceded by inspection of actual `Sermon_Segment__c` fields/relationships, its transcript/timestamp boundaries, review flags, human reviewer identity and existing review Flows. Prefer existing fields/statuses; separate machine-suggested result from human decision. No new objects or fields until actual schema verifies a gap.
 
 **Invariant:** Audience Signals → Audience Needs → HIVE → Content Planning stays **comment-only**. Sermon Source → Segment → AI Audio QA → human segment validation is **a separate quality-control track**. Their outputs do not cross into audience scoring.
+
+## Final clarification — 15 Nov 2026: autonomous AI segment QA (supersedes human-approval requirement)
+
+This section **overrides** earlier statements saying that every Sermon Segment must receive human approval.
+
+- Audience Needs, Audience Signals and all HIVE component scores **remain 100% comment-only**. Sermon video/audio/analysis is never scoring input or a basis to invent audience demand.
+- AI Audio QA **automatically determines** whether the relevant Sermon Segment passes the QA rules. A human reviewer is **not** part of the normal success path and does not need to approve otherwise valid segments.
+- Human intervention is reserved for **technical/system errors** requiring investigation, such as callout/auth failures, timeout, malformed response, unavailable source media, transcription/format parsing failure, inconsistent indexing/boundary data, unresolved execution fault or infrastructure blockage. Operational exceptions must fail closed; they are **not** silently converted into success.
+- A semantic QA failure or content mismatch is handled by the automated pipeline: record a machine verdict / reason, mark as not passed, and where appropriate attempt a bounded, idempotent AI correction and revalidation. Do not automatically treat content mismatch as a human-approval request. The pipeline must not falsely mark an unresolved mismatch as passed.
+- The machine QA verdict is limited to **segment accuracy and evidence consistency**. `AI_VERIFIED` does not clear copyright/reuse rights, verify visuals or alter audience scoring.
+- **Current implementation gap (verified from repository, not deployed fix):** `WDE_Verify_YouTube_Gemini_Audio` currently checks only the first 20 seconds of `Sermon_Source__c`, not an individual `Sermon_Segment__c`. `WDE_Persist_Reviewed_Segments` currently retains `Gate_Human_Review`, `varHumanReviewed`, and `APPROVAL_REQUIRED` behavior. `WDE_Semantic_Review_Batch` returns unsaved candidate segments and explicitly does not prove semantic accuracy. A dedicated segment-scoped machine QA gate with deterministic checks is needed to replace this legacy human approval, while preserving caption coverage, 7-field format, source-boundary validation, idempotency, and fault handling.
+- **Safety:** no automatic success solely because Groq/Gemini returns HTTP 200; demand a complete, bounded, parseable, internally consistent verdict. Do not deploy/activate replacement behavior before independently validating metadata, runtime, retry paths and existing Flow dependencies.
+
+**Target pipeline:** Sermon Source → candidate Sermon Segment → AI Audio QA + deterministic evidence checks → automatic PASS / FAIL; only **SYSTEM_ERROR** invokes human investigation. These results never flow into Audience Needs/HIVE.
