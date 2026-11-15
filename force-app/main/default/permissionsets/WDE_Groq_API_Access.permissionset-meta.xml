@@ -314,6 +314,11 @@
 <fieldPermissions><editable>false</editable><field>WDE_Batch_Run__c.Approved_Boundaries__c</field><readable>true</readable></fieldPermissions>
 <fieldPermissions><editable>false</editable><field>WDE_Batch_Run__c.Approved_Enrichment__c</field><readable>true</readable></fieldPermissions>
 <fieldPermissions><editable>false</editable><field>WDE_Batch_Run__c.Max_Batch_Characters__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Sermon_Segment__c.Async_Error__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>WDE_Groq_API_Access</label>
     <objectPermissions>
