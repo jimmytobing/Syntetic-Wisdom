@@ -12,7 +12,27 @@
         <enabled>true</enabled>
         <externalCredentialPrincipal>WDE_Supadata_Auth-ApiKey</externalCredentialPrincipal>
     </externalCredentialPrincipalAccesses>
+        <fieldPermissions>
+        <editable>true</editable>
+        <field>Sermon_Segment__c.Audio_QA_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <fieldPermissions>
+        <editable>true</editable>
+        <field>Sermon_Segment__c.Audio_QA_Notes__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Sermon_Segment__c.Audio_QA_Checked_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Sermon_Segment__c.Audio_QA_Attempts__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+<fieldPermissions>
         <editable>true</editable>
         <field>Sermon_Source__c.Gemini_Audio_QA_Checked_At__c</field>
         <readable>true</readable>
