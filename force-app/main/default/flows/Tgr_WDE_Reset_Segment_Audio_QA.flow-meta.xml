@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
 <apiVersion>68.0</apiVersion><areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-<assignments><name>Reset_Audio_QA</name><label>Invalidate QA on material segment edit</label><locationX>0</locationX><locationY>0</locationY>
+<assignments><name>Reset_Audio_QA</name><label>Invalidate QA status and retry counter on material segment edit</label><locationX>0</locationX><locationY>0</locationY>
 <assignmentItems><assignToReference>$Record.Audio_QA_Status__c</assignToReference><operator>Assign</operator><value><stringValue>PENDING</stringValue></value></assignmentItems>
 <assignmentItems><assignToReference>$Record.Audio_QA_Attempts__c</assignToReference><operator>Assign</operator><value><numberValue>0</numberValue></value></assignmentItems>
-<assignmentItems><assignToReference>$Record.Audio_QA_Checked_At__c</assignToReference><operator>Assign</operator><value><nullValue>true</nullValue></value></assignmentItems>
-<assignmentItems><assignToReference>$Record.Audio_QA_Notes__c</assignToReference><operator>Assign</operator><value><nullValue>true</nullValue></value></assignmentItems>
+
+
 <connector><targetReference>END_RESET</targetReference></connector></assignments>
 <decisions><name>Check_Material_Change</name><label>Has transcript or audio-boundary input changed?</label><locationX>0</locationX><locationY>0</locationY>
 <defaultConnector><targetReference>END_UNCHANGED</targetReference></defaultConnector><defaultConnectorLabel>QA fields only; retain verdict</defaultConnectorLabel>
@@ -15,7 +15,7 @@
 <conditions><leftValueReference>$Record.Sermon_Source__c</leftValueReference><operator>NotEqualTo</operator><rightValue><elementReference>$Record__Prior.Sermon_Source__c</elementReference></rightValue></conditions>
 <conditions><leftValueReference>$Record.Transcript_Text__c</leftValueReference><operator>NotEqualTo</operator><rightValue><elementReference>$Record__Prior.Transcript_Text__c</elementReference></rightValue></conditions>
 <connector><targetReference>Reset_Audio_QA</targetReference></connector><label>Material edit</label></rules></decisions>
-<description>Before-save reset of stale segment-only AI Audio QA when the actual transcript, source or timestamps change. Uses record vs prior Decision (Long Text Area cannot be used in start formula); QA-only updates remain unchanged. No human approval or HIVE mutations.</description>
+<description>Before-save invalidate Segment AI QA status PENDING and reset attempts when actual transcript, source or timestamps change; historical notes and checked-at remain as audit but are invalid until a new PASS/FAIL. Uses record vs prior Decision (Long Text Area cannot be used in start formula); QA-only updates remain unchanged. No human approval or HIVE mutations.</description>
 <ends><name>END_UNCHANGED</name><locationX>0</locationX><locationY>0</locationY></ends><ends><name>END_RESET</name><locationX>0</locationX><locationY>0</locationY></ends>
 <interviewLabel>[Tgr] WDE Reset Segment QA {!$Flow.CurrentDateTime}</interviewLabel><label>[Tgr] WDE Reset Segment QA on Edit</label>
 <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
