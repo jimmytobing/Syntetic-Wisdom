@@ -3,17 +3,6 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Thin asynchronous trigger: invoke the autonomous segment QA subflow and persist its varT_Error on this segment's Async Error field. All Gemini, retry, correction and QA business logic stays in the subflow. No Custom Error in async path and no Audience/HIVE writes.</description>
-    <assignments>
-        <name>Capture_Subflow_Fault</name>
-        <label>Capture unexpected asynchronous subflow fault</label>
-        <locationX>0</locationX><locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>varT_Error</assignToReference>
-            <operator>Assign</operator>
-            <value><stringValue>Audio QA subflow fault; inspect Salesforce failed Flow interview for details.</stringValue></value>
-        </assignmentItems>
-        <connector><targetReference>Save_Async_Error</targetReference></connector>
-    </assignments>
     <decisions>
         <name>Check_Async_Error</name>
         <label>Did autolaunched QA return an error?</label>
@@ -86,7 +75,6 @@
         <label>Run autolaunched segment QA worker</label>
         <locationX>0</locationX><locationY>0</locationY>
         <connector><targetReference>Check_Async_Error</targetReference></connector>
-        <faultConnector><targetReference>Capture_Subflow_Fault</targetReference></faultConnector>
         <flowName>WDE_Verify_Sermon_Segment_Audio</flowName>
         <inputAssignments>
             <name>varS_SegmentId</name>
