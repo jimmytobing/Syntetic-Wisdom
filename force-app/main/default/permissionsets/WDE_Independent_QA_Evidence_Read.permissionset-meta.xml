@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Read-only access to QA evidence fields for a separately authorized independent verifier. No commit, edit, create, delete, assignment, or API permission is granted. Do not assign to the generic Groq integration user.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>WDE Independent QA Evidence Read</label>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Batch_Run__c.QA_Enrichment_SHA256__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>WDE_Batch_Run__c.QA_Signed_Receipt__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>WDE_Batch_Run__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+</PermissionSet>
