@@ -36,3 +36,11 @@
 
 ## Operational scope
 No Apex, LWC, middleware or new paid service. Uses existing WDEGeminiVideo External Service/credential; each segment call consumes Gemini model quota and async flow execution. The automation is intentionally scoped to new/changed eligible segments, not unconditional bulk historical replay.
+
+## Legacy cleanup completed — 15 Nov 2026
+- Salesforce official Tooling API permits PATCH of `FlowDefinition.Metadata.activeVersionNumber`, although `ActiveVersionId` itself is read-only. Both legacy Source QA and isolated A/B test Flow were deactivated with `{"Metadata":{"activeVersionNumber":0}}` using the strictly org-bound Sf Request gateway, after first reading the actual active version numbers (2 and 1, respectively).
+- Legacy source-only audio QA `WDE_Verify_YouTube_Gemini_Audio`: [HTTP 204](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6888327993), independent [Tooling readback](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6888358328) confirmed `ActiveVersionId=null`.
+- Test `WDE_Test_Audience_Context_AB`: [HTTP 204](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6888346678), same independent readback confirmed `ActiveVersionId=null`.
+- Source Flow XML for both changed to `<status>Draft</status>` in Draft PR #52 to avoid reactivation during subsequent deployments; the two metadata definitions remain available for historical audit only.
+- New `WDE_Verify_Sermon_Segment_Audio` remains Active `301fj00002FFPu6AAH`, and unchanged comment ingestion/HIVE active versions remain `301fj00002EA0SHAA1` / `301fj00002EBEjJAAX`.
+- Earlier note saying deactivation is unavailable was superseded by this verified supported Tooling Metadata update. The inactive older editorial helper `WDE_Get_Editorial_Audio_Context` also remains Draft; it is not connected to either pipeline.
