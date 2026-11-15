@@ -4,7 +4,7 @@
 <description>Async after-commit automatic audio QA for closed Sermon Segments. PENDING/RETRY_PENDING only, max 3 attempts. No HIVE or Audience writes. Provider fault is tracked by QA subflow.</description>
 <ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
 <ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
-<interviewLabel>[Tgr] WDE Segment Audio QA {!$Flow.CurrentDateTime}</interviewLabel><label>[Tgr] WDE Segment Audio QA</label><processType>AutoLaunchedFlow</processType>
+<interviewLabel>[Tgr] WDE Segment Audio QA {!$Flow.CurrentDateTime}</interviewLabel><label>[Tgr] WDE Segment Audio QA</label><processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues><processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues><processType>AutoLaunchedFlow</processType>
 <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>END_SYNC</targetReference></connector>
 <filterLogic>1 AND (2 OR 3) AND 4</filterLogic>
 <filters><field>WDE_Stitch_Open__c</field><operator>EqualTo</operator><value><booleanValue>false</booleanValue></value></filters>
