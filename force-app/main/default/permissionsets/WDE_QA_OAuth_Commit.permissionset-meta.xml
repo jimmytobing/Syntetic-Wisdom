@@ -9,12 +9,6 @@
   <fieldPermissions><editable>false</editable><field>WDE_Batch_Run__c.QA_Enrichment_SHA256__c</field><readable>true</readable></fieldPermissions>
   <fieldPermissions><editable>true</editable><field>WDE_Batch_Run__c.Status__c</field><readable>true</readable></fieldPermissions>
   <fieldPermissions><editable>false</editable><field>WDE_Batch_Run__c.Approved_Enrichment__c</field><readable>true</readable></fieldPermissions>
-  <fieldPermissions><editable>true</editable><field>WDE_QA_Release__c.Batch_Claim_Key__c</field><readable>true</readable></fieldPermissions>
-  <fieldPermissions><editable>true</editable><field>WDE_QA_Release__c.Release_Key__c</field><readable>true</readable></fieldPermissions>
   <fieldPermissions><editable>true</editable><field>WDE_QA_Release__c.Release_Status__c</field><readable>true</readable></fieldPermissions>
-  <fieldPermissions><editable>true</editable><field>WDE_QA_Release__c.Batch_Run__c</field><readable>true</readable></fieldPermissions>
-  <fieldPermissions><editable>true</editable><field>WDE_QA_Release__c.QA_Version__c</field><readable>true</readable></fieldPermissions>
-  <fieldPermissions><editable>true</editable><field>WDE_QA_Release__c.Evidence_Digest__c</field><readable>true</readable></fieldPermissions>
-  <fieldPermissions><editable>true</editable><field>WDE_QA_Release__c.Authority_Reference__c</field><readable>true</readable></fieldPermissions>
   <fieldPermissions><editable>true</editable><field>WDE_QA_Release__c.Consumed_At__c</field><readable>true</readable></fieldPermissions>
 </PermissionSet>
