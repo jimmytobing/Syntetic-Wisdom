@@ -188,7 +188,7 @@
     
     <recordUpdates>
         <name>Set_B_Review</name>
-        <label>Automatically advance validated AI enrichment to Stage C</label>
+        <label>Hold validated enrichment pending independent QA commit release</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
@@ -211,7 +211,7 @@
         <inputAssignments>
             <field>Status__c</field>
             <value>
-                <stringValue>CommitApproved</stringValue>
+                <stringValue>NeedsCommitReview</stringValue>
             </value>
         </inputAssignments>
         <object>WDE_Batch_Run__c</object>
