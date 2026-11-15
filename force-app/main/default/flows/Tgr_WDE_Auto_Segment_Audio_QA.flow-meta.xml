@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion><areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+<description>Async after-commit automatic audio QA for closed Sermon Segments. PENDING/RETRY_PENDING only, max 3 attempts. No HIVE or Audience writes. Provider fault is tracked by QA subflow.</description>
+<interviewLabel>[Tgr] WDE Segment Audio QA {!$Flow.CurrentDateTime}</interviewLabel><label>[Tgr] WDE Segment Audio QA</label><processType>AutoLaunchedFlow</processType>
+<start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>END_SYNC</targetReference></connector>
+<filterLogic>1 AND (2 OR 3) AND 4</filterLogic>
+<filters><field>WDE_Stitch_Open__c</field><operator>EqualTo</operator><value><booleanValue>false</booleanValue></value></filters>
+<filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>PENDING</stringValue></value></filters>
+<filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>RETRY_PENDING</stringValue></value></filters>
+<filters><field>Audio_QA_Attempts__c</field><operator>LessThan</operator><value><numberValue>3</numberValue></value></filters>
+<object>Sermon_Segment__c</object><recordTriggerType>CreateAndUpdate</recordTriggerType><scheduledPaths><connector><targetReference>Run_Audio_QA</targetReference></connector><pathType>AsyncAfterCommit</pathType></scheduledPaths><triggerType>RecordAfterSave</triggerType></start>
+<status>Draft</status>
+<subflows><name>Run_Audio_QA</name><label>AI audio QA only, one closed Segment</label><locationX>0</locationX><locationY>0</locationY><connector><targetReference>END_ASYNC</targetReference></connector><flowName>WDE_Verify_Sermon_Segment_Audio</flowName><inputAssignments><name>varS_SegmentId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments></subflows>
+<ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends><ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+</Flow>
