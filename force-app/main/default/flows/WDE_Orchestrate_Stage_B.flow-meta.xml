@@ -31,6 +31,8 @@
                     <stringValue>SUCCESS</stringValue>
                 </rightValue>
             </conditions>
+            <conditions><leftValueReference>bLines</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+            <conditions><leftValueReference>bLines</leftValueReference><operator>NotEqualTo</operator><rightValue><stringValue></stringValue></rightValue></conditions>
             <connector>
                 <targetReference>Set_B_Review</targetReference>
             </connector>
@@ -188,7 +190,7 @@
     
     <recordUpdates>
         <name>Set_B_Review</name>
-        <label>Hold validated enrichment pending independent QA commit release</label>
+        <label>Auto approve valid Groq enrichment for Stage C</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
@@ -211,7 +213,7 @@
         <inputAssignments>
             <field>Status__c</field>
             <value>
-                <stringValue>NeedsCommitReview</stringValue>
+                <stringValue>CommitApproved</stringValue>
             </value>
         </inputAssignments>
         <object>WDE_Batch_Run__c</object>
