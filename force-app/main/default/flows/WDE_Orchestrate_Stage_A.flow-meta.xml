@@ -119,6 +119,16 @@
   CASE(TEXT(BLANKVALUE({!Get_Batch.Retry_Count__c}, 0)), &quot;0&quot;, 1, &quot;1&quot;, 5, 15) / 1440
 )</expression>
     </formulas>
+    <formulas>
+        <name>f_Retry_A_Batch_Size</name>
+        <dataType>Number</dataType><scale>0</scale>
+        <expression>IF(
+  AND({!aResult} = &quot;INVALID_AI_FORMAT&quot;,
+      BLANKVALUE({!Get_Batch.Max_Batch_Characters__c}, 3000) &gt; 1000),
+  MAX(1000, FLOOR(BLANKVALUE({!Get_Batch.Max_Batch_Characters__c}, 3000) * 0.7)),
+  BLANKVALUE({!Get_Batch.Max_Batch_Characters__c}, 3000)
+)</expression>
+    </formulas>
     <formulas><name>f_Provider_Error_A</name><dataType>Boolean</dataType>
     <expression>OR({!aResult} = "INVALID_AI_FORMAT", {!aResult} = "INVALID_AI_RANGE", {!aResult} = "EMPTY_RESPONSE", {!aResult} = "GROQ_ERROR")</expression>
 </formulas>
@@ -319,6 +329,7 @@
         <filterLogic>and</filterLogic>
         <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>Get_Batch.Id</elementReference></value></filters>
         <inputAssignments><field>Retry_Count__c</field><value><elementReference>f_Next_A_Retry</elementReference></value></inputAssignments>
+        <inputAssignments><field>Max_Batch_Characters__c</field><value><elementReference>f_Retry_A_Batch_Size</elementReference></value></inputAssignments>
         <inputAssignments><field>Next_Retry_At__c</field><value><elementReference>f_NextRetryAt</elementReference></value></inputAssignments>
         <inputAssignments><field>Error_Message__c</field><value><elementReference>varT_Error</elementReference></value></inputAssignments>
         <inputAssignments><field>Status__c</field><value><stringValue>RetryPending</stringValue></value></inputAssignments>
