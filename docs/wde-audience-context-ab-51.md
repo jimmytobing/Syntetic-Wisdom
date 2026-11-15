@@ -72,3 +72,16 @@ AI_VERIFIED|AUDIO: Pembicara menyapa jemaat, memberi perumpamaan badai/topan di 
 3. Stable `Signal_Key__c` derivation does not change. Confirm no DML in test Flow, and independent SOQL counts before/after remain unchanged.
 4. Existing HIVE scoring metadata and metric values remain untouched. A/B classification equality alone does not prove quality or effectiveness.
 5. Treatment B can be deployed into the real ingest Flow only after satisfactory semantic acceptance and scoped authorization. No automatic activation of changes to production ingest during A/B.
+
+## Actual A/B results — 15 Nov 2026
+- Isolated read-only classification Flow `WDE_Test_Audience_Context_AB` check-only SUCCESS `0Affj00000ZLS5DCAX`, deploy SUCCESS `0Affj00000ZLzfRCAT`, live active/latest version `301fj00002FG3mfAAD`. WDE immutable Org ID verified `00Dfj00000eVCOVEA4`. Test Flow contains one Groq External Service callout and no record-create/update/delete elements.
+- Control A [raw Salesforce response](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6887303085); treatment B [raw Salesforce response](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6887309299). Both Salesforce action HTTP 200, Flow Finished, `varB_Success=true`, Groq response 200; 12/12 distinct IDs and syntactically valid classification lines each.
+- 9/12 identical rows; 3/12 differ:
+  - `ab01`: Finance/NONE/U2/Q2 → Finance/NONE/U3/Q2 (urgency increase).
+  - `ab02`: Emotional/EMOTIONAL_SUPPORT/U1/Q2 → Health/NONE/U1/Q2 (category/context change).
+  - `ab09`: Finance/NONE/U0/Q1 → Finance/NONE/U1/Q2 (urgency and quality increase despite no new comment evidence).
+- All four SKIP rows `ab04, ab05, ab07, ab10` remain SKIP in both arms. Same video context did not create extra actionable signals *for this 12-row synthetic fixture*, but introduced unrequested classification drift elsewhere.
+- **Acceptance outcome: FAIL for integration into live classification**. Same-system-prompt, temperature zero and stable IDs cannot guarantee identical LLM outputs. One A/B pair on synthetic fixtures is insufficient to establish semantic improvement, and `ab09` quality escalation has no clear comment-based grounding.
+- **Decision:** revert `WDE_Fetch_YouTube_Comments.flow-meta.xml` to exact main-branch baseline in Draft PR #52. Never deploy this rejected context injection into live ingest. No change to live Audience Signal records, Need mapping, HIVE rubric, Content Planning Flow, or scheduler was requested or executed here.
+- **Safer future placement:** after audience needs are independently discovered, classified and ranked by HIVE, optionally provide the existing verified first-20-second audio QA as *reference only* for editorial ideation / original content planning. This must not generate new needs, counts, urgency, HIVE component values, or entitlement to reuse copyrighted source material. Do not put the original sermon transcript in generated videos automatically.
+- Remaining: test real anonymized comment corpus with manual gold labels if deciding to reintroduce classifier context later; verify integration-specific rights gates. A read-only callout model test is not a guarantee of overall data snapshot immutability; no pre/post record-count baseline was collected.
