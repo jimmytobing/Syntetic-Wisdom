@@ -35,11 +35,38 @@ export function inspectStoredBatchQaEvidence({
     if (!verification.verified) reasons.push(verification.reason);
   }
   if (record.Status__c !== 'NeedsCommitReview') reasons.push('BATCH_NOT_HELD');
+
+  // A valid HMAC authenticates the issuer, not the truth of a semantic verdict.
+  // A signed REVIEW/FAIL, uncertain PASS, or uncalibrated prototype cannot be
+  // represented as a ready-to-release claim. This is read-only decision support.
+  const review = verification?.verified ? verification.attestation?.review : null;
+  const releaseBlockers = [...reasons];
+  if (review) {
+    if (review.verdict !== 'PASS') releaseBlockers.push('QA_VERDICT_NOT_PASS');
+    if (review.sourceAnchored !== true ||
+        review.boundaryChecksPassed !== true ||
+        review.crossSegmentChecksPassed !== true) releaseBlockers.push('QA_SOURCE_OR_COVERAGE_FAILED');
+    if (!Number.isFinite(review.confidence) || review.confidence < 0.95) {
+      releaseBlockers.push('QA_CONFIDENCE_INSUFFICIENT');
+    }
+    if (!Array.isArray(review.flags) || review.flags.length > 0) {
+      releaseBlockers.push('QA_UNRESOLVED_FLAGS');
+    }
+    if (review.qaVersion === 'deterministic-transcript-review-v1') {
+      releaseBlockers.push('QA_SEMANTIC_CALIBRATION_NOT_VERIFIED');
+    }
+  } else {
+    releaseBlockers.push('QA_ATTESTATION_UNAVAILABLE');
+  }
   return {
     verified: reasons.length === 0,
     reasons,
     attestation: reasons.length === 0 ? verification?.attestation ?? null : null,
-    // Never return a DML payload or an approval decision.
+    // Readiness is NOT Salesforce authorization. Release still needs a trusted
+    // verifier, fresh immutable snapshot, authorized release actor and replay guard.
+    releaseCandidate: releaseBlockers.length === 0,
+    releaseBlockers: [...new Set(releaseBlockers)],
+    // Never return DML payloads, approval tokens, or automatically change statuses.
     releasePerformed: false
   };
 }
