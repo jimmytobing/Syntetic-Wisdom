@@ -4,7 +4,7 @@ import {createHash,createHmac} from 'node:crypto';
 import {assessQaOAuthRelease} from '../scripts/wde-qa-oauth-preflight.mjs';
 import {canonicalQaReceiptPayload,QA_RECEIPT_VERSION} from '../scripts/wde-independent-qa-receipt.mjs';
 const orgId='00Dfj00000eVCOVEA4', batchId='a0Ifj000003f7BtEAI';
-const sourceId='a07fj00001K0zwEAAR',qaUserId='005fj00000QaTestAAA',primaryUserId='005fj00000ApiTestAA';
+const sourceId='a07fj00001K0zwEAAR',qaUserId='005fj00000QaTestAA',primaryUserId='005fj00000ApiTestA';
 const qaVersion='independent-audio-editorial-v2';
 const secret='q'.repeat(40),enrichment='hello;original;source';
 const digest='sha256:'+createHash('sha256').update(enrichment).digest('hex');
