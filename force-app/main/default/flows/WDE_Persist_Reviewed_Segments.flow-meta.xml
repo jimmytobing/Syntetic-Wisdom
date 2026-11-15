@@ -337,22 +337,22 @@
         </connector>
     </assignments>
     <assignments>
-        <name>Error_Approval</name>
-        <label>Stop: enrichment not human reviewed</label>
+        <name>Error_Invalid_Enrichment</name>
+        <label>Reject missing AI enrichment for deterministic validation</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignmentItems>
             <assignToReference>varResultStatus</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>APPROVAL_REQUIRED</stringValue>
+                <stringValue>INVALID_ENRICHMENT</stringValue>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>varErrorMessage</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>Set varHumanReviewed=true only after checking every enriched topic and summary. Supply seven-field approved lines.</stringValue>
+                <stringValue>Missing AI enrichment lines. Deterministic seven-field format and transcript coverage checks are mandatory, but no human approval is required.</stringValue>
             </value>
         </assignmentItems>
         <connector>
@@ -1101,16 +1101,16 @@
         </rules>
     </decisions>
     <decisions>
-        <name>Gate_Human_Review</name>
-        <label>Require nonempty validated enrichment</label>
+        <name>Gate_Validated_AI_Enrichment</name>
+        <label>Require valid machine enrichment; no human approval</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Error_Approval</targetReference>
+            <targetReference>Error_Invalid_Enrichment</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Otherwise</defaultConnectorLabel>
         <rules>
-            <name>Reviewed</name>
+            <name>Nonempty_Enrichment</name>
             <conditionLogic>and</conditionLogic>
             
             <conditions>
@@ -1130,7 +1130,7 @@
             <connector>
                 <targetReference>Get_Sermon_Source</targetReference>
             </connector>
-            <label>Enrichment available</label>
+            <label>AI enrichment supplied for strict validation</label>
         </rules>
     </decisions>
     <decisions>
@@ -1425,7 +1425,7 @@
             <label>Valid Reviewed Line</label>
         </rules>
     </decisions>
-    <description>f_LineWellFormed</description>
+    <description>Strictly validate and persist machine-generated seven-field Sermon Segment enrichment against source caption indices and coverage. No human approval is required. Source mismatch fails closed and system errors require investigation. Audience/HIVE untouched.</description>
     <ends>
         <name>END_ELEMENT_11</name>
         <locationX>0</locationX>
@@ -2018,7 +2018,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Gate_Human_Review</targetReference>
+            <targetReference>Gate_Validated_AI_Enrichment</targetReference>
         </connector>
     </start>
     <status>Active</status>
