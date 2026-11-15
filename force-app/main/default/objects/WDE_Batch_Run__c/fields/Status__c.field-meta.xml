@@ -55,6 +55,11 @@
                 <label>RetryPending</label>
             </value>
             <value>
+                <fullName>SYSTEM_ERROR</fullName>
+                <default>false</default>
+                <label>System Error</label>
+            </value>
+            <value>
                 <fullName>Failed</fullName>
                 <default>false</default>
                 <label>Failed</label>
