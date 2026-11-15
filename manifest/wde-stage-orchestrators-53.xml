@@ -12,5 +12,6 @@
         <members>WDE_Verify_Isolated_Test5_Segment</members>
         <name>Flow</name>
     </types>
+    <types><members>WDE_Batch_Run__c.Status__c</members><name>CustomField</name></types>
     <version>68.0</version>
 </Package>
