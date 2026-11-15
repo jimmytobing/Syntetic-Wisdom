@@ -1,4 +1,4 @@
-name: WDE - Gemini Editorial L1 (manual, Free Tier)
+name: WDE - Gemini Editorial L1 (automated media gate)
 
 on:
   issues:
@@ -9,17 +9,11 @@ on:
       - 'scripts/wde-gemini-editorial-l1.mjs'
       - 'tests/wde-gemini-editorial-l1.test.mjs'
       - '.github/mjs/wde-gemini-audio-issue-gate.mjs'
+      - 'scripts/wde-autonomous-media-preflight.mjs'
+      - 'tests/wde-autonomous-media-preflight.test.mjs'
       - 'tests/wde-gemini-audio-issue-gate.test.mjs'
   workflow_dispatch:
     inputs:
-      free_tier_ack:
-        description: "Verify project coba-oauth-375505 shows Free Tier now; enter FREE_TIER_CONFIRMED"
-        required: true
-        type: string
-      rights_ack:
-        description: "Confirm source media may be sent to Gemini for private review; enter REVIEW_PERMITTED"
-        required: true
-        type: string
       resume_interaction_id:
         description: "Optional: existing background interaction ID from prior receipt (GET-only, no new inference)"
         required: false
@@ -52,7 +46,8 @@ jobs:
         run: |
           node --check scripts/wde-gemini-editorial-l1.mjs
           node --check .github/mjs/wde-gemini-audio-issue-gate.mjs
-          node --test tests/wde-gemini-editorial-l1.test.mjs tests/wde-gemini-audio-issue-gate.test.mjs
+          node --check scripts/wde-autonomous-media-preflight.mjs
+          node --test tests/wde-gemini-editorial-l1.test.mjs tests/wde-gemini-audio-issue-gate.test.mjs tests/wde-autonomous-media-preflight.test.mjs
 
   review:
     if: >-
@@ -60,12 +55,10 @@ jobs:
       github.ref == 'refs/heads/main' &&
       github.actor == 'jimmytobing' &&
       (
-        (github.event_name == 'workflow_dispatch' &&
-          inputs.free_tier_ack == 'FREE_TIER_CONFIRMED' &&
-          inputs.rights_ack == 'REVIEW_PERMITTED') ||
+        (github.event_name == 'workflow_dispatch') ||
         (github.event_name == 'issues' &&
           github.event.action == 'edited' &&
-          github.event.issue.number == 35 &&
+          github.event.issue.number == 54 &&
           github.event.issue.user.login == 'jimmytobing' &&
           contains(github.event.issue.body, '### WDE Request') &&
           contains(github.event.issue.body, 'gemini.audio_probe'))
@@ -84,11 +77,12 @@ jobs:
         run: |
           node --version
           node --check scripts/wde-gemini-editorial-l1.mjs
-      - name: Validate actor and attestations, claim Issue request before inference
+      - name: Authenticate WDE media rights and claim bounded daily Gemini invocation
         env:
           GH_TOKEN: ${{ github.token }}
-          INPUT_FREE_TIER_ACK: ${{ inputs.free_tier_ack }}
-          INPUT_RIGHTS_ACK: ${{ inputs.rights_ack }}
+          SF_INSTANCE_URL: ${{ vars.SF_INSTANCE_URL }}
+          SF_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID || secrets.SF_CLIENT_ID }}
+          SF_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
           INPUT_TEST_MODE: ${{ inputs.test_mode }}
           INPUT_RESUME_INTERACTION_ID: ${{ inputs.resume_interaction_id }}
         run: node .github/mjs/wde-gemini-audio-issue-gate.mjs
@@ -118,7 +112,7 @@ jobs:
         github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'issues' &&
           github.event.action == 'edited' &&
-          github.event.issue.number == 35 &&
+          github.event.issue.number == 54 &&
           github.event.issue.user.login == 'jimmytobing' &&
           contains(github.event.issue.body, '### WDE Request') &&
           contains(github.event.issue.body, 'gemini.audio_probe'))
@@ -127,7 +121,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - name: Add safe status-only audit to existing Issue 35
+      - name: Add safe status-only audit to existing Issue 54
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW_RESULT: ${{ needs.review.result }}
@@ -136,11 +130,11 @@ jobs:
         run: |
           set -euo pipefail
           {
-            printf '## WDE Gemini Editorial L1 — manual/Issue-triggered workflow\n\n'
+            printf '## WDE Gemini Editorial L1 — authenticated machine-gated workflow\n\n'
             printf 'Job status: **%s**. [Run evidence](%s).\n\n' "$REVIEW_RESULT" "$RUN_URL"
-            printf 'Background execution: one inference POST maximum, bounded GET polling; resume uses GET only. No retry or publication.\n'
+            printf 'Background execution: one inference POST maximum per UTC day, bounded GET polling; resume uses GET only. No retry or publication.\n'
             printf 'Model-reported audio access remains unverified by independent reviewer.\n'
             printf 'Candidates remain AI_L1_PROPOSED; editorial/gold labels and auto-approval stay BLOCKED.\n'
             printf 'Result/receipt artifact retained for one day only. No keys or transcript excerpts posted.\n'
           } > "$RUNNER_TEMP/l1-audit.md"
-          gh issue comment 35 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/l1-audit.md"
+          gh issue comment 54 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/l1-audit.md"
