@@ -22,6 +22,17 @@
 - **Remaining evidence boundary:** JSON syntax and required field types were externally checked for one successful stored sample, but Flow only implements basic text/transport gates; the quote and timestamps have **not** been independently compared against the original audio or indexed transcript. Neither `video_accessible` nor the timestamp field means human editorial approval.
 - **No new automation:** Do not move Gemini output to reviewed Sermon Segments or Audience Intelligence automatically, and do not attach a scheduler. Gate semantic/editorial use on source-grounded caption evidence and reviewer signoff, as described in `docs/wde-knowledge-quality-gate-35.md`.
 
+## Indexed-caption cross-check (15 Nov 2026; read-only)
+A read-only `Sf Bash` check independently queried `Sermon_Source__c.Raw_Transcript_Text__c` for the same video and extracted only caption rows with `start_ms < 20000`. The field is populated (73,950 characters); `Transcript_Storage_Key__c` remains null and `Rights_Status__c=Unknown`. This caption source is **separate from the stored Gemini JSON**. It is not proof of original audio/visual authenticity, and no video was downloaded or replayed. [Caption evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/51#issuecomment-6886723373).
+
+| Gemini interval/claim | Caption corroboration | Evidence status |
+| --- | --- | --- |
+| 00:00–00:02: on-screen `Saat Teduh Bersama` title | Stored caption starts at 2,360 ms; visual frame was not independently inspected | **UNVERIFIABLE** (visual) |
+| 00:02–00:10: speaker greeting and storm analogy | Caption index 0–3 at 2,360–8,559 ms begins with `Shalom keluarga`, refers to a storm and an analogy; caption timing overlaps the next interval | **PARTIAL** (content consistent, boundary not exact) |
+| 00:10–00:20: invitation to shelter and seek peace | Caption indices 4–5 at 11,599–14,280 ms describe sheltering and a peaceful heart; index 6 starts at 18,119 ms with the next thought | **MATCH** (topic; not verified verbatim speech) |
+
+**Do not label the video semantic QA as VERIFIED/PASS.** Current evidence corroborates two generated topics using a separately stored caption stream but cannot authenticate raw video frames, exact audio wording, speaker identity, rights, or all time boundaries. Maintain human/source-review pending. The supplied caption offsets refer to caption start times; display durations may overlap.
+
 ## Minimum editorial verification for this video
 1. Retrieve an **independent** first-20-second original audio/video excerpt or indexed captions, not another copy of the Gemini JSON. If no source can be retrieved, mark `SOURCE_UNAVAILABLE` and keep pending.
 2. Compare each timestamp and evidence assertion against the source. Classify each as `MATCH`, `PARTIAL`, `MISMATCH`, or `UNVERIFIABLE`. A paraphrase must **not** be represented as an exact quote.
