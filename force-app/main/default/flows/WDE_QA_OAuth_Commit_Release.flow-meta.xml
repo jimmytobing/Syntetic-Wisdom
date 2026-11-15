@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>68.0</apiVersion>
+  <description>Issue 54 Flow-only synchronous QA commit. Salesforce OAuth user must hold WDE_QA_Commit_Release. Unique batch claim CREATE + Batch update + journal commit share one Flow transaction. No pause/async/fault catch; DML failure rolls back all. The QA OAuth issuer supplies independently evaluated PASS and source-bound evidence digest. Never invoke as primary AI user.</description>
+  <interviewLabel>WDE QA OAuth Commit Release {!$Flow.CurrentDateTime}</interviewLabel>
+  <label>WDE QA OAuth Commit Release</label>
+  <processType>AutoLaunchedFlow</processType>
+  <status>Draft</status>
+  <runInMode>SystemModeWithSharing</runInMode>
+  <variables><name>varS_BatchId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varS_SourceId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varDT_ExpectedModifiedAt</name><dataType>DateTime</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varS_EnrichmentDigest</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varS_EvidenceDigest</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varS_QaVersion</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varS_ReleaseKey</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varS_QaVerdict</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varB_Released</name><dataType>Boolean</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput><value><booleanValue>false</booleanValue></value></variables>
+  <formulas>
+    <name>f_RequestAuthorized</name><dataType>Boolean</dataType>
+    <expression>AND(
+      $Permission.WDE_QA_Commit_Release,
+      {!varS_QaVerdict} = "PASS",
+      REGEX({!varS_EnrichmentDigest},"sha256:[0-9a-f]{64}"),
+      REGEX({!varS_EvidenceDigest},"sha256:[0-9a-f]{64}"),
+      REGEX({!varS_ReleaseKey},"[0-9a-f]{64}"),
+      REGEX({!varS_QaVersion},"[A-Za-z0-9][A-Za-z0-9._-]{1,79}")
+    )</expression>
+  </formulas>
+  <decisions>
+    <name>Check_Identity</name><label>Custom Permission required for OAuth QA actor</label><locationX>0</locationX><locationY>0</locationY><defaultConnectorLabel>Denied</defaultConnectorLabel>
+    <rules><name>Authorized</name><conditionLogic>and</conditionLogic>
+      <conditions><leftValueReference>f_RequestAuthorized</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
+      <connector><targetReference>Get_Batch</targetReference></connector><label>Authorized QA request</label>
+    </rules>
+  </decisions>
+  <decisions>
+    <name>Check_Fresh_Batch</name><label>Require fresh held source-bound QA snapshot</label><locationX>0</locationX><locationY>0</locationY><defaultConnectorLabel>Stale or unverified</defaultConnectorLabel>
+    <rules><name>Eligible</name><conditionLogic>and</conditionLogic>
+      <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>NeedsCommitReview</stringValue></rightValue></conditions>
+      <conditions><leftValueReference>Get_Batch.Sermon_Source__c</leftValueReference><operator>EqualTo</operator><rightValue><elementReference>varS_SourceId</elementReference></rightValue></conditions>
+      <conditions><leftValueReference>Get_Batch.LastModifiedDate</leftValueReference><operator>EqualTo</operator><rightValue><elementReference>varDT_ExpectedModifiedAt</elementReference></rightValue></conditions>
+      <conditions><leftValueReference>Get_Batch.QA_Enrichment_SHA256__c</leftValueReference><operator>EqualTo</operator><rightValue><elementReference>varS_EnrichmentDigest</elementReference></rightValue></conditions>
+      <conditions><leftValueReference>Get_Batch.Approved_Enrichment__c</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+      <connector><targetReference>Create_Claim</targetReference></connector><label>Eligible</label>
+    </rules>
+  </decisions>
+  <recordLookups>
+    <name>Get_Batch</name><label>Read held Batch Run</label><locationX>0</locationX><locationY>0</locationY>
+    <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+    <connector><targetReference>Check_Fresh_Batch</targetReference></connector>
+    <filterLogic>and</filterLogic>
+    <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_BatchId</elementReference></value></filters>
+    <getFirstRecordOnly>true</getFirstRecordOnly><object>WDE_Batch_Run__c</object><storeOutputAutomatically>true</storeOutputAutomatically>
+  </recordLookups>
+  <recordCreates>
+    <name>Create_Claim</name><label>INSERT unique QA release claim, never upsert</label><locationX>0</locationX><locationY>0</locationY>
+    <connector><targetReference>Update_Batch</targetReference></connector>
+    <inputAssignments><field>Batch_Claim_Key__c</field><value><elementReference>Get_Batch.Id</elementReference></value></inputAssignments>
+    <inputAssignments><field>Batch_Run__c</field><value><elementReference>Get_Batch.Id</elementReference></value></inputAssignments>
+    <inputAssignments><field>Release_Key__c</field><value><elementReference>varS_ReleaseKey</elementReference></value></inputAssignments>
+    <inputAssignments><field>Evidence_Digest__c</field><value><elementReference>varS_EvidenceDigest</elementReference></value></inputAssignments>
+    <inputAssignments><field>QA_Version__c</field><value><elementReference>varS_QaVersion</elementReference></value></inputAssignments>
+    <inputAssignments><field>Authority_Reference__c</field><value><elementReference>$User.Id</elementReference></value></inputAssignments>
+    <inputAssignments><field>Release_Status__c</field><value><stringValue>Reserved</stringValue></value></inputAssignments>
+    <object>WDE_QA_Release__c</object><storeOutputAutomatically>true</storeOutputAutomatically>
+  </recordCreates>
+  <recordUpdates>
+    <name>Update_Batch</name><label>Release held Batch within current transaction</label><locationX>0</locationX><locationY>0</locationY>
+    <connector><targetReference>Commit_Claim</targetReference></connector>
+    <filterLogic>and</filterLogic>
+    <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>Get_Batch.Id</elementReference></value></filters>
+    <filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>NeedsCommitReview</stringValue></value></filters>
+    <filters><field>LastModifiedDate</field><operator>EqualTo</operator><value><elementReference>varDT_ExpectedModifiedAt</elementReference></value></filters>
+    <inputAssignments><field>Status__c</field><value><stringValue>CommitApproved</stringValue></value></inputAssignments>
+    <object>WDE_Batch_Run__c</object>
+  </recordUpdates>
+  <recordUpdates>
+    <name>Commit_Claim</name><label>Commit QA journal in same transaction</label><locationX>0</locationX><locationY>0</locationY>
+    <connector><targetReference>Mark_Released</targetReference></connector>
+    <filterLogic>and</filterLogic>
+    <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>Create_Claim</elementReference></value></filters>
+    <inputAssignments><field>Release_Status__c</field><value><stringValue>Committed</stringValue></value></inputAssignments>
+    <inputAssignments><field>Consumed_At__c</field><value><elementReference>$Flow.CurrentDateTime</elementReference></value></inputAssignments>
+    <object>WDE_QA_Release__c</object>
+  </recordUpdates>
+  <assignments>
+    <name>Mark_Released</name><label>Indicate transaction reached final step</label><locationX>0</locationX><locationY>0</locationY>
+    <assignmentItems><assignToReference>varB_Released</assignToReference><operator>Assign</operator><value><booleanValue>true</booleanValue></value></assignmentItems>
+  </assignments>
+  <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Check_Identity</targetReference></connector></start>
+</Flow>
