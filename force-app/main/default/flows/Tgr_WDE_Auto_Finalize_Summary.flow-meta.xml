@@ -21,6 +21,7 @@
                     <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
+            <conditions><leftValueReference>$Record.Audio_QA_Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>PASS</stringValue></rightValue></conditions>
             <conditions>
                 <leftValueReference>$Record.Transcript_Text__c</leftValueReference>
                 <operator>IsNull</operator>
@@ -41,7 +42,7 @@
             <label>Eligible</label>
         </rules>
     </decisions>
-    <description>After-save async trigger for provisional stitched summaries. Calls WDE_Finalize_Segment_Summary only for closed eligible Sermon_Segment__c records; callout runs after commit.</description>
+    <description>After-save async summary finalization only after the closed Sermon Segment passes automatic machine Audio QA. AI FAIL and SYSTEM_ERROR remain excluded. No human approval; original Audience/HIVE pipeline untouched.</description>
     <ends>
         <name>END_ELEMENT_4</name>
         <locationX>0</locationX>
@@ -94,6 +95,7 @@
                 <booleanValue>false</booleanValue>
             </value>
         </filters>
+        <filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>PASS</stringValue></value></filters>
         <object>Sermon_Segment__c</object>
         <recordTriggerType>CreateAndUpdate</recordTriggerType>
         <scheduledPaths>
