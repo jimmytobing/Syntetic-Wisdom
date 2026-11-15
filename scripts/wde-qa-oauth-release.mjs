@@ -30,8 +30,8 @@ function preflight(){
 async function call(path,{method='GET',token,body}={}){
   const resp=await fetch(url(path),{
     method,redirect:'error',signal:AbortSignal.timeout(20000),
-    headers:{'Authorization':token?'Bearer '+token:undefined,
-      'Content-Type':body?'application/json':undefined},
+    headers:{...(token?{'Authorization':'Bearer '+token}:{}),
+      ...(body?{'Content-Type':'application/json'}:{})},
     ...(body?{body:JSON.stringify(body)}:{})
   });
   const text=await resp.text();
