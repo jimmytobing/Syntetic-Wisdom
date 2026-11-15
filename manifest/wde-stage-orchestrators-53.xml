@@ -8,6 +8,7 @@
         <members>WDE_Orchestrate_Stage_B</members>
         <members>WDE_Orchestrate_Stage_C</members>
         <members>WDE_Persist_Reviewed_Segments</members>
+        <members>WDE_Recover_Verified_Stage_C</members>
         <name>Flow</name>
     </types>
     <version>68.0</version>
