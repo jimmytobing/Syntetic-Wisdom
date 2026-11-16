@@ -1,4 +1,4 @@
-name: Jim - Isolated Bash
+name: Jim - Dupcheck and isolated Bash (Issue request)
 
 on:
   issues:
@@ -6,12 +6,56 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: jim-api-issue-${{ github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
+  jim-request:
+    if: >-
+      contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
+      contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
+      contains(github.event.issue.body, '### Jim Request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SF_BFI_PROD_APIKEY: ${{ secrets.SF_BFI_PROD_APIKEY }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify exact Jim Request heading
+        id: route
+        shell: bash
+        run: |
+          if printf '%s\n' "$ISSUE_BODY" | grep -Eq '^### Jim Request[[:space:]]*$'; then
+            echo 'valid=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'valid=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Call fixed Dupcheck endpoint and prepare evidence
+        id: jim
+        if: steps.route.outputs.valid == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/mjs/jim-request.mjs
+      - name: Publish result in the same Issue
+        if: always() && steps.route.outputs.valid == 'true' && steps.jim.outcome != 'skipped'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -s "$RUNNER_TEMP/jim-request-comment.md" ]]; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/jim-request-comment.md"
+          else
+            echo 'No evidence file generated; see job logs.' >&2
+            exit 1
+          fi
+
   jim-bash:
     if: >-
       contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
