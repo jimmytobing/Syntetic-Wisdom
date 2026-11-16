@@ -71,3 +71,16 @@ test('Batch status field exposes the exact Stage A/B/C transition values',()=>{
  const pkg=file('manifest/wde-flow-only-groq-gemini-54.xml');
  assert.match(pkg,/<members>WDE_Batch_Run__c.Status__c<\/members>/);
 });
+
+test('REST batch advance is system-with-sharing, but preserves user record sharing and audits faults',()=>{
+ const xml=file(flows+'WDE_Auto_Advance_Batch.flow-meta.xml');
+ assert.match(xml,/<runInMode>SystemModeWithSharing<\/runInMode>/);
+ assert.doesNotMatch(xml,/<runInMode>SystemModeWithoutSharing<\/runInMode>/);
+ assert.match(xml,/<name>Capture_Update_Fault<\/name>/);
+ assert.match(xml,/<assignToReference>varT_Error<\/assignToReference>/);
+ for(const name of ['Save_Validated_Boundaries','Save_Validated_Enrichment']){
+  const update=xml.match(new RegExp('<recordUpdates><name>'+name+'</name>[\\s\\S]*?<\\/recordUpdates>'))?.[0];
+  assert.ok(update,'update '+name+' is present');
+  assert.match(update,/<faultConnector><targetReference>Capture_Update_Fault<\/targetReference><\/faultConnector>/);
+ }
+});
