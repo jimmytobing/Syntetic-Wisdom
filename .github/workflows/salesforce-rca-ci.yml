@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/ISSUE_TEMPLATE/salesforce-rca.yml"
-      - ".github/workflows/salesforce-rca*.yml"
+      - ".github/workflows/salesforce-rca-ci.yml"
       - "scripts/salesforce-rca*.mjs"
       - "tests/salesforce-rca*.test.mjs"
       - "config/salesforce-rca/**"
@@ -33,7 +33,7 @@ jobs:
       - name: Validasi YAML
         shell: bash
         run: |
-          ruby -e "require 'yaml'; YAML.load_file('.github/workflows/salesforce-rca.yml'); YAML.load_file('.github/workflows/salesforce-rca-ci.yml'); YAML.load_file('.github/ISSUE_TEMPLATE/salesforce-rca.yml')"
+          ruby -e "require 'yaml'; YAML.load_file('.github/workflows/salesforce-rca-ci.yml'); YAML.load_file('.github/ISSUE_TEMPLATE/salesforce-rca.yml')"
 
       - name: Validasi XML
         shell: bash
