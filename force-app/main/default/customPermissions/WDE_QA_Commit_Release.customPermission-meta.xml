@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
-  <description>Allows dedicated OAuth QA identity to invoke the guarded WDE release Flow. Do not assign to AI generation user.</description>
-  <label>WDE QA Commit Release</label>
-</CustomPermission>
