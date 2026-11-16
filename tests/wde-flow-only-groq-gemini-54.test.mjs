@@ -62,3 +62,12 @@ test('Groq authentication has no literal API key in committed credential metadat
  assert.doesNotMatch(named,/<parameterName>Authorization<\/parameterName>/);
  assert.match(external,/\$Credential\.WDE_Groq_External\.ApiKey/);
 });
+
+test('Batch status field exposes the exact Stage A/B/C transition values',()=>{
+ const xml=file('force-app/main/default/objects/WDE_Batch_Run__c/fields/Status__c.field-meta.xml');
+ for(const value of ['BoundariesApproved','CommitApproved','NeedsCommitReview','RetryPending','Completed','SYSTEM_ERROR']){
+  assert.match(xml,new RegExp('<fullName>'+value+'</fullName>'));
+ }
+ const pkg=file('manifest/wde-flow-only-groq-gemini-54.xml');
+ assert.match(pkg,/<members>WDE_Batch_Run__c.Status__c<\/members>/);
+});
