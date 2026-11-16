@@ -35,6 +35,16 @@
                 <label>Enriching</label>
             </value>
             <value>
+                <fullName>BoundariesApproved</fullName>
+                <default>false</default>
+                <label>Boundaries Approved</label>
+            </value>
+            <value>
+                <fullName>CommitApproved</fullName>
+                <default>false</default>
+                <label>Commit Approved</label>
+            </value>
+            <value>
                 <fullName>NeedsCommitReview</fullName>
                 <default>false</default>
                 <label>NeedsCommitReview</label>
