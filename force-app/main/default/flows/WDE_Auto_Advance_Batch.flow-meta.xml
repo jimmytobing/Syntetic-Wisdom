@@ -5,8 +5,10 @@
 <interviewLabel>WDE Auto Advance Batch {!$Flow.CurrentDateTime}</interviewLabel>
 <label>WDE Auto Advance Batch</label>
 <processType>AutoLaunchedFlow</processType>
+<runInMode>SystemModeWithSharing</runInMode>
 <status>Active</status>
 <variables><name>varS_BatchId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+<variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
 <variables><name>varB_Advanced</name><dataType>Boolean</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput><value><booleanValue>false</booleanValue></value></variables>
 <recordLookups><name>Get_Batch</name><label>Find current batch</label><locationX>0</locationX><locationY>0</locationY>
 <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
@@ -27,6 +29,7 @@
 </decisions>
 <recordUpdates><name>Save_Validated_Boundaries</name><label>Advance validated Stage A boundaries to Stage B; never auto-approve commit</label><locationX>0</locationX><locationY>0</locationY>
 <connector><targetReference>Mark_Advanced</targetReference></connector>
+<faultConnector><targetReference>Capture_Update_Fault</targetReference></faultConnector>
 <filterLogic>and</filterLogic><filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_BatchId</elementReference></value></filters>
 <inputAssignments><field>Approved_Boundaries__c</field><value><elementReference>Get_Batch.Draft_Boundaries__c</elementReference></value></inputAssignments>
 <inputAssignments><field>Status__c</field><value><stringValue>BoundariesApproved</stringValue></value></inputAssignments>
@@ -34,11 +37,13 @@
 
 <recordUpdates><name>Save_Validated_Enrichment</name><label>Promote previously held validated enrichment</label><locationX>0</locationX><locationY>0</locationY>
 <connector><targetReference>Mark_Advanced</targetReference></connector>
+<faultConnector><targetReference>Capture_Update_Fault</targetReference></faultConnector>
 <filterLogic>and</filterLogic>
 <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_BatchId</elementReference></value></filters>
 <filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>NeedsCommitReview</stringValue></value></filters>
 <inputAssignments><field>Status__c</field><value><stringValue>CommitApproved</stringValue></value></inputAssignments>
 <object>WDE_Batch_Run__c</object></recordUpdates>
+<assignments><name>Capture_Update_Fault</name><label>Surface DML failure without silently approving Batch</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varT_Error</assignToReference><operator>Assign</operator><value><elementReference>$Flow.FaultMessage</elementReference></value></assignmentItems></assignments>
 <assignments><name>Hold_For_Independent_QA</name><label>Legacy no-op not used</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varB_Advanced</assignToReference><operator>Assign</operator><value><booleanValue>false</booleanValue></value></assignmentItems></assignments>
 <assignments><name>Mark_Advanced</name><label>Mark advanced</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varB_Advanced</assignToReference><operator>Assign</operator><value><booleanValue>true</booleanValue></value></assignmentItems></assignments>
 <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Get_Batch</targetReference></connector></start>
