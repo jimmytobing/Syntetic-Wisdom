@@ -24,7 +24,7 @@ Scope authorized: **Flow-first only; no Apex, HMAC receipt, dedicated OAuth QA r
 
 - The selective Audio QA flag is set automatically on material external transcript/source/timing changes, or explicitly for suspected mismatches; it is **not a complete initial-segmentation confidence model**. Determine any additional Groq evidence-based triggers in a later validated change.
 - Previously the GitHub runner failed before any job executed, across unrelated workflows. Removing the obsolete OAuth QA GitHub workflow reduces unnecessary runs but does **not** fix account-level Actions runner allocation/billing. No untrusted shell or alternate org may be used to bypass the gate.
-- Groq Named Credential source contains a credential-like static Authorization value; rotate/revoke and move to a secured secret-managed External Credential under authorized control, but don't destroy the current Groq authentication before replacement is verified.
+- Groq Authorization literals were scrubbed from the PR source. The External Credential header now references encrypted principal parameter `WDE_Groq_External.ApiKey`. **Before deploying these credential metadata files**, configure and verify the principal authentication parameter/permission mappings in target org. Removing source literals does **not** rotate/revoke the exposed historical key; owner must rotate it securely. Do not break existing active Groq callouts.
 - PR #52 remains Draft. No OAuth QA permission assignment or activation is required for the simplified design.
 
 ## Acceptance
