@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-  <fullName>Evidence_Digest__c</fullName><label>Evidence Digest</label>
-  <description>sha256: followed by exact independent QA evidence digest. Must be externally verified, not trusted on presence alone.</description>
-  <type>Text</type><length>71</length><required>true</required><unique>false</unique><externalId>false</externalId>
-</CustomField>
