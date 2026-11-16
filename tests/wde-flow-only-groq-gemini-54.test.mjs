@@ -41,3 +41,13 @@ test('No OAuth QA release workflow, HMAC runner, or Apex required',()=>{
  assert.doesNotMatch(pkg,/<name>ApexClass<\/name>/);
  assert.match(pkg,/<members>WDE_Orchestrate_Stage_B<\/members>/);
 });
+
+test('material segment edits automatically opt in to Gemini audio re-verification',()=>{
+ const xml=file(flows+'Tgr_WDE_Reset_Segment_Audio_QA.flow-meta.xml');
+ const update=xml.match(/<name>Reset_Audio_QA<\/name>[\s\S]*?<\/assignments>/)?.[0];
+ assert.ok(update,'reset assignment is present');
+ assert.match(update,/<assignToReference>\$Record.Audio_QA_Required__c<\/assignToReference>[\s\S]*?<booleanValue>true<\/booleanValue>/);
+ assert.match(update,/<assignToReference>\$Record.Audio_QA_Status__c<\/assignToReference>[\s\S]*?<stringValue>PENDING<\/stringValue>/);
+ assert.match(xml,/<name>Check_Material_Change<\/name>/);
+ assert.match(file('manifest/wde-flow-only-groq-gemini-54.xml'),/<members>Tgr_WDE_Reset_Segment_Audio_QA<\/members>/);
+});
