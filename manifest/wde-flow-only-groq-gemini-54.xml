@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <types>
+    <members>Sermon_Segment__c.Audio_QA_Required__c</members>
+    <name>CustomField</name>
+  </types>
+  <types>
+    <members>WDE_Orchestrate_Stage_B</members>
+    <members>WDE_Auto_Advance_Batch</members>
+    <members>Tgr_WDE_Auto_Segment_Audio_QA</members>
+    <name>Flow</name>
+  </types>
+  <version>68.0</version>
+</Package>
