@@ -27,7 +27,9 @@ test('Gemini audio trigger is conditional on explicit need and retries remain bo
  const xml=file(flows+'Tgr_WDE_Auto_Segment_Audio_QA.flow-meta.xml');
  assert.match(xml,/<field>Audio_QA_Required__c<\/field><operator>EqualTo<\/operator><value><booleanValue>true<\/booleanValue>/);
  assert.match(xml,/<field>Audio_QA_Required__c<\/field><operator>IsChanged<\/operator><value><booleanValue>true<\/booleanValue>/);
- assert.match(xml,/1 AND \(2 OR 3\) AND 4 AND 7 AND \(5 OR 6 OR 8\)/);
+ assert.match(xml,/1 AND \(2 OR 3\) AND 4 AND 5 AND 6/);
+ assert.doesNotMatch(xml,/<field>Audio_QA_Status__c<\/field><operator>IsChanged/);
+ assert.doesNotMatch(xml,/<field>Audio_QA_Attempts__c<\/field><operator>IsChanged/);
  assert.match(xml,/<numberValue>3<\/numberValue>/);
  assert.match(file('force-app/main/default/objects/Sermon_Segment__c/fields/Audio_QA_Required__c.field-meta.xml'),/<defaultValue>false<\/defaultValue>/);
 });
@@ -83,4 +85,15 @@ test('REST batch advance is system-with-sharing, but preserves user record shari
   assert.ok(update,'update '+name+' is present');
   assert.match(update,/<faultConnector><targetReference>Capture_Update_Fault<\/targetReference><\/faultConnector>/);
  }
+});
+
+test('Scheduled Flow-only Audio QA recovery avoids async self-rescheduling',()=>{
+ const xml=file(flows+'WDE_Daily_Segment_Audio_QA_Recovery.flow-meta.xml');
+ assert.match(xml,/<frequency>Daily<\/frequency>/);
+ assert.match(xml,/<maxBatchSize>1<\/maxBatchSize>/);
+ assert.match(xml,/<triggerType>Scheduled<\/triggerType>/);
+ assert.match(xml,/<flowName>WDE_Verify_Sermon_Segment_Audio<\/flowName>/);
+ assert.match(xml,/<field>Audio_QA_Required__c<\/field><operator>EqualTo<\/operator>/);
+ assert.match(xml,/<field>Audio_QA_Attempts__c<\/field><operator>LessThan<\/operator>/);
+ assert.match(file('manifest/wde-flow-only-groq-gemini-54.xml'),/<members>WDE_Daily_Segment_Audio_QA_Recovery<\/members>/);
 });

@@ -30,3 +30,8 @@ Scope authorized: **Flow-first only; no Apex, HMAC receipt, dedicated OAuth QA r
 ## Acceptance
 
 Verified end-to-end Groq segmentation → Segment DML, source coverage without overlaps/gaps, zero Gemini calls for not-required segments, actual flagged-segment PASS and FAIL/recovery, and valid historical Batch controlled replay. Workflow CI must PASS; PR ready for final review only after actual Salesforce and GitHub evidence.
+
+## Audio QA self-rescheduling RCA (16 November 2026)
+Live Salesforce evidence: all 52 batch records Completed, contiguous transcript positions 1..78471, all 21 canonical Segment_Key ranges contiguous 0..1863, and 27 of 27 Audience Signals YouTube-keyed. Two flagged closed segments have Async_Error__c=SELF_RESCHEDULING_ASYNC_PATH. Worker DML on QA status/attempt requalified the same record-triggered async flow.
+Minimal Flow-only fix: async trigger runs when Audio_QA_Required__c changes to true, not when its worker mutates status/attempt. A schedule-triggered recovery Flow processes only closed, opted-in PENDING/RETRY_PENDING with attempts under 3; daily 01:00Z in org timezone, batch size 1, via existing Gemini QA worker and bounded error logging. Genuine model FAIL stays FAIL; no action on unflagged PENDING or Audience/HIVE.
+Prove activation/behavior after deployment and next scheduled run; no runtime success is implied by repository commit. Groq credential rotation and old OAuth QA metadata retirement require independent verification.
