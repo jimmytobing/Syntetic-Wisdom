@@ -1,4 +1,4 @@
-name: SF - WDE API (Issue request)
+name: SF - WDE CI/CD and Bash
 
 on:
   issues:
@@ -6,58 +6,12 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
   group: sf-api-issue-${{ github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
-  sf-request:
-    if: >-
-      contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
-      contains(fromJSON('["jimmytobing","098595"]'), github.event.issue.user.login) &&
-      contains(github.event.issue.body, '### Sf Request')
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      SF_CLIENT_ID: ${{ secrets.SF_RCA_CLIENT_ID || secrets.SF_CLIENT_ID }}
-      SF_CLIENT_SECRET: ${{ secrets.SF_RCA_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
-      SF_INSTANCE_URL: ${{ vars.SF_INSTANCE_URL }}
-      ISSUE_BODY: ${{ github.event.issue.body }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Verify exact Sf Request heading
-        id: route
-        shell: bash
-        run: |
-          if printf '%s\n' "$ISSUE_BODY" | grep -Eq '^### Sf Request[[:space:]]*$'; then
-            echo 'valid=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'valid=false' >> "$GITHUB_OUTPUT"
-          fi
-      - name: Run Salesforce issue request and prepare collapsible evidence
-        id: jim
-        if: steps.route.outputs.valid == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          node .github/mjs/sf-request.mjs
-      - name: Publish result in the same Issue
-        if: always() && steps.route.outputs.valid == 'true' && steps.jim.outcome != 'skipped'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -s "$RUNNER_TEMP/sf-request-comment.md" ]]; then
-            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/sf-request-comment.md"
-          else
-            echo 'No evidence file generated; see job logs.' >&2
-            exit 1
-          fi
-
   sf-bash:
     if: >-
       contains(fromJSON('["jimmytobing","098595"]'), github.actor) &&
