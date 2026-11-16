@@ -51,3 +51,14 @@ test('material segment edits automatically opt in to Gemini audio re-verificatio
  assert.match(xml,/<name>Check_Material_Change<\/name>/);
  assert.match(file('manifest/wde-flow-only-groq-gemini-54.xml'),/<members>Tgr_WDE_Reset_Segment_Audio_QA<\/members>/);
 });
+
+test('Groq authentication has no literal API key in committed credential metadata',()=>{
+ const named=file('force-app/main/default/namedCredentials/WDE_Groq_API.namedCredential-meta.xml');
+ const external=file('force-app/main/default/externalCredentials/WDE_Groq_External.externalCredential-meta.xml');
+ assert.doesNotMatch(named,/gsk_[A-Za-z0-9_-]{12,}/);
+ assert.doesNotMatch(external,/gsk_[A-Za-z0-9_-]{12,}/);
+ assert.match(named,/<generateAuthorizationHeader>false<\/generateAuthorizationHeader>/);
+ assert.match(named,/<allowMergeFieldsInHeader>true<\/allowMergeFieldsInHeader>/);
+ assert.doesNotMatch(named,/<parameterName>Authorization<\/parameterName>/);
+ assert.match(external,/\$Credential\.WDE_Groq_External\.ApiKey/);
+});
