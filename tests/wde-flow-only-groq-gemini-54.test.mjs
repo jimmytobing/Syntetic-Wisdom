@@ -97,3 +97,27 @@ test('Scheduled Flow-only Audio QA recovery avoids async self-rescheduling',()=>
  assert.match(xml,/<field>Audio_QA_Attempts__c<\/field><operator>LessThan<\/operator>/);
  assert.match(file('manifest/wde-flow-only-groq-gemini-54.xml'),/<members>WDE_Daily_Segment_Audio_QA_Recovery<\/members>/);
 });
+
+test('audio correction resets QA attempts so the scheduled independent recheck remains eligible',()=>{
+ const xml=file(flows+'WDE_Verify_Sermon_Segment_Audio.flow-meta.xml');
+ const correction=xml.match(/<recordUpdates><name>Save_Auto_Correction<\/name>[\s\S]*?<\/recordUpdates>/)?.[0];
+ assert.ok(correction);
+ assert.match(correction,/<field>Audio_QA_Correction_Attempts__c<\/field><value><numberValue>1<\/numberValue>/);
+ assert.match(correction,/<field>Audio_QA_Status__c<\/field><value><stringValue>RETRY_PENDING<\/stringValue>/);
+ assert.match(correction,/<field>Audio_QA_Attempts__c<\/field><value><numberValue>0<\/numberValue>/);
+ const save=xml.match(/<recordUpdates><name>Save_QA<\/name>[\s\S]*?<\/recordUpdates>/)?.[0];
+ assert.ok(save);
+ assert.match(save,/<field>Audio_QA_Attempts__c<\/field><value><elementReference>f_Next_Attempt<\/elementReference>/);
+ const schedule=file(flows+'WDE_Daily_Segment_Audio_QA_Recovery.flow-meta.xml');
+ assert.match(schedule,/<field>Audio_QA_Attempts__c<\/field><operator>LessThan<\/operator><value><numberValue>3<\/numberValue>/);
+});
+
+test('scheduled QA runtime principal access is Gemini-only and tracked in deployment',()=>{
+ const ps=file('force-app/main/default/permissionsets/WDE_Gemini_Audio_QA_Runtime.permissionset-meta.xml');
+ assert.match(ps,/<externalCredentialPrincipal>GeminiExCred-UntukPermSet<\/externalCredentialPrincipal>/);
+ assert.doesNotMatch(ps,/WDE_Groq_External|WDE_Supadata_Auth/);
+ assert.doesNotMatch(ps,/<objectPermissions>/);
+ const pkg=file('manifest/wde-flow-only-groq-gemini-54.xml');
+ assert.match(pkg,/<members>WDE_Gemini_Audio_QA_Runtime<\/members>/);
+ assert.match(pkg,/<members>WDE_Verify_Sermon_Segment_Audio<\/members>/);
+});
