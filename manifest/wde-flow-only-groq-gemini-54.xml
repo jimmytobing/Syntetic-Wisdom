@@ -11,7 +11,12 @@
     <members>WDE_Daily_Segment_Audio_QA_Recovery</members>
     <members>Tgr_WDE_Auto_Segment_Audio_QA</members>
     <members>Tgr_WDE_Reset_Segment_Audio_QA</members>
+    <members>WDE_Verify_Sermon_Segment_Audio</members>
     <name>Flow</name>
+  </types>
+  <types>
+    <members>WDE_Gemini_Audio_QA_Runtime</members>
+    <name>PermissionSet</name>
   </types>
   <version>68.0</version>
 </Package>
