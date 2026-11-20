@@ -200,8 +200,8 @@ export async function pollExistingInteraction({id,headers,initial=null,
 async function main(){
   assert(process.env.GITHUB_REPOSITORY==='jimmytobing/Syntetic-Wisdom','Wrong repository');
   assert(process.env.GITHUB_REF==='refs/heads/main','Only main is allowed to execute');
-  assert(process.env.WDE_FREE_TIER_ACK==='FREE_TIER_CONFIRMED','Free Tier attestation required');
-  assert(process.env.WDE_RIGHTS_ACK==='REVIEW_PERMITTED','Source review permission attestation required');
+  assert(process.env.WDE_SOURCE_RIGHTS_VERIFIED==='true','WDE source rights verification missing');
+  assert(process.env.WDE_PROVIDER_CALL_GUARD_VERIFIED==='true','Trusted daily provider-call gate missing');
   const mode=process.env.WDE_TEST_MODE||'editorial';
   assert(['editorial','audio_probe'].includes(mode),'Invalid test mode');
   const key=process.env.WDE_GEMINI_API_KEY;

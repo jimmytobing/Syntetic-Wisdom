@@ -1023,7 +1023,7 @@
         <dataType>Boolean</dataType>
         <expression>REGEX(
   {!f_SegmentLine},
-  &quot;^[0-9]+;[0-9]+;(Teaching|Testimony|Prayer|Worship|Other);(true|false);(true|false);[^;|]{1,255};[^;|]{1,220}$&quot;
+  &quot;^[0-9]+;[0-9]+;(Teaching|Testimony|Prayer|Worship|Other);(true|false);(true|false);[^;|]{1,120};[^;|]{1,180}$&quot;
 )</expression>
     </formulas>
     <formulas>
@@ -1270,7 +1270,7 @@ ATURAN ANALISIS:
 
 8. Setiap Topic harus spesifik untuk satu segmen, bukan judul umum yang mencakup beberapa narator. Panjang maksimum Topic adalah 120 karakter.
 
-9. Summary harus akurat dan hanya berdasarkan fakta yang terdapat dalam rentang caption segmen tersebut. Panjang maksimum Summary adalah 180 karakter.
+9. Summary harus akurat dan hanya berdasarkan fakta yang terdapat dalam rentang caption segmen tersebut. Panjang maksimum Summary adalah 180 karakter. Targetkan paling banyak 150 karakter untuk menghindari output melampaui batas setelah tanda baca.
 
 10. Semua caption dalam batch WAJIB tercakup tepat satu kali secara berurutan tanpa gap dan overlap. Segmen pertama mulai pada indeks pertama batch dan segmen terakhir selesai pada indeks terakhir batch.
 
@@ -1373,7 +1373,7 @@ ATURAN STRUKTUR:
 7. segment_type hanya boleh Teaching, Testimony, Prayer, Worship, atau Other.
 8. from_previous dan to_next harus literal true atau false dengan huruf kecil.
 9. Topic maksimum 120 karakter, termasuk spasi dan tanda baca.
-10. Summary maksimum 180 karakter, termasuk spasi dan tanda baca.
+10. Summary maksimum 180 karakter, termasuk spasi dan tanda baca. Targetkan maksimum 150 karakter untuk margin format.
 11. Semua indeks harus bilangan bulat dan membentuk cakupan berurutan tanpa gap maupun overlap.
 12. Gunakan Bahasa Indonesia untuk Topic dan Summary.
 13. Jangan menambahkan JSON, Markdown, header, code fence, komentar, atau penjelasan.

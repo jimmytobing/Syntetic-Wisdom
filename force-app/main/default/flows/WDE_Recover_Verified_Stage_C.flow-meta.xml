@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <name>Check_Eligible_Recovery</name>
+        <label>Only retry verified Stage C stitching failures</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <defaultConnectorLabel>Not an eligible retry</defaultConnectorLabel>
+        <rules>
+            <name>Exact_Stitch_Error_Under_Limit</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>Failed</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Error_Message__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>First segment continues from prior batch, but no stored OPEN segment ends exactly at start-1 with matching type. Persist earlier batches first.</stringValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Retry_Count__c</leftValueReference><operator>LessThan</operator><rightValue><numberValue>3.0</numberValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Batch.Approved_Enrichment__c</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+            <connector><targetReference>Call_Stage_C_Recovery</targetReference></connector>
+            <label>Exact known error and bounded attempt</label>
+        </rules>
+    </decisions>
+    <description>Issue 53: narrow privileged recovery of known Stage C cross-batch stitching error. System context WITH sharing, verifies failure signature and retry bound before invoking existing idempotent orchestrator; does not grant any field permissions to API user.</description>
+    <interviewLabel>WDE Recover Verified Stage C {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>WDE Recover Verified Stage C</label>
+    <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+    <processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Batch</name><label>Get requested WDE Batch Run</label><locationX>0</locationX><locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector><targetReference>Check_Eligible_Recovery</targetReference></connector>
+        <filterLogic>and</filterLogic>
+        <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varRecordId</elementReference></value></filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly><object>WDE_Batch_Run__c</object><storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <runInMode>SystemModeWithSharing</runInMode>
+    <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Get_Batch</targetReference></connector></start>
+    <status>Active</status>
+    <subflows>
+        <name>Call_Stage_C_Recovery</name><label>Retry validated Stage C worker</label><locationX>0</locationX><locationY>0</locationY>
+        <flowName>WDE_Orchestrate_Stage_C</flowName>
+        <inputAssignments><name>varRecordId</name><value><elementReference>Get_Batch.Id</elementReference></value></inputAssignments>
+        <outputAssignments><assignToReference>varT_Error</assignToReference><name>varT_Error</name></outputAssignments>
+    </subflows>
+    <variables><name>varRecordId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+    <variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
+</Flow>

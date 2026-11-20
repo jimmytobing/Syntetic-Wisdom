@@ -1,217 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>68.0</apiVersion>
-    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <apiVersion>68.0</apiVersion><areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Issue 53: thin asynchronous Stage B trigger. All business DML, fault recovery and status transitions execute in the autolaunched orchestrator.</description>
     <decisions>
-        <name>Check_B</name>
-        <label>B succeeded?</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Decide_Retry_B</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>Other result / failed</defaultConnectorLabel>
-        <rules>
-            <name>B_Success</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>bResult</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <stringValue>SUCCESS</stringValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Set_B_Review</targetReference>
-            </connector>
-            <label>B_Success</label>
+        <name>Check_Returned_Error</name><label>Orchestrator error check</label><locationX>0</locationX><locationY>0</locationY>
+        <defaultConnector><targetReference>END_ASYNC</targetReference></defaultConnector><defaultConnectorLabel>No returned error</defaultConnectorLabel>
+        <rules><name>Error_Returned</name><conditionLogic>and</conditionLogic>
+          <conditions><leftValueReference>f_Has_Error</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
+          <connector><targetReference>END_ASYNC_ERROR</targetReference></connector><label>Error persisted by orchestrator</label>
         </rules>
     </decisions>
-    <decisions>
-        <name>Decide_Retry_B</name><label>Retry bounded invalid enrichment</label><locationX>0</locationX><locationY>0</locationY>
-        <defaultConnector><targetReference>Set_B_Failure</targetReference></defaultConnector><defaultConnectorLabel>Fail closed</defaultConnectorLabel>
-        <rules><name>Retry_Enrichment</name><conditionLogic>and</conditionLogic>
-          <conditions><leftValueReference>f_B_RetryEligible</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions>
-          <connector><targetReference>Set_B_Retry_Pending</targetReference></connector><label>Bounded retry</label>
-        </rules>
-    </decisions>
-    
-    <description>WDE Stage B Groq enrichment. Strict format and boundary validation. Retry malformed or transient Groq output up to three times using existing timed Stage A worker. Never persist invalid segment data.</description>
-    <ends>
-        <name>END_ELEMENT_4</name>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-    </ends>
-    <ends>
-        <name>END_ELEMENT_5</name>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-    </ends>
-    <ends>
-        <name>END_ELEMENT_6</name>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-    </ends>
-    <environments>Default</environments>
-    
-    
-    
-
-    <formulas>
-        <name>f_B_RetryEligible</name><dataType>Boolean</dataType>
-        <expression>AND(
-          BLANKVALUE({!$Record.Retry_Count__c},0) &lt; 3,
-          NOT(ISBLANK({!$Record.Approved_Boundaries__c})),
-          OR(
-            {!bResult} = "INVALID_AI_FORMAT",
-            {!bResult} = "EMPTY_RESPONSE",
-            AND({!bResult} = "GROQ_ERROR",
-              OR(CONTAINS(LOWER(BLANKVALUE({!bError},"")),"429"),
-                 CONTAINS(LOWER(BLANKVALUE({!bError},"")),"500"),
-                 CONTAINS(LOWER(BLANKVALUE({!bError},"")),"502"),
-                 CONTAINS(LOWER(BLANKVALUE({!bError},"")),"503"),
-                 CONTAINS(LOWER(BLANKVALUE({!bError},"")),"504"),
-                 CONTAINS(LOWER(BLANKVALUE({!bError},"")),"too many requests"))),
-            AND({!bResult} = "FLOW_FAULT",
-              OR(CONTAINS(LOWER(BLANKVALUE({!bError},"")),"timeout"),
-                 CONTAINS(LOWER(BLANKVALUE({!bError},"")),"connection"),
-                 CONTAINS(LOWER(BLANKVALUE({!bError},"")),"temporar")))
-          )
-        )</expression>
-    </formulas>
-    <formulas><name>f_B_NextRetry</name><dataType>Number</dataType><scale>0</scale>
-       <expression>BLANKVALUE({!$Record.Retry_Count__c},0) + 1</expression>
-    </formulas>
-    <formulas><name>f_B_NextRetryAt</name><dataType>DateTime</dataType>
-       <expression>NOW() + IF(
-           OR(CONTAINS(LOWER(BLANKVALUE({!bError},"")),"daily"),
-              CONTAINS(LOWER(BLANKVALUE({!bError},"")),"per day")),
-           1440,
-           CASE(TEXT(BLANKVALUE({!$Record.Retry_Count__c},0)), "0", 1, "1", 5, 15)
-         ) / 1440</expression>
-    </formulas>
+    <ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+    <ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends><ends><name>END_ASYNC_ERROR</name><locationX>0</locationX><locationY>0</locationY></ends>
+    <formulas><name>f_Has_Error</name><dataType>Boolean</dataType><expression>NOT(ISBLANK({!varT_Error}))</expression></formulas>
     <interviewLabel>[Tgr] WDE Run Stage B {!$Flow.CurrentDateTime}</interviewLabel>
     <label>[Tgr] WDE Run Stage B</label>
-    <processMetadataValues>
-        <name>BuilderType</name>
-        <value>
-            <stringValue>LightningFlowBuilder</stringValue>
-        </value>
-    </processMetadataValues>
-    <processMetadataValues>
-        <name>CanvasMode</name>
-        <value>
-            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
-        </value>
-    </processMetadataValues>
+    <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+    <processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
-    <recordLookups>
-        <name>Get_Open_Segment</name>
-        <label>Get Open Segment</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Call_B</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Sermon_Source__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.Sermon_Source__c</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>WDE_Stitch_Open__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Sermon_Segment__c</object>
-        <sortField>End_Index__c</sortField>
-        <sortOrder>Desc</sortOrder>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordUpdates>
-        <name>Set_B_Failure</name>
-        <label>Stage B failed</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>END_ELEMENT_5</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.Id</elementReference>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>Error_Message__c</field>
-            <value>
-                <elementReference>bError</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>Status__c</field>
-            <value>
-                <stringValue>Failed</stringValue>
-            </value>
-        </inputAssignments>
-        <object>WDE_Batch_Run__c</object>
-    </recordUpdates>
-    
-    <recordUpdates>
-        <name>Set_B_Review</name>
-        <label>Hold Stage B for independently verified editorial review</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>END_ELEMENT_6</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.Id</elementReference>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>Approved_Enrichment__c</field>
-            <value>
-                <elementReference>bLines</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>Status__c</field>
-            <value>
-                <stringValue>NeedsCommitReview</stringValue>
-            </value>
-        </inputAssignments>
-        <object>WDE_Batch_Run__c</object>
-    </recordUpdates>
-    <recordUpdates>
-        <name>Set_B_Retry_Pending</name><label>Schedule Stage B retry without rerunning boundaries</label><locationX>0</locationX><locationY>0</locationY>
-        <connector><targetReference>END_ELEMENT_5</targetReference></connector>
-        <filterLogic>and</filterLogic>
-        <filters><field>Id</field><operator>EqualTo</operator><value><elementReference>$Record.Id</elementReference></value></filters>
-        <inputAssignments><field>Retry_Count__c</field><value><elementReference>f_B_NextRetry</elementReference></value></inputAssignments>
-        <inputAssignments><field>Next_Retry_At__c</field><value><elementReference>f_B_NextRetryAt</elementReference></value></inputAssignments>
-        <inputAssignments><field>Error_Message__c</field><value><elementReference>bError</elementReference></value></inputAssignments>
-        <inputAssignments><field>Status__c</field><value><stringValue>RetryPending</stringValue></value></inputAssignments>
-        <object>WDE_Batch_Run__c</object>
-    </recordUpdates>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>END_ELEMENT_4</targetReference>
+            <targetReference>END_SYNC</targetReference>
         </connector>
         <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>
@@ -226,91 +37,18 @@
         <recordTriggerType>CreateAndUpdate</recordTriggerType>
         <scheduledPaths>
             <connector>
-                <targetReference>Get_Open_Segment</targetReference>
+                <targetReference>Run_Orchestrator</targetReference>
             </connector>
             <pathType>AsyncAfterCommit</pathType>
         </scheduledPaths>
         <triggerType>RecordAfterSave</triggerType>
     </start>
     <status>Active</status>
-    <subflows>
-        <name>Call_B</name>
-        <label>Call_B</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>Check_B</targetReference>
-        </connector>
-        <flowName>WDE_Enrich_Approved_Boundaries</flowName>
-        <inputAssignments>
-            <name>varSermonSourceId</name>
-            <value>
-                <elementReference>$Record.Sermon_Source__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <name>varStartPosition</name>
-            <value>
-                <elementReference>$Record.Start_Position__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <name>varMaxBatchCharacters</name>
-            <value>
-                <elementReference>$Record.Max_Batch_Characters__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <name>varPriorOpenTopic</name>
-            <value>
-                <elementReference>Get_Open_Segment.Topic__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <name>varPriorOpenSummary</name>
-            <value>
-                <elementReference>Get_Open_Segment.Summary__c</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <name>varApprovedBoundaryLines</name>
-            <value>
-                <elementReference>$Record.Approved_Boundaries__c</elementReference>
-            </value>
-        </inputAssignments>
-        
-        <outputAssignments>
-            <assignToReference>bResult</assignToReference>
-            <name>varResultStatus</name>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>bError</assignToReference>
-            <name>varErrorMessage</name>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>bLines</assignToReference>
-            <name>varEnrichmentLines</name>
-        </outputAssignments>
+    <subflows><name>Run_Orchestrator</name><label>Run Stage B orchestrator</label><locationX>0</locationX><locationY>0</locationY>
+       <connector><targetReference>Check_Returned_Error</targetReference></connector>
+       <flowName>WDE_Orchestrate_Stage_B</flowName>
+       <inputAssignments><name>varRecordId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments>
+       <outputAssignments><assignToReference>varT_Error</assignToReference><name>varT_Error</name></outputAssignments>
     </subflows>
-    <variables>
-        <name>bError</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <name>bLines</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <name>bResult</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
+    <variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 </Flow>

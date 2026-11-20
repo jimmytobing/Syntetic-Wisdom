@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>68.0</apiVersion>
+  <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+  <decisions>
+    <name>Check_Isolated_Segment</name><label>Only QA one unverified closed Test 5 segment</label><locationX>0</locationX><locationY>0</locationY>
+    <defaultConnectorLabel>Not eligible</defaultConnectorLabel>
+    <rules><name>Eligible_Test_Segment</name><conditionLogic>and</conditionLogic>
+      <conditions><leftValueReference>Get_Segment.Id</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+      <conditions><leftValueReference>Get_Segment.Sermon_Source__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>a07fj00001K0zwEAAR</stringValue></rightValue></conditions>
+      <conditions><leftValueReference>Get_Segment.WDE_Stitch_Open__c</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+      <conditions><leftValueReference>Get_Segment.Audio_QA_Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>PENDING</stringValue></rightValue></conditions>
+      <conditions><leftValueReference>Get_Segment.Audio_QA_Attempts__c</leftValueReference><operator>LessThan</operator><rightValue><numberValue>3</numberValue></rightValue></conditions>
+      <connector><targetReference>Verify_One_Segment</targetReference></connector><label>One isolated pending QA</label>
+    </rules>
+  </decisions>
+  <description>Issue 53: isolated system-with-sharing QA of exactly one closed pending segment of test video KeA9Xr9KzUI. Validates scope and bounded attempts before invoking existing video verifier; does not grant integration user any field permissions.</description>
+  <interviewLabel>WDE Verify Isolated Test 5 Segment {!$Flow.CurrentDateTime}</interviewLabel>
+  <label>WDE Verify Isolated Test 5 Segment</label>
+  <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
+  <processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
+  <processType>AutoLaunchedFlow</processType>
+  <recordLookups><name>Get_Segment</name><label>Get requested segment</label><locationX>0</locationX><locationY>0</locationY>
+    <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+    <connector><targetReference>Check_Isolated_Segment</targetReference></connector>
+    <filterLogic>and</filterLogic><filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_SegmentId</elementReference></value></filters>
+    <getFirstRecordOnly>true</getFirstRecordOnly><object>Sermon_Segment__c</object><storeOutputAutomatically>true</storeOutputAutomatically>
+  </recordLookups>
+  <runInMode>SystemModeWithSharing</runInMode>
+  <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Get_Segment</targetReference></connector></start>
+  <status>Active</status>
+  <subflows><name>Verify_One_Segment</name><label>Run existing independent audio verifier</label><locationX>0</locationX><locationY>0</locationY>
+    <flowName>WDE_Verify_Sermon_Segment_Audio</flowName>
+    <inputAssignments><name>varS_SegmentId</name><value><elementReference>Get_Segment.Id</elementReference></value></inputAssignments>
+    <outputAssignments><assignToReference>varT_Error</assignToReference><name>varT_Error</name></outputAssignments>
+  </subflows>
+  <variables><name>varS_SegmentId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+  <variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
+</Flow>

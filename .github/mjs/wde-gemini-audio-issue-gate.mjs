@@ -1,10 +1,14 @@
 import fs from 'node:fs/promises';
+import {verifyWdeVideoRights,validateAutomaticCallBudget} from '../../scripts/wde-autonomous-media-preflight.mjs';
 
 const REPO='jimmytobing/Syntetic-Wisdom';
+const ISSUE=54;
+const VIDEO_ID='4SPC0Ke1Eyg';
+const DAILY_CLAIM='WDE_GEMINI_AUTONOMOUS_CALL:';
 const HEADER='### WDE Request';
 const FENCE=String.fromCharCode(96).repeat(3);
 const MARKER='WDE_AUDIO_PROBE_CLAIM:';
-const ID=/^wde35-[0-9]{8}-[0-9]{3,6}$/;
+const ID=/^wde54-[0-9]{8}-[0-9]{3,6}$/;
 function check(ok,message){if(!ok)throw Error(message);}
 
 export function parseIssueAudioProbe(body){
@@ -18,13 +22,11 @@ export function parseIssueAudioProbe(body){
   let data;
   try{data=JSON.parse(lines[i+2]);}catch{throw Error('Invalid JSON request');}
   check(data && typeof data==='object' && !Array.isArray(data),'Invalid JSON object');
-  check(Object.keys(data).sort().join(',')==='freeTierAck,operation,requestId,rightsAck,testMode',
+  check(Object.keys(data).sort().join(',')==='operation,requestId,testMode',
     'Unexpected request fields');
   check(data.operation==='gemini.audio_probe' && data.testMode==='audio_probe',
     'This handler supports only the fixed audio probe');
   check(typeof data.requestId==='string'&&ID.test(data.requestId),'Invalid requestId');
-  check(data.freeTierAck==='FREE_TIER_CONFIRMED' &&
-    data.rightsAck==='REVIEW_PERMITTED','Fresh explicit Free Tier and media rights acknowledgements required');
   return Object.freeze({requestId:data.requestId});
 }
 
@@ -33,8 +35,6 @@ export function verifyAudioProbeEvent(event,env){
     'Invalid repository/ref');
   check(env.GITHUB_ACTOR==='jimmytobing','Untrusted actor');
   if(env.GITHUB_EVENT_NAME==='workflow_dispatch'){
-    check(env.INPUT_FREE_TIER_ACK==='FREE_TIER_CONFIRMED' &&
-      env.INPUT_RIGHTS_ACK==='REVIEW_PERMITTED','Manual acknowledgement invalid');
     check(['audio_probe','editorial'].includes(env.INPUT_TEST_MODE),'Invalid manual mode');
     const resume=env.INPUT_RESUME_INTERACTION_ID||'';
     check(!resume||/^[A-Za-z0-9][A-Za-z0-9_-]{4,127}$/.test(resume),
@@ -42,7 +42,7 @@ export function verifyAudioProbeEvent(event,env){
     return Object.freeze({source:'manual',mode:env.INPUT_TEST_MODE,resume,requestId:''});
   }
   check(env.GITHUB_EVENT_NAME==='issues'&&event?.action==='edited'&&
-    event?.issue?.number===35&&event?.issue?.user?.login==='jimmytobing',
+    event?.issue?.number===ISSUE&&event?.issue?.user?.login==='jimmytobing',
     'Untrusted Issue event/author');
   const parsed=parseIssueAudioProbe(event.issue.body);
   return Object.freeze({source:'issue',mode:'audio_probe',resume:'',
@@ -52,7 +52,7 @@ export function verifyAudioProbeEvent(event,env){
 export async function claimAudioProbeRequest(request,{token,fetcher=fetch}){
   check(typeof token==='string'&&token.length>12,'Missing GitHub token');
   const marker='<!-- '+MARKER+request.requestId+' -->';
-  const url='https://api.github.com/repos/'+REPO+'/issues/35/comments';
+  const url='https://api.github.com/repos/'+REPO+'/issues/'+ISSUE+'/comments';
   const headers={Authorization:'Bearer '+token,Accept:'application/vnd.github+json',
     'X-GitHub-Api-Version':'2022-11-28'};
   for(let page=1;page<=30;page++){
@@ -75,18 +75,57 @@ export async function claimAudioProbeRequest(request,{token,fetcher=fetch}){
       'No success implied. No credentials or source excerpt.'})});
   check(posted.ok,'Unable to claim request before inference');
 }
+// A one-POST/day limit is enforced via durable Issue claims under the
+// workflow's serialized concurrency group. This is a call cap, not a price quote.
+export async function claimDailyGeminiCall({token,runId,day,fetcher=fetch}){
+  check(typeof token==='string'&&token.length>12,'GitHub claim token missing');
+  check(typeof runId==='string'&&/^[0-9]{5,20}$/.test(runId),'GitHub run identity missing');
+  check(typeof day==='string'&&/^\d{8}$/.test(day),'UTC day invalid');
+  const url='https://api.github.com/repos/'+REPO+'/issues/'+ISSUE+'/comments';
+  const headers={Authorization:'Bearer '+token,Accept:'application/vnd.github+json',
+    'X-GitHub-Api-Version':'2022-11-28'};
+  const claims=[];
+  for(let page=1;page<=30;page++){
+    const res=await fetcher(url+'?per_page=100&page='+page,{
+      method:'GET',headers,redirect:'error',signal:AbortSignal.timeout(15000)});
+    check(res.ok,'Unable to inspect daily provider-call claims');
+    const items=await res.json();
+    check(Array.isArray(items),'Invalid claim history');
+    for(const x of items){
+      const m=typeof x?.body==='string' ?
+        x.body.match(/WDE_GEMINI_AUTONOMOUS_CALL:(\d{8}):([0-9]{5,20})/):null;
+      if(m?.[1]===day)claims.push(m[2]);
+    }
+    if(items.length<100)break;
+    check(page<30,'Daily claim audit cap reached; fail closed');
+  }
+  validateAutomaticCallBudget({usedToday:claims.length,maxCallsPerDay:1});
+  const marker='<!-- '+DAILY_CLAIM+day+':'+runId+' -->';
+  const post=await fetcher(url,{method:'POST',headers:{...headers,'Content-Type':'application/json'},
+    redirect:'error',signal:AbortSignal.timeout(15000),
+    body:JSON.stringify({body:marker+'\nOne bounded Gemini inference slot claimed; no success or free-tier implied.'})});
+  check(post.ok,'Failed to claim bounded provider-call slot');
+}
 export async function prepare(env=process.env,{fetcher=fetch}={}){
   const event=JSON.parse(await fs.readFile(env.GITHUB_EVENT_PATH,'utf8'));
   const request=verifyAudioProbeEvent(event,env);
+  // A fresh rights check is mandatory; prior acknowledgement is neither needed nor sufficient.
+  await verifyWdeVideoRights({instanceUrl:env.SF_INSTANCE_URL,
+    clientId:env.SF_CLIENT_ID,clientSecret:env.SF_CLIENT_SECRET,
+    videoId:VIDEO_ID,fetcher});
   if(request.source==='issue')await claimAudioProbeRequest(request,{token:env.GH_TOKEN,fetcher});
+  if(!request.resume){
+    const day=new Date().toISOString().slice(0,10).replaceAll('-','');
+    await claimDailyGeminiCall({token:env.GH_TOKEN,runId:env.GITHUB_RUN_ID,day,fetcher});
+  }
   check(typeof env.GITHUB_ENV==='string'&&env.GITHUB_ENV.length>0,'Missing GITHUB_ENV');
   await fs.appendFile(env.GITHUB_ENV,[
     'WDE_TEST_MODE='+request.mode,
-    'WDE_FREE_TIER_ACK=FREE_TIER_CONFIRMED',
-    'WDE_RIGHTS_ACK=REVIEW_PERMITTED',
+    'WDE_SOURCE_RIGHTS_VERIFIED=true',
+    'WDE_PROVIDER_CALL_GUARD_VERIFIED=true',
     'WDE_RESUME_INTERACTION_ID='+request.resume
   ].join('\n')+'\n');
-  console.log('WDE gateway prepared '+request.source+' request; inference not yet submitted.');
+  console.log('WDE gateway prepared with authenticated WDE source clearance and bounded provider-call claim.');
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href)
   prepare().catch(e=>{console.error('WDE AUDIO GATE BLOCKED: '+String(e.message));process.exitCode=1;});

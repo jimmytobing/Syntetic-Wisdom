@@ -1,0 +1,5 @@
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+<types><members>Sermon_Segment__c.Audio_QA_Correction_Attempts__c</members><members>Sermon_Segment__c.Audio_QA_Original_Transcript__c</members><name>CustomField</name></types>
+<types><members>WDE_Groq_API_Access</members><name>PermissionSet</name></types>
+<types><members>WDE_Verify_Sermon_Segment_Audio</members><members>Tgr_WDE_Reset_Segment_Audio_QA</members><name>Flow</name></types>
+<version>68.0</version></Package>

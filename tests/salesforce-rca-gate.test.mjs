@@ -33,6 +33,7 @@ for (const repositoryMode of ["mock", "live"]) {
         repositoryMode,
         eventName: "issues",
         issueAuthor: "jimmytobing",
+        issueLabel: "salesforce-rca-approved",
         issueBody: `### Operasi RCA\n\n${operation}\n\n### Konteks\n\nMock`,
       });
       assert.equal(result.mode, "mock");
@@ -137,20 +138,17 @@ for (const eventName of ["issues", "workflow_dispatch"]) {
   });
 }
 
-test("workflow memisahkan mock dan live serta tidak memakai pull_request_target", async () => {
-  const workflow = await readFile(".github/workflows/salesforce-rca.yml", "utf8");
+test("RCA runtime GitHub Actions retired; trusted Salesforce API gateway preserved", async () => {
+  const { access } = await import("node:fs/promises");
+  await assert.rejects(access(".github/workflows/salesforce-rca.yml"), /ENOENT/);
+  const workflow = await readFile(".github/workflows/sf.yaml", "utf8");
+  assert.match(workflow, /^  sf-request:/m);
+  assert.match(workflow, /^  sf-bash:/m);
+  assert.match(workflow, /^  sf-deploy:/m);
   assert.doesNotMatch(workflow, /pull_request_target/);
-  assert.match(workflow, /^  mock:/m);
-  assert.match(workflow, /^  live:/m);
-  assert.doesNotMatch(workflow, /environment:\s*salesforce-hdbsf-rca/);
-  assert.match(workflow, /Repository Secrets live belum dikonfigurasi lengkap/);
-  assert.match(workflow, /needs\.authorize\.outputs\.mode == 'mock'/);
-  assert.match(workflow, /needs\.authorize\.outputs\.mode == 'live'/);
-  assert.match(workflow, /github\.event\.label\.name == 'salesforce-rca-approved'/);
-
-  const mockJob = workflow.slice(workflow.indexOf("  mock:"), workflow.indexOf("  live:"));
-  assert.doesNotMatch(mockJob, /secrets\.SF_RCA_/);
-  const liveJob = workflow.slice(workflow.indexOf("  live:"));
-  assert.match(liveJob, /secrets\.SF_RCA_CLIENT_ID/);
-  assert.doesNotMatch(liveJob, /gh issue comment/);
+  assert.match(workflow, /github\.actor/);
+  assert.match(workflow, /github\.event\.issue\.user\.login/);
+  const jim = await readFile(".github/workflows/jim.yaml", "utf8");
+  assert.match(jim, /^  jim-request:/m);
+  assert.match(jim, /^  jim-bash:/m);
 });

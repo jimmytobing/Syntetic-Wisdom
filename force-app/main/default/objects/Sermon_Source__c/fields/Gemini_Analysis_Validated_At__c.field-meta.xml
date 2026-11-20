@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Gemini_Analysis_Validated_At__c</fullName>
+    <label>Gemini Response Gate Passed At</label>
+    <description>Time the Gemini response passed basic Flow transport, completion and accessibility-text checks. This is not independent JSON parsing, clip-range validation, or semantic review of source media.</description>
+    <type>DateTime</type>
+    <required>false</required>
+</CustomField>

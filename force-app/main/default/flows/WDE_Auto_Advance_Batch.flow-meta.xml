@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
 <apiVersion>68.0</apiVersion>
-<description>Advance validated Stage A seven-field AI outputs directly to persistence, bypassing Stage B's PENDING-placeholder-only contract. Advance legacy Stage B results when present. No human approval. Fail-closed when generated lines are empty; preserves Stage A/B/C runtime validation.</description>
+<description>Advance structurally validated Stage A to Stage B and previously held, nonempty Stage B enrichment to Stage C; no OAuth QA gate, no Apex. Stage B worker remains authoritative for new batches.</description>
 <interviewLabel>WDE Auto Advance Batch {!$Flow.CurrentDateTime}</interviewLabel>
 <label>WDE Auto Advance Batch</label>
 <processType>AutoLaunchedFlow</processType>
+<runInMode>SystemModeWithSharing</runInMode>
 <status>Active</status>
 <variables><name>varS_BatchId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
+<variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput></variables>
 <variables><name>varB_Advanced</name><dataType>Boolean</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>true</isOutput><value><booleanValue>false</booleanValue></value></variables>
 <recordLookups><name>Get_Batch</name><label>Find current batch</label><locationX>0</locationX><locationY>0</locationY>
 <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
@@ -23,20 +25,26 @@
 <conditions><leftValueReference>Get_Batch.Status__c</leftValueReference><operator>EqualTo</operator><rightValue><stringValue>NeedsCommitReview</stringValue></rightValue></conditions>
 <conditions><leftValueReference>Get_Batch.Approved_Enrichment__c</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
 <conditions><leftValueReference>Get_Batch.Approved_Enrichment__c</leftValueReference><operator>NotEqualTo</operator><rightValue><stringValue></stringValue></rightValue></conditions>
-<connector><targetReference>Save_Validated_Enrichment</targetReference></connector><label>Stage B ready</label></rules>
+<connector><targetReference>Save_Validated_Enrichment</targetReference></connector><label>Stored Stage B output ready for Stage C</label></rules>
 </decisions>
-<recordUpdates><name>Save_Validated_Boundaries</name><label>Advance Stage A output directly to Stage C without human checkpoint</label><locationX>0</locationX><locationY>0</locationY>
+<recordUpdates><name>Save_Validated_Boundaries</name><label>Advance validated Stage A boundaries to Stage B; never auto-approve commit</label><locationX>0</locationX><locationY>0</locationY>
 <connector><targetReference>Mark_Advanced</targetReference></connector>
+<faultConnector><targetReference>Capture_Update_Fault</targetReference></faultConnector>
 <filterLogic>and</filterLogic><filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_BatchId</elementReference></value></filters>
 <inputAssignments><field>Approved_Boundaries__c</field><value><elementReference>Get_Batch.Draft_Boundaries__c</elementReference></value></inputAssignments>
-<inputAssignments><field>Approved_Enrichment__c</field><value><elementReference>Get_Batch.Draft_Boundaries__c</elementReference></value></inputAssignments>
-<inputAssignments><field>Status__c</field><value><stringValue>CommitApproved</stringValue></value></inputAssignments>
+<inputAssignments><field>Status__c</field><value><stringValue>BoundariesApproved</stringValue></value></inputAssignments>
 <object>WDE_Batch_Run__c</object></recordUpdates>
-<recordUpdates><name>Save_Validated_Enrichment</name><label>Advance to Stage C without human checkpoint</label><locationX>0</locationX><locationY>0</locationY>
+
+<recordUpdates><name>Save_Validated_Enrichment</name><label>Promote previously held validated enrichment</label><locationX>0</locationX><locationY>0</locationY>
 <connector><targetReference>Mark_Advanced</targetReference></connector>
-<filterLogic>and</filterLogic><filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_BatchId</elementReference></value></filters>
+<faultConnector><targetReference>Capture_Update_Fault</targetReference></faultConnector>
+<filterLogic>and</filterLogic>
+<filters><field>Id</field><operator>EqualTo</operator><value><elementReference>varS_BatchId</elementReference></value></filters>
+<filters><field>Status__c</field><operator>EqualTo</operator><value><stringValue>NeedsCommitReview</stringValue></value></filters>
 <inputAssignments><field>Status__c</field><value><stringValue>CommitApproved</stringValue></value></inputAssignments>
 <object>WDE_Batch_Run__c</object></recordUpdates>
+<assignments><name>Capture_Update_Fault</name><label>Surface DML failure without silently approving Batch</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varT_Error</assignToReference><operator>Assign</operator><value><elementReference>$Flow.FaultMessage</elementReference></value></assignmentItems></assignments>
+<assignments><name>Hold_For_Independent_QA</name><label>Legacy no-op not used</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varB_Advanced</assignToReference><operator>Assign</operator><value><booleanValue>false</booleanValue></value></assignmentItems></assignments>
 <assignments><name>Mark_Advanced</name><label>Mark advanced</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varB_Advanced</assignToReference><operator>Assign</operator><value><booleanValue>true</booleanValue></value></assignmentItems></assignments>
 <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Get_Batch</targetReference></connector></start>
 </Flow>
