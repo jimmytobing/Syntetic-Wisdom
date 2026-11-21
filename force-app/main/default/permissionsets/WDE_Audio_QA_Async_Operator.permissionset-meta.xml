@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+ <label>WDE Audio QA Async Operator</label>
+ <description>Scoped read/edit access only to four isolated async Gemini QA audit fields. No transcript, QA verdict, object-wide, credential or Apex permissions. Assign only to authorized WDE integration operator.</description>
+ <fieldPermissions><editable>true</editable><field>Sermon_Segment__c.Audio_QA_Batch_State__c</field><readable>true</readable></fieldPermissions>
+ <fieldPermissions><editable>true</editable><field>Sermon_Segment__c.Audio_QA_Batch_Job__c</field><readable>true</readable></fieldPermissions>
+ <fieldPermissions><editable>true</editable><field>Sermon_Segment__c.Audio_QA_Batch_Fingerprint__c</field><readable>true</readable></fieldPermissions>
+ <fieldPermissions><editable>true</editable><field>Sermon_Segment__c.Audio_QA_Batch_Error__c</field><readable>true</readable></fieldPermissions>
+</PermissionSet>
