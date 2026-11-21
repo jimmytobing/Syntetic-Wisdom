@@ -81,6 +81,6 @@
 <assignmentItems><assignToReference>varS_Error</assignToReference><operator>Assign</operator><value><stringValue>Playlist API call returned non-success status</stringValue></value></assignmentItems></assignments>
 <recordCreates><name>Create_New_Sources</name><label>Bulk create new sermon sources</label><locationX>0</locationX><locationY>0</locationY><faultConnector><targetReference>Capture_Fault</targetReference></faultConnector><inputReference>colR_NewSources</inputReference></recordCreates>
 <start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Get_Playlist_Items</targetReference></connector>
-<schedule><frequency>Weekly</frequency><daysOfWeekToRun>5</daysOfWeekToRun><startDate>2026-11-19</startDate><startTime>00:59:00.000Z</startTime></schedule>
+<schedule><frequency>Weekly</frequency><startDate>2026-11-19</startDate><startTime>00:59:00.000Z</startTime></schedule>
 <triggerType>Scheduled</triggerType></start>
 </Flow>
