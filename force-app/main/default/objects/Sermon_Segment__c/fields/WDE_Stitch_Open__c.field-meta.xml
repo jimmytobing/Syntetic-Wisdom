@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>WDE_Stitch_Open__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Menandai segmen yang masih berlanjut ke batch berikutnya untuk proses stitching</description>
+    <label>WDE Stitch Open</label>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>
