@@ -1,0 +1,62 @@
+# WDE: Rekonsiliasi metadata Git dan Salesforce Org (22 November 2026)
+
+> Status: **PARTIAL / full equivalence UNVERIFIED**. Audit ini adalah snapshot; tidak mengklaim seluruh metadata Org cocok dengan Git. Target: `hdbsf` (Org ID `00Dfj00000eVCOVEA4`). Pembanding: `main`, dengan PR #62 sebagai source pending terpisah. Tidak ada deploy, DML, penghapusan, atau aktivasi Flow dalam audit ini.
+
+## Metode dan bukti
+
+- Inventaris Git diambil dari pohon GitHub `main` dan branch `feature/wde-gemini-batch-qa-61`.
+- Inventaris Org memakai Tooling SOQL melalui gateway [bfipbf/WDE#14](https://github.com/bfipbf/WDE/issues/14), [bukti](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7079779389).
+- Field dibandingkan dengan `CustomField.TableEnumOrId` pada objek yang terkait, bukan dengan nama objek saja; `Sermon_Segment` memiliki dua record CustomObject di Tooling API, sehingga dipakai record kanonis `01Ifj00000BqV7pEAF`.
+- Perbandingan hash XML memanfaatkan retrieve metadata read-only, bukan sekadar perbandingan nama. Perbedaan hash tidak otomatis menandakan perubahan semantik akibat normalisasi XML Salesforce.
+
+## Inventaris sumber dan Org
+
+| Jenis | Git main | Org | Hasil |
+|---|---:|---:|---|
+| Flow | 47 | 67 | Semua 47 Git ditemukan; 20 hanya ada di Org |
+| External Service | 11 | 11 | Git-only `WDE_Supadata_Transcript`, Org/PR-only `WDEGeminiAsync` |
+| Named Credential | 4 | 4 | Nama semuanya sama |
+| External Credential | 4 | 4 | Nama semuanya sama |
+| Custom Object | 14 | 25 nama unik | Semua objek Git ditemukan; 11 tambahan di Org |
+| WDE + Salesforce_AI_RCA Permission Set | 10 Git | 13 Org | 4 hanya Org, 1 hanya Git |
+
+Daftar Flow tambahan di Org yang bersifat WDE: `WDE_Delete_Segment_Audio_Async_QA`, `WDE_Get_Editorial_Audio_Context`, `WDE_Get_Segment_Audio_Async_QA`, `WDE_Orchestrator_Weekly_Sermon`, `WDE_QA_OAuth_Commit_Release`, `WDE_Start_Segment_Audio_Async_QA`, dan `WDE_Test_Gemini_Async_Text`. Empat di antaranya berada di PR #62. Flow aplikasi lain di Org tidak otomatis termasuk cakupan source WDE.
+
+## Field drift pada objek WDE
+
+- `Sermon_Segment__c`: 27 field kanonis di Org, 8 dalam `main`; empat field `Audio_QA_Batch_*` ada di PR #62, tetapi belum di `main`. Ada 15 field Org lain yang belum dicakup source, termasuk beberapa legacy/deleted-name. Seluruh field yang ada di `main` ditemukan di Org.
+- `Sermon_Source__c`: 13 di Org, 10 di `main`; Org-only `Raw_Transcript_Text`, `Transcript_Caption_Count`, `Transcript_Character_Count`.
+- `WDE_Batch_Run__c`: 21 di Org, 20 di `main`; Org-only `Auto_Next_Enabled`.
+- `WDE_Batch_Run_Create_Object__c`: 17 di Org, 16 di `main`; Org-only `Draft_Boundaries`.
+- `Wisdom_Concept_Evidence__c`: 14 di Org, 10 di `main`; empat tambahan berupa field `*_del` historis.
+- `WDE_QA_Release__c`: objek Org-only dengan delapan field, belum ditetapkan sebagai bagian source utama.
+- Objek `Transcript_Job`, `WDE_Audience_Need`, `WDE_Audience_Signal`, `WDE_Audience_Trend`, `WDE_Content_Plan`, `Wisdom_Concept`, `Wisdom_Insight`, `Wisdom_Insight_Concept`, dan `Wisdom_Relation` cocok pada inventaris nama field.
+
+## Permission Set
+
+Org-only terhadap `main`: `Salesforce_AI_RCA_Metadata_Access`, `WDE_Audio_QA_Async_Operator` (sudah di PR #62), `WDE_Independent_QA_Evidence_Read`, `WDE_QA_OAuth_Commit`.
+
+Git-only terhadap Org: `WDE_Metadata_Deployment_Access`. Tidak melakukan create, delete, atau reassignment tanpa verifikasi kepemilikan dan dependensi.
+
+## Hasil perbandingan isi
+
+- `WDE_Discover_Weekly_Sermon`: blob Org sama persis dengan `main` (`25b9903c990f3a45dcd116c02f63c675e1030c6b`), berbeda dari versi lama PR #62 yang berstatus Draft dan mempunyai logika playlist lama. Dikoreksi di **commit [790a21b](https://github.com/jimmytobing/Syntetic-Wisdom/commit/790a21b56d60dba9a67656af6122f2e3a9b56f6d)**; dua GitHub CI berhasil. [Bukti retrieve](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7079808083).
+- `WDE_Orchestrator_Weekly_Sermon`: Flow aktif di Org dipanggil oleh `WDE_Discover_Weekly_Sermon`, tetapi tidak ada di `main`. Source Org ditambahkan pada branch rekonsiliasi dengan blob **`1cc061558ea6b3ebec95e54885bd8c96a0680a90`**, identik dengan Org. [Bukti](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7079960356).
+- Empat Flow PR #62 hasil retrieve memiliki hash berbeda dari source PR; pada contoh `WDE_Test_Gemini_Async_Text`, perbedaan mencakup normalisasi angka `200` vs `200.0`, urutan elemen XML, dan elemen `areMetricsLoggedToDataCloud` yang diabaikan saat retrieve. Kesetaraan semantik keempat Flow **belum terverifikasi**. [Bukti](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7079834180).
+- Dari empat Named Credential dan empat External Credential, **4/8 hash identik** dengan Git `main`: `WDE_Supadata_API`, `GeminiExCred`, `GoogleApiExCred`, `WDE_Supadata_Auth`. Empat sisanya berbeda dan membutuhkan evaluasi semantik tanpa mengekspor secret.
+- Dari sebelas External Service yang ada di Org, **6 hash identik** dengan Git `main`, empat berbeda, satu belum ada di `main`. Metadata `WDE_Supadata_Transcript` di `main` tidak ditemukan di Org. [Bukti](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7079939354).
+
+## Risiko dan gerbang penyelesaian
+
+1. **Jangan merge PR #62 sekarang**: masih Draft, base ke branch lama, audio QA belum berhasil, dan ada drift aktif yang baru diperbaiki di source.
+2. Jangan menyamakan hash secara paksa dengan deploy semua metadata. Normalisasi XML Salesforce dan konfigurasi credential dapat menyebabkan false positive.
+3. Klasifikasikan field/Flow/permission set Org-only menjadi: dibutuhkan di source WDE, legacy aplikasi lain, atau artefak sementara; tarik ke branch khusus bila disetujui.
+4. Lakukan pemeriksaan semantik pada metadata yang berbeda dan validasi `Sf Deploy` terhadap manifest yang sempit hanya jika ada perubahan yang memang memerlukan deploy.
+5. Setelah semua cakupan WDE disepakati dan perbedaan selesai, lakukan readback ulang sebelum status SUCCESS diberikan.
+
+## Jejak audit
+
+- Gateway: https://github.com/bfipbf/WDE/issues/14
+- Evidence mirror: https://github.com/jimmytobing/Syntetic-Wisdom/issues/67
+- PR terpisah untuk rekonsiliasi: https://github.com/jimmytobing/Syntetic-Wisdom/pull/68
+- PR async QA belum siap: https://github.com/jimmytobing/Syntetic-Wisdom/pull/62
