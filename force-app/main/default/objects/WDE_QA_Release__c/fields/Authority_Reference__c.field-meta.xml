@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Authority_Reference__c</fullName>
+    <description>Authenticated dedicated OAuth integration identity reference, not a model-supplied reviewer name.</description>
+    <externalId>false</externalId>
+    <label>Authority Reference</label>
+    <length>128</length>
+    <required>true</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

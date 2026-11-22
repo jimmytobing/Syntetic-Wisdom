@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Require_Actual_QA_Commit</fullName>
+    <active>true</active>
+    <description>Issue 54: forbid a journal marked Committed unless its related Batch is CommitApproved and the same authenticated QA actor performed the Batch update. Protects against conditional Update Records matching zero rows.</description>
+    <errorConditionFormula>AND(
+    ISPICKVAL(Release_Status__c, &quot;Committed&quot;),
+    OR(
+      NOT(ISPICKVAL(Batch_Run__r.Status__c, &quot;CommitApproved&quot;)),
+      Batch_Run__r.LastModifiedById &lt;&gt; $User.Id
+    )
+  )</errorConditionFormula>
+    <errorDisplayField>Release_Status__c</errorDisplayField>
+    <errorMessage>QA batch release was not committed by the authenticated QA identity. Transaction must roll back.</errorMessage>
+</ValidationRule>
