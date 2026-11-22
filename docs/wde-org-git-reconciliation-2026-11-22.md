@@ -60,3 +60,19 @@ Git-only terhadap Org: `WDE_Metadata_Deployment_Access`. Tidak melakukan create,
 - Evidence mirror: https://github.com/jimmytobing/Syntetic-Wisdom/issues/67
 - PR terpisah untuk rekonsiliasi: https://github.com/jimmytobing/Syntetic-Wisdom/pull/68
 - PR async QA belum siap: https://github.com/jimmytobing/Syntetic-Wisdom/pull/62
+
+## Implementasi source-only pada PR #68
+
+Pada branch `feature/wde-org-source-reconcile-20261122`, metadata berikut telah diambil langsung dari Org dan ditambahkan sebagai source, **tanpa deployment balik**:
+
+- Flow aktif `WDE_Orchestrator_Weekly_Sermon`; blob cocok secara byte dengan Org (`1cc061558ea6b3ebec95e54885bd8c96a0680a90`).
+- Flow Draft nonaktif `WDE_Get_Editorial_Audio_Context`; blob cocok (`9881fcb0f01e3eab4f02a0bbde4547da374b0b52`).
+- Flow Draft nonaktif `WDE_QA_OAuth_Commit_Release`; blob cocok (`49edc2a411f4420772f247fa5485e64546336663`).
+- Lima field dari Org: `Sermon_Source__c.Raw_Transcript_Text__c`, `Sermon_Source__c.Transcript_Caption_Count__c`, `Sermon_Source__c.Transcript_Character_Count__c`, `WDE_Batch_Run__c.Auto_Next_Enabled__c`, dan `Sermon_Segment__c.WDE_Stitch_Open__c`. [Bukti retrieve](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7080054090).
+- Objek `WDE_QA_Release__c`, delapan custom field dan satu validation rule `Require_Actual_QA_Commit` (total 10 file) dari Org, source-only. [Bukti retrieve](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7080071874).
+
+`WDE_Batch_Run_Create_Object__c.Draft_Boundaries__c` ditemukan di Tooling SOQL tetapi tidak muncul di daftar file pada retrieve field gabungan; **belum diklaim tersinkron**.
+
+Permset `Salesforce_AI_RCA_Metadata_Access` memiliki metadata sangat besar (termasuk hak object dengan `modifyAllRecords`), sehingga percobaan baca seluruh metadata bersama permset lain melampaui batas output gateway (`ENOBUFS`). Tidak ada hak akses yang diubah; **permission set tidak otomatis diimpor**. [Bukti kegagalan baca](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7080088741).
+
+Commit source branch terakhir dan CI harus diverifikasi kembali sebelum merge. Metadata aktivasi, credential, field legacy, permission dan perbedaan XML semantik lain tetap memerlukan keputusan independen. Ini **bukan** deklarasi kesamaan semua metadata Org dan Git.
