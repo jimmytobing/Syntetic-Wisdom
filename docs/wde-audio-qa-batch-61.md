@@ -1,5 +1,7 @@
 # WDE — Gemini Background Interactions Audio QA (isolated PR #62)
 
+**Catatan diagnostik 22 Nov 2026:** Pilot video dan diagnostic text-only masing-masing berakhir `failed` tanpa output model. Metadata External Service semula salah memetakan `error` tunggal; spesifikasi Gemini menyajikan `errors[]`. Versi ini memperbaiki pemetaan dan mengembalikan kode/pesan bounded dari error pertama, tetapi **belum** memperbaiki akar kegagalan provider atau membuktikan audio. Jangan re-submit interaksi lama. Jalankan satu diagnostic baru (tanpa media/data pribadi) hanya dengan kontrol biaya dan hapus sesudah bukti dicatat. Evidence: https://github.com/jimmytobing/Syntetic-Wisdom/issues/61#issuecomment-7062417098.
+
 **Status per 21 Nov 2026:** Fondasi External Service + 4 audit fields deployed; three manually invoked autolaunched Flows deployed and active, with independent readback. Short-segment live provider submission accepted and still `in_progress` at last readback. Audio model verdict remains **UNVERIFIED**. Source change in PR #62 is stacked on feature branch PR #52. **No merge before independent review.**
 
 ## Rationale & scope

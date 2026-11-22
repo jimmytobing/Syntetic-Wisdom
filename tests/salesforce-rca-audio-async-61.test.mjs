@@ -16,6 +16,8 @@ test('Gemini background registration only uses named credential, isolated intera
     assert.match(xml, new RegExp('<name>' + op + '<\\/name>'));
   }
   assert.match(xml, /v1beta\/interactions/);
+  assert.match(xml, /&quot;errors&quot;:{&quot;type&quot;:&quot;array&quot;/);
+  assert.doesNotMatch(xml, /&quot;error&quot;:{&quot;\$ref&quot;/);
   assert.match(xml, /background/);
   assert.match(xml, /store/);
   assert.doesNotMatch(xml, /AIza[A-Za-z0-9_-]{12,}|Bearer [A-Za-z0-9_-]+/);
@@ -58,6 +60,11 @@ test('poll returns provider status and only bounded model evidence with no verdi
   assert.match(xml, /<name>Loop_Parts<\/name>/);
   assert.match(xml, /<name>varT_ModelText<\/name>/);
   assert.match(xml, /<name>varT_AsyncStatus<\/name>/);
+  assert.match(xml, /<name>Loop_Errors<\/name>/);
+  assert.match(xml, /varA_Response\.errors/);
+  assert.match(xml, /Loop_Errors\.code/);
+  assert.match(xml, /Loop_Errors\.message/);
+  assert.doesNotMatch(xml, /varA_Response\.error\./);
   assert.doesNotMatch(xml, /<recordUpdates>/);
 });
 test('explicit cleanup action exists with ID validation and no automatic loop', () => {
