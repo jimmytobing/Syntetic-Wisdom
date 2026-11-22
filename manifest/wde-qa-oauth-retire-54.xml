@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <types><members>WDE_QA_OAuth_Commit_Release</members><name>Flow</name></types>
+  <types><members>WDE_QA_OAuth_Commit</members><name>PermissionSet</name></types>
+  <types><members>WDE_QA_Commit_Release</members><name>CustomPermission</name></types>
+  <version>68.0</version>
+</Package>

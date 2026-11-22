@@ -3,6 +3,11 @@
     <label>WDE Groq Retry Field Access</label>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Sermon_Segment__c.Audio_QA_Required__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>WDE_Batch_Run__c.Next_Retry_At__c</field>
         <readable>true</readable>
     </fieldPermissions>

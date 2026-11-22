@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+<fullName>Audio_QA_Original_Transcript__c</fullName><label>Audio QA Original Transcript</label>
+<description>Original segment transcript before the most recent automatic audio-based correction. Retained as audit; never a source for Audience Needs/HIVE. Not an approval.</description>
+<type>LongTextArea</type><length>32768</length><visibleLines>8</visibleLines><required>false</required>
+</CustomField>

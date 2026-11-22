@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion>
+<areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+<description>Bounded Flow-only daily Gemini recovery: closed opted-in pending or retry pending records with fewer than 3 attempts. One interview per transaction. Terminal FAIL remains FAIL; no Audience/HIVE data writes.</description>
+<interviewLabel>[Sch] WDE Segment Audio QA Recovery {!$Flow.CurrentDateTime}</interviewLabel>
+<label>[Sch] WDE Daily Segment Audio QA Recovery</label>
+<processType>AutoLaunchedFlow</processType>
+<status>Active</status>
+<variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
+<formulas><name>f_Has_Error</name><dataType>Boolean</dataType><expression>NOT(ISBLANK({!varT_Error}))</expression></formulas>
+<formulas><name>f_Bounded_Error</name><dataType>String</dataType><expression>LEFT({!varT_Error},8000)</expression></formulas>
+<subflows><name>Run_Audio_QA</name><label>Execute existing Gemini QA worker for flagged segment</label><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Check_Error</targetReference></connector><flowName>WDE_Verify_Sermon_Segment_Audio</flowName><inputAssignments><name>varS_SegmentId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments><outputAssignments><assignToReference>varT_Error</assignToReference><name>varT_Error</name></outputAssignments></subflows>
+<decisions><name>Check_Error</name><label>Worker returned an error?</label><locationX>0</locationX><locationY>0</locationY><defaultConnectorLabel>No error</defaultConnectorLabel><rules><name>Has_Error</name><conditionLogic>and</conditionLogic><conditions><leftValueReference>f_Has_Error</leftValueReference><operator>EqualTo</operator><rightValue><booleanValue>true</booleanValue></rightValue></conditions><connector><targetReference>Save_Error</targetReference></connector><label>Persist error</label></rules></decisions>
+<recordUpdates><name>Save_Error</name><label>Persist QA worker fault without granting PASS</label><locationX>0</locationX><locationY>0</locationY><filterLogic>and</filterLogic><filters><field>Id</field><operator>EqualTo</operator><value><elementReference>$Record.Id</elementReference></value></filters><inputAssignments><field>Async_Error__c</field><value><elementReference>f_Bounded_Error</elementReference></value></inputAssignments><object>Sermon_Segment__c</object></recordUpdates>
+<start><locationX>0</locationX><locationY>0</locationY><connector><targetReference>Run_Audio_QA</targetReference></connector>
+<filterLogic>1 AND (2 OR 3) AND 4 AND 5</filterLogic>
+<filters><field>WDE_Stitch_Open__c</field><operator>EqualTo</operator><value><booleanValue>false</booleanValue></value></filters>
+<filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>PENDING</stringValue></value></filters>
+<filters><field>Audio_QA_Status__c</field><operator>EqualTo</operator><value><stringValue>RETRY_PENDING</stringValue></value></filters>
+<filters><field>Audio_QA_Attempts__c</field><operator>LessThan</operator><value><numberValue>3</numberValue></value></filters>
+<filters><field>Audio_QA_Required__c</field><operator>EqualTo</operator><value><booleanValue>true</booleanValue></value></filters>
+<maxBatchSize>1</maxBatchSize>
+<object>Sermon_Segment__c</object>
+<schedule><frequency>Daily</frequency><startDate>2026-11-17</startDate><startTime>01:00:00.000Z</startTime></schedule>
+<triggerType>Scheduled</triggerType></start>
+</Flow>

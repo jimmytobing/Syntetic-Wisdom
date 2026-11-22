@@ -35,6 +35,16 @@
                 <label>Enriching</label>
             </value>
             <value>
+                <fullName>BoundariesApproved</fullName>
+                <default>false</default>
+                <label>Boundaries Approved</label>
+            </value>
+            <value>
+                <fullName>CommitApproved</fullName>
+                <default>false</default>
+                <label>Commit Approved</label>
+            </value>
+            <value>
                 <fullName>NeedsCommitReview</fullName>
                 <default>false</default>
                 <label>NeedsCommitReview</label>
@@ -53,6 +63,11 @@
                 <fullName>RetryPending</fullName>
                 <default>false</default>
                 <label>RetryPending</label>
+            </value>
+            <value>
+                <fullName>SYSTEM_ERROR</fullName>
+                <default>false</default>
+                <label>System Error</label>
             </value>
             <value>
                 <fullName>Failed</fullName>

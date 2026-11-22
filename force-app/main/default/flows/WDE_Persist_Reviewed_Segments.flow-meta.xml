@@ -3,6 +3,16 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <name>Close_Prior_On_Type_Change</name>
+        <label>Finalize OPEN predecessor when next semantic type differs</label>
+        <locationX>0</locationX><locationY>0</locationY>
+        <assignmentItems><assignToReference>varMergedRecord</assignToReference><operator>Assign</operator><value><elementReference>Get_Open_Previous</elementReference></value></assignmentItems>
+        <assignmentItems><assignToReference>varMergedRecord.WDE_Stitch_Open__c</assignToReference><operator>Assign</operator><value><booleanValue>false</booleanValue></value></assignmentItems>
+        <assignmentItems><assignToReference>colToUpdate</assignToReference><operator>Add</operator><value><elementReference>varMergedRecord</elementReference></value></assignmentItems>
+        <assignmentItems><assignToReference>varUpdatedCount</assignToReference><operator>Add</operator><value><numberValue>1.0</numberValue></value></assignmentItems>
+        <connector><targetReference>Find_Covering_Segment</targetReference></connector>
+    </assignments>
+    <assignments>
         <name>Advance_Boundary_Line</name>
         <label>Advance to next reviewed segment after collection</label>
         <locationX>0</locationX>
@@ -337,22 +347,22 @@
         </connector>
     </assignments>
     <assignments>
-        <name>Error_Approval</name>
-        <label>Stop: enrichment not human reviewed</label>
+        <name>Error_Invalid_Enrichment</name>
+        <label>Reject missing AI enrichment for deterministic validation</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignmentItems>
             <assignToReference>varResultStatus</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>APPROVAL_REQUIRED</stringValue>
+                <stringValue>INVALID_ENRICHMENT</stringValue>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>varErrorMessage</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>Set varHumanReviewed=true only after checking every enriched topic and summary. Supply seven-field approved lines.</stringValue>
+                <stringValue>Missing AI enrichment lines. Deterministic seven-field format and transcript coverage checks are mandatory, but no human approval is required.</stringValue>
             </value>
         </assignmentItems>
         <connector>
@@ -880,6 +890,15 @@
             </connector>
             <label>Valid Open Prior</label>
         </rules>
+            <rules>
+            <name>Type_Changed_Close_Prior</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions><leftValueReference>Get_Open_Previous.Id</leftValueReference><operator>IsNull</operator><rightValue><booleanValue>false</booleanValue></rightValue></conditions>
+            <conditions><leftValueReference>Get_Open_Previous.Segment_Type__c</leftValueReference><operator>NotEqualTo</operator><rightValue><elementReference>f_SegType</elementReference></rightValue></conditions>
+            <conditions><leftValueReference>varSegmentCount</leftValueReference><operator>EqualTo</operator><rightValue><numberValue>1.0</numberValue></rightValue></conditions>
+            <connector><targetReference>Close_Prior_On_Type_Change</targetReference></connector>
+            <label>Boundary type changed: finalize prior OPEN without merging</label>
+        </rules>
     </decisions>
     <decisions>
         <name>Check_Source_And_Window</name>
@@ -1101,16 +1120,16 @@
         </rules>
     </decisions>
     <decisions>
-        <name>Gate_Human_Review</name>
-        <label>Require nonempty validated enrichment</label>
+        <name>Gate_Validated_AI_Enrichment</name>
+        <label>Require valid machine enrichment; no human approval</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Error_Approval</targetReference>
+            <targetReference>Error_Invalid_Enrichment</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Otherwise</defaultConnectorLabel>
         <rules>
-            <name>Reviewed</name>
+            <name>Nonempty_Enrichment</name>
             <conditionLogic>and</conditionLogic>
             
             <conditions>
@@ -1130,7 +1149,7 @@
             <connector>
                 <targetReference>Get_Sermon_Source</targetReference>
             </connector>
-            <label>Enrichment available</label>
+            <label>AI enrichment supplied for strict validation</label>
         </rules>
     </decisions>
     <decisions>
@@ -1425,7 +1444,7 @@
             <label>Valid Reviewed Line</label>
         </rules>
     </decisions>
-    <description>f_LineWellFormed</description>
+    <description>Strictly validate and persist machine-generated seven-field Sermon Segment enrichment against source caption indices and coverage. No human approval is required. Source mismatch fails closed and system errors require investigation. Audience/HIVE untouched.</description>
     <ends>
         <name>END_ELEMENT_11</name>
         <locationX>0</locationX>
@@ -2018,7 +2037,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Gate_Human_Review</targetReference>
+            <targetReference>Gate_Validated_AI_Enrichment</targetReference>
         </connector>
     </start>
     <status>Active</status>
