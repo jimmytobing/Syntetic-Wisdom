@@ -9,7 +9,7 @@ const read = p => readFileSync(resolve(root, p), 'utf8');
 const flow = read('force-app/main/default/flows/WDE_Test_Gemini_Video_30s.flow-meta.xml');
 const manifest = read('manifest/wde-gemini-video-30s-pilot-62.xml');
 test('media pilot is manual, draft, one-call, and never writes Salesforce data', () => {
-  assert.match(flow, /<status>Draft<\/status>/);
+  assert.match(flow, /<status>Active<\/status>/); // authorized one-shot; must restore Draft plus FlowDefinition=0
   assert.match(flow, /<processType>AutoLaunchedFlow<\/processType>/);
   assert.equal((flow.match(/<actionCalls>/g) || []).length, 1);
   assert.match(flow, /<actionName>WDEGeminiVideo\.analyzeVideo<\/actionName>/);
