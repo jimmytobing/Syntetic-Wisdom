@@ -82,6 +82,23 @@ Both passages appear in the same order near the beginning of the stored segment 
 
 **Next gate:** an independently accessible audio clip/captions aligned to 38:08–38:38, human-audited transcription including word boundaries and timestamps (or independently trusted audio review), then a separate non-mutating QA comparison with explicit confidence/failure handling. Require separately authorized and validated production Flow changes, idempotency and Salesforce callout protection before rollout/merge. PR #62 remains Draft.
 
+## 23 Nov 2026: human audio spot-check confirmed, no segment verdict promotion
+
+**Review source:** The user explicitly listened to the original YouTube source `KeA9Xr9KzUI` at **38:08–38:38** and reported **first model quote: sesuai**, **second model quote: sesuai**, **no additional notes**. This is a user-supplied, human-listening spot-check for **two reported passages only**, recorded in [PRIVATE_REPO audit](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7094622706). It is not provider output, independently attached timed media, a verbatim word-by-word audit of the full segment, or a substitute for an end-to-end QA run.
+
+**Evidence chain:** rights clearance [Salesforce readback](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7093993388) → fixed 30-second Gemini media response [Gateway/PRIVATE_REPO evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7094100889) → stored transcript [Salesforce readback](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7094331888) → user confirmation above. The model reported 38:08 “Dia tidak omong soal jubah.” while the stored transcript reads “Dia enggak ngomong soal jubah.”; the user confirmed the quote as suitable but **did not assert word-for-word identity**. The second reported phrase 38:19 “Tapi kita mengartikan bahwa itu jubah…” appears in the stored transcript as “Tapi kita mengartikan bahwa itu jubah kan.” No word-level time alignment was provided.
+
+**Acceptance update:**
+- Fixed-clip transport and media-response completion: **PASS**.
+- User human audio spot-check of **two** short phrases: **CONFIRMED BY USER**.
+- Exact word-for-word agreement between model text and stored transcript: **NOT EXACT** (first phrase), and second is truncated; preserve original discrepancy rather than silently normalize.
+- Full segment transcript coverage, exact timestamps, independent separately captured media artifact, deterministic billing/token bound, long-video callout stability, and production QA state-transition/idempotency: **UNVERIFIED**.
+- Existing two `Sermon_Segment__c` QA outcomes: **SYSTEM_ERROR**, no promotion, no transcript correction, no retry or callout.
+
+**Merge gates identified by repository comparison:** PR #62 currently targets `feature/wde-gemini-interactions-51` and is still Draft with **no independent review**. A comparison against `main` on 23 Nov showed branches **diverged** (399 ahead / 15 behind); the accumulated tree contains changes beyond the dedicated async Audio QA workstream, including unrelated orchestration/workflow files. Retargeting or merging this branch as-is would make the review boundary too broad. First reconcile `main`, identify the minimal PR #62-only patch/metadata, and preserve deployed evidence. Do **not** force-push, retarget, or merge on a green CI signal alone.
+
+**Next safe scope:** source-only consolidation and independent PR review; a separately validated **full-segment** audio-vs-transcript acceptance and fail-closed QA idempotency design must precede any production verdict write or rollout. Approval of this 30-second pilot does not authorize new media calls, metadata deployment, mass DML, or Flow activation.
+
 ## Rationale & scope
 
 - Existing `WDE_Verify_Sermon_Segment_Audio` uses synchronous External Services, which cannot reliably analyze long video within 120s. Prior provider 503/read timeout left two bounded terminal `SYSTEM_ERROR` segments; 2 PASS and 6 genuine FAIL outcomes are unchanged.
