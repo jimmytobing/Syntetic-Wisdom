@@ -135,7 +135,9 @@ public with sharing class WDEAudioQaForegroundClaim {
             if (parts == null || parts.isEmpty()) return 'MISSING_TEXT';
             Map<String,Object> part = (Map<String,Object>)parts[0];
             String text = (String)part.get('text');
-            return String.isBlank(text) || text.length() > 4000 ? 'MISSING_OR_OVERSIZED_TEXT' : 'RECEIVED';
+            if (String.isBlank(text) || text.length() > 4000) return 'MISSING_OR_OVERSIZED_TEXT';
+            if (text.toUpperCase().contains('MEDIA_UNAVAILABLE')) return 'MEDIA_UNAVAILABLE';
+            return 'RECEIVED';
         } catch (Exception ex) {
             return 'MALFORMED_PROVIDER_JSON';
         }
