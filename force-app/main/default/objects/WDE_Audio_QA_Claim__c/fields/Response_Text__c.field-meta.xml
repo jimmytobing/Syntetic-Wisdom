@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Response_Text__c</fullName><label>Provider Evidence Text</label><type>LongTextArea</type><length>4000</length><visibleLines>4</visibleLines><required>false</required><description>Read only diagnostic receipt on WDE Audio QA claim; no automatic sermon QA verdict or transcript write.</description></CustomField>
