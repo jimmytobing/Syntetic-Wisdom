@@ -103,7 +103,7 @@ test('text-only diagnostic remains inactive, background-only, and free of DML', 
   const definition = read(prefix + 'flowDefinitions/WDE_Test_Gemini_Async_Text.flowDefinition-meta.xml');
   const diagnostic = flow('WDE_Test_Gemini_Async_Text');
   assert.match(definition, /<activeVersionNumber>0<\/activeVersionNumber>/);
-  assert.match(diagnostic, /<status>Active<\/status>/); // temporary one-shot authorized diagnostic; restore to Draft after execution
+  assert.match(diagnostic, /<status>Draft<\/status>/);
   assert.match(diagnostic, /<assignToReference>varA_Request\.background<\/assignToReference><operator>Assign<\/operator><value><booleanValue>true<\/booleanValue>/);
   assert.match(diagnostic, /<assignToReference>varA_Request\.store<\/assignToReference><operator>Assign<\/operator><value><booleanValue>true<\/booleanValue>/);
   assert.doesNotMatch(diagnostic, /<recordCreates>|<recordUpdates>|<recordDeletes>|<start>.*<scheduledPaths>/s);
