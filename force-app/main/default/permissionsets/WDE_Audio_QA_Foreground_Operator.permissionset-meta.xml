@@ -3,10 +3,10 @@
   <label>WDE Audio QA Foreground Operator</label>
   <description>Manual operator only, grants access to fenced claim audit. Does not grant Sermon transcript or QA verdict writes.</description>
   <classAccesses><apexClass>WDEAudioQaForegroundClaim</apexClass><enabled>true</enabled></classAccesses>
-  <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Claim_Key__c</field><readable>true</readable></fieldPermissions>
+
   <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Segment__c</field><readable>true</readable></fieldPermissions>
-  <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.State__c</field><readable>true</readable></fieldPermissions>
-  <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Fingerprint__c</field><readable>true</readable></fieldPermissions>
+
+
   <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Start_Ms__c</field><readable>true</readable></fieldPermissions>
   <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.End_Ms__c</field><readable>true</readable></fieldPermissions>
   <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Fence__c</field><readable>true</readable></fieldPermissions>
