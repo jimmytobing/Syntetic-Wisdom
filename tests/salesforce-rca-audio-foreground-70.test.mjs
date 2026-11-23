@@ -46,7 +46,7 @@ test('claim result never writes QA verdict/transcript and rejects bad provider e
   assert.match(apex,/MEDIA_UNAVAILABLE/);
   assert.match(apex,/MISSING_OR_OVERSIZED_TEXT/);
   assert.match(apex,/Result_Hash__c/);
-  assert.doesNotMatch(apex,/update\s+Sermon_Segment__c|insert\s+Sermon_Segment__c|Audio_QA_Status__c\s*=|Transcript_Text__c\s*=/);
+  assert.doesNotMatch(apex,/update\s+Sermon_Segment__c|insert\s+Sermon_Segment__c|Audio_QA_Status__c\s*=(?!=)|Transcript_Text__c\s*=(?!=)/);
   assert.match(operator,/<allowDelete>false<\/allowDelete>/);
   assert.doesNotMatch(operator,/Sermon_Segment__c\.Transcript_Text__c|Sermon_Segment__c\.Audio_QA_Status__c/);
 });
