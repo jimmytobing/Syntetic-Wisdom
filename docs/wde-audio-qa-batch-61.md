@@ -99,6 +99,16 @@ Both passages appear in the same order near the beginning of the stored segment 
 
 **Next safe scope:** source-only consolidation and independent PR review; a separately validated **full-segment** audio-vs-transcript acceptance and fail-closed QA idempotency design must precede any production verdict write or rollout. Approval of this 30-second pilot does not authorize new media calls, metadata deployment, mass DML, or Flow activation.
 
+## PR #70 safety hold — 23 November 2026
+
+**Status:** Existing Async Interactions `WDE_Start_Segment_Audio_Async_QA` read-then-submit Flow is **unsafe for new submissions** because checking `Audio_QA_Batch_State__c` and later persisting `Audio_QA_Batch_Job__c` occur in separate steps. Two manual operators can both pass the initial eligibility check; transient HTTP timeouts can also leave a provider-side request without a persisted Salesforce receipt. The historical background `gemini-3.8-flash` diagnostics terminated with `DEADLINE_EXCEEDED`.
+
+**Source-only remediation in isolated PR #70:** Set Start Flow XML `status=Draft`; add `force-app/main/default/flowDefinitions/WDE_Start_Segment_Audio_Async_QA.flowDefinition-meta.xml` with `activeVersionNumber=0`; add an isolated `manifest/wde-audio-qa-async-start-deactivate-70.xml` for **future separately approved metadata deactivation**; extend source tests. Keep read-only poll and explicit provider cleanup actions unchanged. This **does NOT deactivate the currently deployed Salesforce Flow**. Actual metadata deployment must use WDE Gateway Issue #15, an immutable commit SHA, approval, successful check-only validation, and independent Tooling readback of `ActiveVersionId=null`. No provider POST or QA DML has been performed for this change.
+
+**Operational restriction until deactivation/readback:** **DO NOT INVOKE** the active start Flow in Salesforce, even if it is called manually. A one-operator runbook is an interim procedural control, **not atomic idempotency**. Failures/timeouts must not be replayed or inferred successful. The existing `SYSTEM_ERROR` verdicts are untouched. No claim of completed production foreground migration or end-to-end QA reliability is made.
+
+**Technical acceptance before new submit Flow:** An authenticated atomic claim created *before* provider POST (for example conditional versioned update or a uniquely constrained claim record with a compare-and-set protocol), a durable request fingerprint and owner, idempotent reuse of confirmed receipts, explicit ambiguous-timeout reconciliation without POST retry, bounded work under Salesforce callout limits, and independent review. Foreground `gemini-3.6-flash` 30-second audio pilot was previously confirmed by the user; no repeated content-quality test is required by user instruction. A pilot does not authorize production invocation, long-media stability assumptions, or automatic PASS/FAIL.
+
 ## Rationale & scope
 
 - Existing `WDE_Verify_Sermon_Segment_Audio` uses synchronous External Services, which cannot reliably analyze long video within 120s. Prior provider 503/read timeout left two bounded terminal `SYSTEM_ERROR` segments; 2 PASS and 6 genuine FAIL outcomes are unchanged.
