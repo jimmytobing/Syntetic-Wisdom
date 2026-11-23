@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Audio_QA_Batch_Job__c</fullName><label>Audio QA Batch Job</label><description>Provider batch identifier, no credentials. Poll only this exact accepted job name.</description><type>Text</type><length>255</length><required>false</required></CustomField>
