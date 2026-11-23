@@ -23,9 +23,8 @@ test('Gemini background registration only uses named credential, isolated intera
   assert.doesNotMatch(xml, /AIza[A-Za-z0-9_-]{12,}|Bearer [A-Za-z0-9_-]+/);
   assert.doesNotMatch(xml, /batchGenerateContent/);
 });
-test('all three Flows are active manual autolaunched only and do not write records', () => {
+test('manual background read and cleanup Flows do not write records; unsafe start remains Draft', () => {
   for (const name of [
-    'WDE_Start_Segment_Audio_Async_QA',
     'WDE_Get_Segment_Audio_Async_QA',
     'WDE_Delete_Segment_Audio_Async_QA',
   ]) {
@@ -37,6 +36,18 @@ test('all three Flows are active manual autolaunched only and do not write recor
     assert.match(xml, /<flowTransactionModel>Automatic<\/flowTransactionModel>/);
     assert.equal((xml.match(/<actionCalls>/g) || []).length,1);
   }
+});
+test('background submit is explicitly held in Draft pending atomic claim and separately approved deactivation', () => {
+  const xml = flow('WDE_Start_Segment_Audio_Async_QA');
+  const definition = read(prefix + 'flowDefinitions/WDE_Start_Segment_Audio_Async_QA.flowDefinition-meta.xml');
+  const manifest = read('manifest/wde-audio-qa-async-start-deactivate-70.xml');
+  assert.match(xml, /<status>Draft<\/status>/);
+  assert.match(xml, /DEPRECATED SAFETY HOLD/);
+  assert.match(definition, /<activeVersionNumber>0<\/activeVersionNumber>/);
+  assert.match(manifest, /<members>WDE_Start_Segment_Audio_Async_QA<\/members>/);
+  assert.match(manifest, /<name>FlowDefinition<\/name>/);
+  assert.doesNotMatch(xml, /<recordUpdates>|<recordCreates>|<recordDeletes>|<schedule>|<scheduledPaths>/);
+  assert.equal((xml.match(/<actionCalls>/g)||[]).length,1);
 });
 test('submit is bounded to flagged closed terminal failures and authorized source only', () => {
   const xml = flow('WDE_Start_Segment_Audio_Async_QA');
