@@ -16,8 +16,10 @@ private class WDEAudioQaForegroundClaimTest {
             '{"candidates":[{"finishReason":"MAX_TOKENS","content":{"parts":[{"text":"PASS"}]}}]}'));
         System.assertEquals('MISSING_OR_OVERSIZED_TEXT', WDEAudioQaForegroundClaim.evaluateHttp(200,
             '{"candidates":[{"finishReason":"STOP","content":{"parts":[{"text":""}]}}]}'));
-        System.assertEquals('RECEIVED', WDEAudioQaForegroundClaim.evaluateHttp(200,
+        System.assertEquals('MEDIA_UNAVAILABLE', WDEAudioQaForegroundClaim.evaluateHttp(200,
             '{"candidates":[{"finishReason":"STOP","content":{"parts":[{"text":"MEDIA_UNAVAILABLE"}]}}]}'));
+        System.assertEquals('RECEIVED', WDEAudioQaForegroundClaim.evaluateHttp(200,
+            '{"candidates":[{"finishReason":"STOP","content":{"parts":[{"text":"Audio evidence at 00:01"}]}}]}'));
         // "RECEIVED" means transport evidence, never an automatic PASS verdict.
     }
 
