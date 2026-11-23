@@ -65,6 +65,23 @@ No mutations are authorized by this note. Never log raw keys, authorization head
 
 **Decision:** Pilot infrastructure acceptance **PASS (response received, one-shot and cleanup verified)**. Actual source-audio correctness **UNVERIFIED**; full Audio QA end-to-end **UNVERIFIED**, PR #62 remains Draft. Before any high-impact rollout/merge: independently listen to the 38:08–38:38 source clip and reconcile the two quotes with timestamps, inspect transcript alignment and actual media access/token bounds, implement idempotent QA-state transitions, and review how foreground `generateContent` behaves for longer clips under Salesforce callout limits. Do not upgrade either existing segment to PASS or FAIL from this pilot alone.
 
+## 23 Nov 2026: post-pilot transcript reconciliation — semantic match only
+
+**Read-only Salesforce source evidence:** [WDE Chat Gateway #15](https://github.com/bfipbf/WDE/issues/15) → [Sf Request run 45131103573](https://github.com/bfipbf/WDE/actions/runs/45131103573) → [PRIVATE_REPO evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7094331888). Record `Sermon_Segment__c/a0Efj00000EcTfFEAV` contains `Transcript_Text__c` starting at `Start_Ms__c=2288076` and ending at `End_Ms__c=2666000` with `Start_Index__c=1086` and `End_Index__c=1262`. The segment transcript is one long text field; it carries **no word-level timestamps**.
+
+**Comparison against the single Gemini pilot response** ([provider evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7094100889)):
+
+| Model-reported time | Model-reported phrase | Salesforce transcript near start of segment | Verdict |
+| --- | --- | --- | --- |
+| 38:08 | “Dia tidak omong soal jubah.” | “Dia enggak ngomong soal jubah.” | **Semantic agreement**; not an exact verbatim quote |
+| 38:19 | “Tapi kita mengartikan bahwa itu jubah…” | “Tapi kita mengartikan bahwa itu jubah kan.” | **Textual agreement** in core phrase; omitted ending |
+
+Both passages appear in the same order near the beginning of the stored segment transcript. The 38:08 starting time is compatible with `Start_Ms__c=2288076` (38:08.076). However, the Salesforce field **cannot independently confirm the 38:19 timestamp** or the accuracy of the actual audible words. No independent audio waveform/caption source was retrieved in this review; public transcript searches for `KeA9Xr9KzUI` did not yield a corroborating timed text. The two responses therefore are **not independently audio-verified**. Do not treat agreement against the stored transcript as a ground-truth check if that transcript shares an upstream AI/transcription source.
+
+**Acceptance matrix:** transport success = PASS; provider media-response availability = PASS; phrase semantic agreement with Salesforce = PASS; exact verbatim quote match = FAIL for first phrase; timestamp accuracy = UNVERIFIED; direct source-audio listening = UNVERIFIED; automated Audio QA verdict = UNVERIFIED. Preserve existing `SYSTEM_ERROR` state and attempts. Do not transition to `PASS`, `FAIL` or a corrected transcript based on this evidence.
+
+**Next gate:** an independently accessible audio clip/captions aligned to 38:08–38:38, human-audited transcription including word boundaries and timestamps (or independently trusted audio review), then a separate non-mutating QA comparison with explicit confidence/failure handling. Require separately authorized and validated production Flow changes, idempotency and Salesforce callout protection before rollout/merge. PR #62 remains Draft.
+
 ## Rationale & scope
 
 - Existing `WDE_Verify_Sermon_Segment_Audio` uses synchronous External Services, which cannot reliably analyze long video within 120s. Prior provider 503/read timeout left two bounded terminal `SYSTEM_ERROR` segments; 2 PASS and 6 genuine FAIL outcomes are unchanged.
