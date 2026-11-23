@@ -30,6 +30,29 @@ Evidence and controls for PR #62:
 
 No mutations are authorized by this note. Never log raw keys, authorization headers, or sensitive request bodies.
 
+## 23 Nov 2026: terminal evidence and isolated fallback decision
+
+**Outcome:** A second, independent `gemini-3.8-flash` background text-only `TEST_OK` diagnostic completed with `failed` / `DEADLINE_EXCEEDED`, no model text. It was submitted **once** with a confirmed interaction ID ([receipt](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7091116781)), and its terminal result was retrieved by provider GET through the same WDE gateway ([evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7091417462)). After retaining this evidence, a single cleanup DELETE returned HTTP 200 ([evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7091423040)) and a read-after-delete GET returned provider 404 ([evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7091427640)). The submit-only diagnostic Flow is disabled; latest independent `ActiveVersionId=null` [readback](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7091147162). No audio request, QA verdict write, or bulk retry occurred.
+
+**Implementation review:** The existing `WDEGeminiAsync` External Service binds to `GeminiNmCred` and submits `/v1beta/interactions` using `background:true`, `store:true`, `model:gemini-3.8-flash`; errors are now correctly parsed from `errors[]`. The text-only request contains no media and still reaches a terminal provider timeout. This isolates the failure away from YouTube media *for that diagnostic*, but does not distinguish Google service capacity, project quota/entitlement, model, request/header compatibility, or a provider-side issue. HTTP 200 for the initial create means **accepted**, never generation success. The schema currently does not encode an `Api-Revision` request header, which the official REST background example documents; this is a compatibility review item, **not an established cause** of the terminal failure.
+
+**Authoritative references (recheck before execution):**
+- Background execution and required `store:true`: https://ai.google.dev/gemini-api/docs/background-execution
+- Interactions API and still-supported `generateContent`: https://ai.google.dev/gemini-api/docs/interactions
+- Per-project, model-specific limits and active project limits UI: https://ai.google.dev/gemini-api/docs/rate-limits and https://aistudio.google.com/rate-limit?timeRange=last-28-days
+- Video input and the distinction between YouTube URL and uploaded file input: https://ai.google.dev/gemini-api/docs/video-understanding
+- Error troubleshooting: https://ai.google.dev/gemini-api/docs/troubleshooting
+
+**Gate for another controlled test (not authorization to execute):**
+
+1. In the actual Google AI Studio project linked to the Salesforce Named Credential, inspect **active model availability**, Free Tier status, RPM/TPM/RPD, current usage, and any service/verification restriction. Record project identification only if non-sensitive and necessary; never export the API key. If limits are zero or unavailable, stop.
+2. Choose a single testable Free Tier model and distinguish **foreground `generateContent`** from **Interactions background**. Build a dedicated one-off diagnostic Flow/ExternalService metadata path or review existing safe operations; do **not** mutate `WDE_Start_Segment_Audio_Async_QA` or retarget production QA. It should contain only the static `TEST_OK` text, no PII, no record DML, no schedules, no automatic retry, and no stored interaction unless needed. Cap response length and callout duration, and treat Salesforce timeout as ambiguous. The previous foreground timeout must **not** be replayed.
+3. Code and CI review first; validate immutable commit+isolated manifest using WDE **Sf Deploy**. Obtain explicit approval before mutative deployment/activation and before exactly one provider request. Require Salesforce readback of the active diagnostic version; immediately deactivate it after the one confirmed attempt. Cleanup stored provider resources once evidence is retained.
+4. Only if foreground text generation **completes with actual `TEST_OK` output** and provider evidence is readable, design a **separately reviewed consented short audio/video clip** pilot with a bounded timestamp interval and independently verified audible evidence. Do not infer that clipping a YouTube URL bounds API token cost without provider confirmation. A pilot with a public URL still needs `Rights_Status__c=PermissionGranted`.
+5. Keep both original `SYSTEM_ERROR` segments and all prior genuine FAILs unchanged until independent source-audio review. Any verdict promotion, multiple requests, bulk processing, automatic retries, credential update, or destructive cleanup requires its own explicit approval. PR #62 remains **Draft / Audio QA UNVERIFIED** pending end-to-end evidence and independent review.
+
+**Decision:** No further `gemini-3.8-flash` background POST on this pathway until model/quota/service constraints are independently validated. Existing Git and org safety state remains unchanged by this investigation.
+
 ## Rationale & scope
 
 - Existing `WDE_Verify_Sermon_Segment_Audio` uses synchronous External Services, which cannot reliably analyze long video within 120s. Prior provider 503/read timeout left two bounded terminal `SYSTEM_ERROR` segments; 2 PASS and 6 genuine FAIL outcomes are unchanged.
