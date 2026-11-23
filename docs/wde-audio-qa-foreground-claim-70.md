@@ -2,6 +2,21 @@
 
 **Status:** Proposed architecture; no Salesforce metadata deployment, provider request, data mutation or Flow activation is authorized by this document. The current legacy async START Flow has already been explicitly deactivated in `hdbsf` ([deploy](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7095937376), [readback: ActiveVersionId = null](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7095947849)). Continue to reuse [WDE Chat Gateway #15](https://github.com/bfipbf/WDE/issues/15) for all Salesforce changes.
 
+## Implementation and Salesforce check-only status — 23 November 2026
+
+**Source staged, NOT deployed:** The isolated PR #70 branch now includes `WDEAudioQaForegroundClaim.cls` and its Apex test, `WDE_Audio_QA_Claim__c` with a database-unique `Claim_Key__c`, permission set, scope-restricted manifests, and Node static safety tests. The entrypoint is a manual Apex invocable method and **no Flow is wired to invoke it**. Two Queueable stages separate committed `RESERVED` → `CALLING` claim state from the external `generateContent` POST. Unknown callout outcomes are terminal `UNKNOWN_DO_NOT_RETRY`; the class never writes `Sermon_Segment__c` QA verdict or transcript. This is **provisional source code**, not a compiled/accepted production runtime.
+
+**Gateway evidence:** [WDE Gateway Issue #15](https://github.com/bfipbf/WDE/issues/15) with immutable commit and `Sf Deploy mode=validate` produced the following actual outcomes:
+
+- Combined manifest `manifest/wde-audio-qa-foreground-claim-70.xml`, check-only deployment `0Affj00000aaXwnCAE`: **FAILED** (5 component errors). Both Apex classes failed with `Not available for deploy for this organization`; the permission set initially attempted explicit FLS for a required field. [Automated evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7097483278).
+- The permission set source was corrected to omit explicit FLS for required fields. No subsequent combined compile success is asserted.
+- `Tooling/sobjects/ApexClass/describe` read-only HTTP 200 returned **`createable=false`** for the gateway identity. This is consistent with Apex creation restrictions, but alone does not prove whether the root cause is profile permission, org license or metadata feature. [Tooling evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7097509150).
+- Isolated schema-only manifest `manifest/wde-audio-qa-foreground-schema-70.xml`: **SUCCESS** check-only, 11 components (object + ten fields), zero errors, ID `0Affj00000aaOVKCA2`. [Automated evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7097546599). This **did not create any Salesforce object** because `checkOnly=true`.
+
+**Blocking action outside current authorization:** A Salesforce administrator must establish whether the gateway execution identity can be granted the standard Apex authoring/deployment privilege within the org and whether the edition supports deploying Apex through Metadata API. Do **not** enable elevated permissions automatically; do **not** use direct Tooling, Sf Bash, or a different Salesforce login to bypass gateway restrictions. Once resolved, rerun `Sf Deploy mode=validate` on a new immutable SHA with Apex tests, fix any actual compiler/test errors, obtain explicit separate approval for metadata deployment, and verify deployed object, class permissions and no automatic invocation before proceeding. If Apex capability is unavailable by design, this architecture must be replaced with a separately reviewed Flow-native/externally approved atomic-claim gateway; do not claim a flow read-then-write lock is sufficient.
+
+**Acceptance state:** Database claim schema CHECK-ONLY PASS, Git CI PASS; Apex compile/deploy **BLOCKED**, concurrency runtime and queued callout execution **UNVERIFIED**. Human audio pilot remains accepted by user and is not scheduled for retesting. PR #70 remains Draft, PR #62 historical Draft; no production rollout, no QA verdict updates, no media call.
+
 ## Evidence and decision
 
 - Legacy `WDEGeminiAsync.startAsyncQa` background `gemini-3.8-flash` returned `DEADLINE_EXCEEDED` in independent text-only diagnostics. **Do not reactivate it or retry unknown submissions.**
