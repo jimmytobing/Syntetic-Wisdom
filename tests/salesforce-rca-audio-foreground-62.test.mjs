@@ -11,7 +11,7 @@ const manifest = read('manifest/wde-gemini-foreground-text-diagnostic-62.xml');
 const external = read('force-app/main/default/externalServiceRegistrations/WDEGeminiVideo.externalServiceRegistration-meta.xml');
 
 test('foreground diagnostic stays inactive, manually invoked, and isolated from QA record writes', () => {
-  assert.match(xml, /<status>Active<\/status>/); // temporary one-shot diagnostic; restore Draft immediately after invocation
+  assert.match(xml, /<status>Draft<\/status>/);
   assert.match(xml, /<processType>AutoLaunchedFlow<\/processType>/);
   assert.equal((xml.match(/<actionCalls>/g) || []).length, 1);
   assert.match(xml, /<actionName>WDEGeminiVideo\.analyzeVideo<\/actionName>/);
