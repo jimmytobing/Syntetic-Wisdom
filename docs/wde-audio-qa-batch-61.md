@@ -11,6 +11,25 @@
 - **Decision:** The Gemini background route is not yet suitable for Audio QA acceptance; `DEADLINE_EXCEEDED` on text alone rules out a YouTube-size-only explanation but does **not** identify a provider-side root fault. Do not mass submit or automatically update `Audio_QA_Status__c`. Original two segments remain `SYSTEM_ERROR`, one `PROVIDER_FAILED` and one with no async submission ([Salesforce readback](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67#issuecomment-7079266788)).
 - **Next gate:** obtain provider status/limit/service evidence or support diagnosis for `DEADLINE_EXCEEDED`; reconcile timeout effects without retry, and if necessary design a separately reviewed single-operator bounded audio-clip fallback that stays under Salesforce External Services callout limits. Do not treat prior synchronous QA PASS/FAIL as evidence that long media now works. Successful audio evidence and independent review must precede retarget from merged PR #52 branch to `main` and any PR #62 merge. For an abandoned approach, remove stale deployed metadata only with separate authorization and validated dependency cleanup.
 
+## 23 Nov 2026: Free Tier recovery gate (no deployment authorization yet)
+
+Evidence and controls for PR #62:
+
+- Official Gemini pricing (https://ai.google.dev/gemini-api/docs/pricing#gemini-3.8-flash) lists **Standard Free Tier input/output as free of charge** for `gemini-3.8-flash`, subject to account/model/rate limits. The **Batch** and **Flex** pricing tabs are marked unavailable on Free Tier. Background **Interactions** should not be conflated with the separate Batch API. A Free Tier subscription is not proof that an individual API key still has available quota.
+- Salesforce read-only evidence via [Chat Gateway #15](https://github.com/bfipbf/WDE/issues/15), [Actions 45105511203](https://github.com/bfipbf/WDE/actions/runs/45105511203), and [private evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7090680466): `GeminiNmCred` exists. Sensitive credential/auth details are intentionally masked, and the gateway does not prove Google AI Studio usage limits or billing status. The two QA segments remain `SYSTEM_ERROR` in [readback](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7090606582).
+- Existing `gemini-3.8-flash` background text-only diagnostic produced terminal `DEADLINE_EXCEEDED` even without media, while a separate synchronous invocation ended with an **ambiguous Salesforce gateway timeout**. Neither request is safe to replay. A previously confirmed stored background interaction was explicitly deleted after evidence retention.
+- An intermittent background support report exists in the Google developer forum (https://discuss.ai.google.dev/t/gemini-3-8-flash-and-gemini-3-1-flash-lite-intermittently-return-400-does-not-support-background-interactions/184236). This is a **hypothesis**, not confirmed root cause for `DEADLINE_EXCEEDED`.
+
+**Proposed diagnostic sequence, with separate explicit approval before mutation:**
+
+1. Confirm the Google AI Studio project / API key is actually Free Tier, inspect model-specific rate limits and current usage *inside the authorized account*, and capture non-secret evidence. No API key export or logging.
+2. Review a **separate minimal text-only** diagnostic that uses an eligible Free Tier model and fixed `TEST_OK` input. Use one clearly distinguishable new invocation, no personal data, no media, no retry on uncertain receipt, no automatic DML; isolate and deactivate the diagnostic Flow afterward.
+3. Run validate of the immutable commit/manifest via **Sf Deploy** before requesting explicit authorization to deploy/activate; record results and independently read back Flow status. Only then request approval for exactly one diagnostic call. Poll only the returned confirmed interaction ID, preserve bounded error/status evidence, and delete stored interactions after evidence retention.
+4. If the minimal diagnostic succeeds, review a short consented audio clip and confirm its actual audio/transcript/time range. Do not infer provider access from an HTTP 200 alone. Obtain separate approval before one controlled pilot; block bulk rollout, post-failure retry, and QA verdict DML.
+5. Keep PR #62 Draft until provider success, audio evidence, idempotency/race controls, cleanup, final CI on retargeted `main`, and independent review all pass. If account quota is exhausted or unavailable, stop rather than switching to a paid model.
+
+No mutations are authorized by this note. Never log raw keys, authorization headers, or sensitive request bodies.
+
 ## Rationale & scope
 
 - Existing `WDE_Verify_Sermon_Segment_Audio` uses synchronous External Services, which cannot reliably analyze long video within 120s. Prior provider 503/read timeout left two bounded terminal `SYSTEM_ERROR` segments; 2 PASS and 6 genuine FAIL outcomes are unchanged.
