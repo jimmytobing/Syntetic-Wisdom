@@ -2,6 +2,18 @@
 
 > Status: **PARTIAL / full equivalence UNVERIFIED**. Audit ini adalah snapshot; tidak mengklaim seluruh metadata Org cocok dengan Git. Target: `hdbsf` (Org ID `00Dfj00000eVCOVEA4`). Pembanding: `main`, dengan PR #62 sebagai source pending terpisah. Tidak ada deploy, DML, penghapusan, atau aktivasi Flow dalam audit ini.
 
+## Pembaruan acceptance — 24 November 2026 (scope PR #68)
+
+**Keputusan:** PR #68 adalah *capture source-only* untuk 18 komponen metadata WDE yang **sudah ada di Org**, bukan proyek menyamakan seluruh metadata Org dengan Git. Klaim keseluruhan Org identik dengan Git tetap **UNVERIFIED** dan tidak menjadi acceptance gate bagi snapshot 18 komponen ini. Tidak ada alasan untuk me-*deploy* ulang metadata aktif Org sekadar agar tersimpan di Git.
+
+- **Perkembangan PR lain:** [PR #62](https://github.com/jimmytobing/Syntetic-Wisdom/pull/62) ditutup tanpa merge karena source historis bertumpuk; penggantinya [PR #70](https://github.com/jimmytobing/Syntetic-Wisdom/pull/70) sudah di-merge ke `main` pada commit `1160603624aba9200003c0fc7765091cdf671b9d`. Fondasi Audio QA PR #70 tetap nonaktif dan bukan bagian deploy PR #68.
+- **Scope snapshot PR #68:** 3 Flow (1 aktif di Org, 2 Draft), 13 CustomField yang terkait, 1 CustomObject, 1 ValidationRule; 18 metadata total dalam 18 berkas XML. Metadata diambil dari Org, dengan blob Flow dan field berasal dari hasil retrieve yang tercatat pada [audit #67](https://github.com/jimmytobing/Syntetic-Wisdom/issues/67). Dokumen ini mencatat prosedur, bukan izin mengaktifkan QA atau menulis data.
+- **Batas risiko:** tidak menyentuh credential/token, PermissionSet berhak luas, field legacy/`*_del`, objek aplikasi lain, perbedaan XML hasil normalisasi, atau `WDE_Batch_Run_Create_Object__c.Draft_Boundaries__c` yang belum dapat diretrieve. Perbedaan ini disimpan sebagai *follow-up*, bukan dipaksa masuk ke PR tanpa penilaian.
+- **Pengaman penerimaan:** pengujian statis `tests/salesforce-rca-org-source-reconciliation-68.test.mjs` mempertahankan Flow editorial/QA dalam Draft, permission gate OAuth, dua unique claim key dan validasi journal. Manifest eksplisit `manifest/wde-org-source-reconcile-68.xml` untuk **check-only** jika diperlukan; manifest tersebut bukan instruksi deployment aktual.
+- **Deployment:** **tidak diperlukan** untuk menyelesaikan PR #68. Tindakan ini hanya memasukkan *representasi source* metadata Org ke Git. Status *Active* pada XML Orchestrator adalah pantulan kondisi Org, **bukan** aktivasi baru. Keberhasilan CI/merge tidak mengesahkan kelayakan Audio QA runtime.
+
+> Semua pernyataan dan angka inventaris di bawah adalah snapshot historis **22 November 2026**. Referensi PR #62 yang masih Draft di bawah telah digantikan oleh status 24 November di atas. Cakupan rekonsiliasi berikutnya tetap membutuhkan review independen per komponen.
+
 ## Metode dan bukti
 
 - Inventaris Git diambil dari pohon GitHub `main` dan branch `feature/wde-gemini-batch-qa-61`.
