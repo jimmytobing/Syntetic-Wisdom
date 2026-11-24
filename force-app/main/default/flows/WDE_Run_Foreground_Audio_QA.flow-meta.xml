@@ -8,7 +8,7 @@
 <outputParameters><assignToReference>varT_Error</assignToReference><name>defaultExc</name></outputParameters></actionCalls>
 <apiVersion>68.0</apiVersion>
 <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-<description>Draft only: record-triggered async-after-commit one-shot foreground call worker. Strict claim+segment+source snapshot checks before and after provider POST, never retry, never update Sermon_Segment__c, PASS, FAIL or transcript.</description>
+<description>SECURITY_REVIEW_REQUIRED: Draft only: record-triggered async-after-commit one-shot foreground call worker. Strict claim+segment+source snapshot checks before and after provider POST, never retry, never update Sermon_Segment__c, PASS, FAIL or transcript. Duplicate async delivery or parallel manual invocation can re-send the provider POST because RESERVED is not atomically transitioned before the callout. DO NOT ACTIVATE until a safe durable dispatch boundary and idempotency/reconciliation are independently verified.</description>
 <assignments><name>Prepare_Prompt</name><label>Bounded independent audio evidence only</label><locationX>0</locationX><locationY>0</locationY>
 <assignmentItems><assignToReference>varA_PromptPart.text</assignToReference><operator>Assign</operator><value><elementReference>tt_Instruction</elementReference></value></assignmentItems>
 <connector><targetReference>Prepare_Video</targetReference></connector></assignments>
