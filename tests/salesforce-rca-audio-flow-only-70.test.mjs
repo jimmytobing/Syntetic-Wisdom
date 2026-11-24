@@ -82,3 +82,21 @@ test('manifests list only claim schema and three inactive Flow metadata',()=>{
   assert.doesNotMatch(flowsManifest,/FlowDefinition|ApexClass|destructiveChanges/);
   assert.doesNotMatch(schemaManifest,/PermissionSet|ApexClass|destructiveChanges/);
 });
+
+test('production activation remains forbidden until async dispatch is proven idempotent',()=>{
+  for(const xml of [trigger,worker]) assert.match(xml,/SECURITY_REVIEW_REQUIRED/);
+  for(const xml of [reserve,trigger,worker]) assert.match(xml,/<status>Draft<\/status>/);
+  assert.match(worker,/<stringValue>RESERVED<\/stringValue>/);
+  assert.match(worker,/WDEGeminiVideo\.analyzeVideo/);
+  // Unique creation is not a fence on the subsequent provider POST.
+  // A code change removing this review gate must be accompanied by a
+  // separately reviewed durable dispatch protocol and no-retry proof.
+});
+
+test('operator has read-only claim permissions, not claim state mutation',()=>{
+  assert.match(operator,/<allowRead>true<\/allowRead>/);
+  assert.match(operator,/<allowCreate>false<\/allowCreate>/);
+  assert.match(operator,/<allowEdit>false<\/allowEdit>/);
+  assert.match(operator,/<allowDelete>false<\/allowDelete>/);
+  assert.doesNotMatch(operator,/<editable>true<\/editable>/);
+});
