@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Video_Id__c</fullName><label>Source Video Id</label><type>Text</type><length>11</length><required>false</required><description>Exact rights-approved video ID snapshot used for this claim.</description></CustomField>
