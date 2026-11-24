@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
   <label>WDE Audio QA Flow Operator</label>
-  <description>Manual operator only, grants access to fenced claim audit. Does not grant Sermon transcript or QA verdict writes.</description>
-  <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Segment__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Start_Ms__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.End_Ms__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Fence__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Result_Hash__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Error_Code__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Response_Text__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Source_Modified__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Source_Record_Modified__c</field><readable>true</readable></fieldPermissions>
-<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Video_Id__c</field><readable>true</readable></fieldPermissions>
-  <objectPermissions><allowCreate>true</allowCreate><allowDelete>false</allowDelete><allowEdit>true</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>WDE_Audio_QA_Claim__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+  <description>Read-only claim inspection only; does not grant claim create, edit, delete, Sermon transcript or QA verdict writes. Manual reserve Flow execution and source/claim CRUD must be reviewed separately before activation.</description>
+  <fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Segment__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Start_Ms__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.End_Ms__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Fence__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Result_Hash__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Error_Code__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Response_Text__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Source_Modified__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Source_Record_Modified__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>false</editable><field>WDE_Audio_QA_Claim__c.Video_Id__c</field><readable>true</readable></fieldPermissions>
+  <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>WDE_Audio_QA_Claim__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
 </PermissionSet>
