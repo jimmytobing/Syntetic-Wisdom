@@ -42,6 +42,8 @@
 <inputAssignments><field>Source_Modified__c</field><value><elementReference>Get_Segment.LastModifiedDate</elementReference></value></inputAssignments>
 <inputAssignments><field>Start_Ms__c</field><value><elementReference>f_StartMs</elementReference></value></inputAssignments>
 <inputAssignments><field>End_Ms__c</field><value><elementReference>f_EndMs</elementReference></value></inputAssignments>
+<inputAssignments><field>Video_Id__c</field><value><elementReference>Get_Source.External_Video_Id__c</elementReference></value></inputAssignments>
+<inputAssignments><field>Source_Record_Modified__c</field><value><elementReference>Get_Source.LastModifiedDate</elementReference></value></inputAssignments>
 </recordCreates>
 <assignments><name>Accept_Claim</name><label>Return newly created claim only</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varS_Result</assignToReference><operator>Assign</operator><value><stringValue>CLAIM_CREATED_ONCE</stringValue></value></assignmentItems><assignmentItems><assignToReference>varS_ClaimId</assignToReference><operator>Assign</operator><value><elementReference>Create_Claim.Id</elementReference></value></assignmentItems></assignments>
 <assignments><name>Duplicate_Or_Fault</name><label>Any create fault blocks new provider work</label><locationX>0</locationX><locationY>0</locationY><assignmentItems><assignToReference>varS_Result</assignToReference><operator>Assign</operator><value><stringValue>CLAIM_CREATE_FAILED_DO_NOT_RETRY</stringValue></value></assignmentItems></assignments>
