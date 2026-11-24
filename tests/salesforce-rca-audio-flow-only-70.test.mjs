@@ -15,6 +15,7 @@ const unique=read(path+'objects/WDE_Audio_QA_Claim__c/fields/Claim_Key__c.field-
 const schemaManifest=read('manifest/wde-audio-qa-foreground-schema-70.xml');
 const flowsManifest=read('manifest/wde-audio-qa-foreground-flows-70.xml');
 const operator=read(path+'permissionsets/WDE_Audio_QA_Foreground_Operator.permissionset-meta.xml');
+const runner=read(path+'permissionsets/WDE_Audio_QA_Foreground_Runner.permissionset-meta.xml');
 
 test('Flow-only source does not ship a new Apex runtime or Apex permissions',()=>{
   for(const file of [
@@ -24,7 +25,7 @@ test('Flow-only source does not ship a new Apex runtime or Apex permissions',()=
     'classes/WDEAudioQaForegroundClaimTest.cls-meta.xml'
   ]) assert.equal(existsSync(resolve(root,path+file)),false,file);
   assert.equal(existsSync(resolve(root,'manifest/wde-audio-qa-foreground-claim-70.xml')),false);
-  for(const text of [schemaManifest,flowsManifest,operator]) assert.doesNotMatch(text,/ApexClass|AuthorApex|SystemPermission/);
+  for(const text of [schemaManifest,flowsManifest,operator,runner]) assert.doesNotMatch(text,/ApexClass|AuthorApex|SystemPermission/);
 });
 
 test('unique database claim is created once, no check-then-callout race',()=>{
@@ -87,7 +88,8 @@ test('manifests list only claim schema and three inactive Flow metadata',()=>{
 });
 
 test('production activation remains forbidden until async dispatch is proven idempotent',()=>{
-  for(const xml of [trigger,worker]) assert.match(xml,/SECURITY_REVIEW_REQUIRED/);
+  assert.match(worker,/SECURITY_REVIEW_REQUIRED/);
+  assert.match(trigger,/SECURITY HOLD/);
   for(const xml of [reserve,trigger,worker]) assert.match(xml,/<status>Draft<\/status>/);
   assert.match(worker,/<stringValue>RESERVED<\/stringValue>/);
   assert.doesNotMatch(trigger,/<scheduledPaths>|<subflows>/);
@@ -103,4 +105,32 @@ test('operator has read-only claim permissions, not claim state mutation',()=>{
   assert.match(operator,/<allowEdit>false<\/allowEdit>/);
   assert.match(operator,/<allowDelete>false<\/allowDelete>/);
   assert.doesNotMatch(operator,/<editable>true<\/editable>/);
+});
+
+test('claim CALLING must be written with an execution fence before the only POST',()=>{
+  assert.match(worker,/<name>Reserve_Dispatch<\/name>/);
+  assert.match(worker,/<stringValue>CALLING<\/stringValue>/);
+  assert.match(worker,/<name>Prepare_Dispatch_Fence<\/name>/);
+  assert.match(worker,/<name>Check_Dispatch<\/name>/);
+  assert.match(worker,/<name>f_DispatchOwned<\/name>/);
+  assert.match(worker,/<elementReference>\$Flow\.InterviewGuid<\/elementReference>/);
+  assert.match(worker,/<name>Get_Dispatch<\/name>/);
+  for(const name of ['Save_Received','Save_Error','Save_Unknown','Save_Stale']) {
+    const chunk=worker.match(new RegExp('<recordUpdates><name>'+name+'<\\/name>[\\s\\S]*?<\\/recordUpdates>'))?.[0];
+    assert.ok(chunk,name+' must exist');
+    assert.match(chunk,/<field>Fence__c<\/field>/);
+    assert.match(chunk,/<stringValue>CALLING<\/stringValue>/);
+  }
+  assert.match(worker,/<name>Save_Stale_Before<\/name>/);
+  // Metadata ordering checks cannot prove a database compare-and-swap.
+  // The separate manual entrypoint plus unique claim reduces replay exposure;
+  // provider/continuation exactly-once remains an independent review requirement.
+});
+
+test('granular Flow access grants parent runner only, not direct worker entry',()=>{
+  for(const xml of [reserve,worker]) assert.match(xml,/<isAdditionalPermissionRequiredToRun>true<\/isAdditionalPermissionRequiredToRun>/);
+  assert.match(runner,/<flow>WDE_Reserve_Foreground_Audio_QA<\/flow>/);
+  assert.doesNotMatch(runner,/<flow>WDE_Run_Foreground_Audio_QA<\/flow>/);
+  assert.match(runner,/<allowDelete>false<\/allowDelete>/);
+  assert.match(operator,/<allowCreate>false<\/allowCreate>/);
 });
