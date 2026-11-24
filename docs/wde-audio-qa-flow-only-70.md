@@ -30,9 +30,9 @@ Semua operasi Salesforce menggunakan satu [Gateway Issue #15](https://github.com
 - [x] Hapus source dan manifest Apex yang belum di-deploy.
 - [x] Klaim kunci unik dan tiga Flow Draft dibuat dalam source.
 - [x] CI statis repo dijalankan.
-- [ ] `Sf Deploy mode=validate` skema klaim terbaru: **lihat bukti run terbaru**, bukan lulus sebelumnya yang hanya 10 field.
-- [ ] `Sf Deploy mode=validate` tiga Flow Draft: harus lolos metadata compile; lakukan perbaikan jika gagal.
-- [ ] Validasi PermissionSet dan review permission/record-level sharing; jangan jadikan field wajib editable secara eksplisit di permission metadata.
+- [x] `Sf Deploy mode=validate` skema klaim terbaru: **SUCCESS checkOnly**, 14 komponen, 0 error, deployment `0Affj00000aj1jBCAQ` ([bukti](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7121306770)).
+- [x] `Sf Deploy mode=validate` gabungan 3 Flow Draft + 13 field + Claim Object + PermissionSet: **SUCCESS checkOnly** pada immutable SHA `967936ef7f9e9ce9182282922b0df4db2717b198`, 18 komponen, 0 error, deployment `0Affj00000aj3D7CAI` ([bukti](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7121391336)).
+- [x] PermissionSet lolos checkOnly dalam paket gabungan; [ ] review independen CRUD/FLS, identitas eksekusi Flow, dan sharing record sebelum aktivasi. Jangan jadikan field wajib editable secara eksplisit di permission metadata.
 - [ ] Review independen pola AsyncAfterCommit untuk mencegah duplicate provider submission dan memastikan bahwa fault ambiguity tetap terminal.
 - [ ] Izin terpisah dari pengguna sebelum metadata **deploy aktual**, aktivasi Flow, pemanggilan media, atau perubahan data.
 - [ ] Setelah validasi dan approval, lakukan readback Salesforce pada setiap Flow dan rekam ID deployment serta evidence. Tidak otomatis mengubah existing `SYSTEM_ERROR`.
@@ -40,3 +40,9 @@ Semua operasi Salesforce menggunakan satu [Gateway Issue #15](https://github.com
 ## Legacy dan batas cakupan
 
 PR #62 historis dan PR #70 tetap Draft. Flow async lama `WDE_Start_Segment_Audio_Async_QA` tetap nonaktif, tidak boleh dipanggil. `WDEGeminiAsync` GET/DELETE dipertahankan sebagai manual cleanup; tidak ada submission model background baru. Tidak mengulang quality testing audio sebagaimana diminta pengguna.
+
+## Hasil validasi aktual — 24 November 2026
+
+Pada [Gateway Chat #15](https://github.com/bfipbf/WDE/issues/15), skema baru diperiksa terpisah dengan `checkOnly=true` dan **SUCCESS** (14 komponen), lalu kombinasi objek, permission set dan tiga Flow yang sudah diperbaiki diperiksa dalam satu manifest dengan **SUCCESS** (18 komponen, 0 errors) di immutable SHA `967936ef7f9e9ce9182282922b0df4db2717b198`. Aksi gabungan: [GitHub Actions 45321601866](https://github.com/bfipbf/WDE/actions/runs/45321601866) → [PRIVATE_REPO evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7121391336). Kedua validasi bukan deployment aktual; tidak ada Flow baru aktif, record claim dibuat, provider POST, atau perubahan status QA.
+
+Validasi pertama pada Flow saja gagal karena objek klaim masih checkOnly, dan elemen metadata XML perlu pengelompokan. Validasi gabungan pertama juga gagal karena nama rule duplikat dan urutan FLS. Semua masalah metadata tersebut diperbaiki dan validasi kedua gabungan lulus. Ini bukan bukti runtime exactly-once; **jangan aktifkan ketiga Flow sebelum review khusus concurrency/async delivery dan persetujuan deployment mutatif terpisah**. Tidak diperlukan izin `Author Apex`.
