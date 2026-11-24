@@ -3,9 +3,14 @@ name: Close linked issue (bidirectional)
 on:
   issues:
     types: [closed]
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 permissions:
-  issues: read
+  issues: write
 
 concurrency:
   group: linked-issue-close-${{ github.event.issue.number }}
@@ -13,7 +18,7 @@ concurrency:
 
 jobs:
   close-counterpart:
-    if: ${{ !github.event.issue.pull_request }}
+    if: ${{ github.event_name == 'issues' && !github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -41,6 +46,11 @@ jobs:
             throw Error('Invalid issue number');
           }
 
+          if (local === PRIVATE && !process.env.REMOTE_TOKEN) {
+            console.log('DEFERRED: remote token missing; WDE scheduled reconciliation handles the close');
+            process.exit(0);
+          }
+
           async function api(repo, route, method='GET', data) {
             const token = repo === local ? process.env.LOCAL_TOKEN : process.env.REMOTE_TOKEN;
             if (!token) throw Error('BLOCKED: configure ISSUE_SYNC_TOKEN with Issues read/write access to the other repository');
@@ -49,6 +59,7 @@ jobs:
               headers: {
                 Authorization: 'Bearer ' + token,
                 Accept: 'application/vnd.github+json',
+                'Content-Type': 'application/json',
                 'X-GitHub-Api-Version': '2022-11-28',
                 'User-Agent': 'wde-linked-issue-close'
               },
@@ -154,4 +165,120 @@ jobs:
           if (target.state !== 'open') throw Error('Unexpected counterpart state');
           await api(targetRepo, '/issues/' + targetNumber, 'PATCH', {state: 'closed'});
           console.log('Closed linked counterpart: ' + targetRepo + '#' + targetNumber);
+          NODE
+
+  reconcile-public:
+    if: ${{ github.repository == 'bfipbf/WDE' && (github.event_name == 'issue_comment' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PUBLIC_TOKEN: ${{ github.token }}
+      PRIVATE_TOKEN: ${{ secrets.PRIVATE_TOKEN }}
+    steps:
+      - name: Reconcile closed private mirrors into WDE
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const PUBLIC = 'bfipbf/WDE';
+          const PRIVATE = 'jimmytobing/Syntetic-Wisdom';
+          const pubToken = process.env.PUBLIC_TOKEN;
+          const privToken = process.env.PRIVATE_TOKEN;
+          if (!pubToken || !privToken) throw Error('BLOCKED: WDE requires PRIVATE_TOKEN to reconcile mirrored closures');
+          const eventName = process.env.GITHUB_EVENT_NAME;
+          const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+
+          async function api(repo, path, method='GET', payload) {
+            const response = await fetch('https://api.github.com/repos/' + repo + path, {
+              method,
+              headers: {
+                Authorization: 'Bearer ' + (repo === PUBLIC ? pubToken : privToken),
+                Accept: 'application/vnd.github+json',
+                'Content-Type': 'application/json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'User-Agent': 'wde-close-reconciliation'
+              },
+              ...(payload === undefined ? {} : {body: JSON.stringify(payload)})
+            });
+            if (!response.ok) throw Error('GitHub ' + method + ' ' + repo + path.split('?')[0] + ' HTTP ' + response.status);
+            return response.status === 204 ? null : response.json();
+          }
+
+          async function pages(repo, route, maxPages=10) {
+            const collected = [];
+            for (let p=1; p<=maxPages; p++) {
+              const data = await api(repo, route + (route.includes('?') ? '&' : '?') + 'per_page=100&page=' + p);
+              if (!Array.isArray(data)) throw Error('Expected paginated issues array');
+              collected.push(...data);
+              if (data.length < 100) return collected;
+            }
+            throw Error('Pagination limit reached: declining ambiguous reconciliation');
+          }
+
+          function sourceNumber(body) {
+            const match = /^Source: \[bfipbf\/WDE#([1-9][0-9]*)\]\(https:\/\/github\.com\/bfipbf\/WDE\/issues\/\1\)\n\n<!-- silent-pbf-issue:\1 -->$/.exec(String(body ?? '').trim());
+            if (!match) return null;
+            const value = Number(match[1]);
+            return Number.isSafeInteger(value) ? value : null;
+          }
+
+          async function verifyBacklink(publicNumber, privateNumber) {
+            const cm = await pages(PUBLIC, '/issues/' + publicNumber + '/comments', 20);
+            const marker = '<!-- private-pbf-link:' + publicNumber + ' -->';
+            const linked = cm.filter(c => c.user?.login === 'github-actions[bot]' &&
+              typeof c.body === 'string' && c.body.includes(marker));
+            if (linked.length !== 1) throw Error('Missing or ambiguous trusted backlink for WDE #' + publicNumber);
+            const expected = 'Linked private RCA history: https://github.com/' + PRIVATE + '/issues/' +
+              privateNumber + '\n' + marker;
+            if (linked[0].body.trim() !== expected) throw Error('Reverse link mismatch for WDE #' + publicNumber);
+          }
+
+          let count = 0;
+          async function reconcile(privateIssue) {
+            const publicNumber = sourceNumber(privateIssue.body);
+            if (privateIssue.pull_request || privateIssue.state !== 'closed' || publicNumber === null) return;
+            const publicIssue = await api(PUBLIC, '/issues/' + publicNumber);
+            if (publicIssue.pull_request || publicIssue.state !== 'open') return;
+            await verifyBacklink(publicNumber, privateIssue.number);
+            // Verify source still closed, preventing stale-event/race closures.
+            const now = await api(PRIVATE, '/issues/' + privateIssue.number);
+            if (now.state !== 'closed' || sourceNumber(now.body) !== publicNumber) return;
+            await api(PUBLIC, '/issues/' + publicNumber, 'PATCH', {state: 'closed'});
+            count++;
+            console.log('Closed WDE #' + publicNumber + ' for linked private #' + privateIssue.number);
+          }
+
+          if (eventName === 'issue_comment') {
+            if (!event.issue || event.issue.pull_request || event.issue.state !== 'open') {
+              console.log('Not an open public Issue; skipped');
+              process.exit(0);
+            }
+            const sourceNumberWanted = event.issue.number;
+            const comments = await pages(PUBLIC, '/issues/' + sourceNumberWanted + '/comments', 20);
+            const marker = '<!-- private-pbf-link:' + sourceNumberWanted + ' -->';
+            const links = comments.filter(c => c.user?.login === 'github-actions[bot]' &&
+              typeof c.body === 'string' && c.body.includes(marker));
+            if (links.length !== 1) {
+              console.log('No unique bot backlink; skipped');
+              process.exit(0);
+            }
+            const match = /^Linked private RCA history: https:\/\/github\.com\/jimmytobing\/Syntetic-Wisdom\/issues\/([1-9][0-9]*)\n<!-- private-pbf-link:([1-9][0-9]*) -->$/.exec(links[0].body.trim());
+            if (!match || Number(match[2]) !== sourceNumberWanted) throw Error('Malformed public backlink');
+            const privateNumber = Number(match[1]);
+            if (!Number.isSafeInteger(privateNumber)) throw Error('Invalid private issue number');
+            await reconcile(await api(PRIVATE, '/issues/' + privateNumber));
+          } else {
+            const since = new Date(Date.now() - 72*60*60*1000).toISOString();
+            const recent = await pages(PRIVATE, '/issues?state=closed&since=' + encodeURIComponent(since) + '&sort=updated&direction=desc');
+            for (const item of recent) {
+              if (count >= 20) {
+                console.log('Safety limit: 20 closures per run');
+                break;
+              }
+              if (!item.closed_at || Date.parse(item.closed_at) < Date.parse(since)) continue;
+              await reconcile(item);
+            }
+          }
+          console.log('Reconciled counterpart closures: ' + count);
           NODE
