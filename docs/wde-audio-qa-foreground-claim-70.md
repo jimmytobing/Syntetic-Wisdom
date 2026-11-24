@@ -1,3 +1,5 @@
+> **SUPERSEDED — 24 November 2026:** Rancangan Apex di bawah merupakan catatan historis, bukan source aktif PR #70. Atas arahan pengguna, Apex dan test/manifest-nya telah dihapus dari branch isolasi. Implementasi saat ini memakai Flow-only create-once claim dan AsyncAfterCommit, lihat [runbook Flow-only](./wde-audio-qa-flow-only-70.md). Jangan gunakan langkah Author Apex atau melakukan deployment Apex untuk PR ini. Sejarah validasi Apex gagal dipertahankan hanya untuk audit.
+
 # WDE PR #70 — Transaction-safe foreground Audio QA design (review-only)
 
 **Status:** Proposed architecture; no Salesforce metadata deployment, provider request, data mutation or Flow activation is authorized by this document. The current legacy async START Flow has already been explicitly deactivated in `hdbsf` ([deploy](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7095937376), [readback: ActiveVersionId = null](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7095947849)). Continue to reuse [WDE Chat Gateway #15](https://github.com/bfipbf/WDE/issues/15) for all Salesforce changes.
