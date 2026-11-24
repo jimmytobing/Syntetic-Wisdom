@@ -43,12 +43,15 @@ test('unique database claim is created once, no check-then-callout race',()=>{
   assert.doesNotMatch(reserve,/<actionCalls>|WDEGeminiVideo|<recordUpdates>/);
 });
 
-test('one claim create invokes one async-after-commit worker, never update-trigger',()=>{
-  assert.match(trigger,/<recordTriggerType>Create<\/recordTriggerType>/);
-  assert.match(trigger,/<pathType>AsyncAfterCommit<\/pathType>/);
-  assert.match(trigger,/<flowName>WDE_Run_Foreground_Audio_QA<\/flowName>/);
-  assert.match(trigger,/<stringValue>RESERVED<\/stringValue>/);
-  assert.doesNotMatch(trigger,/<recordUpdates>|<recordCreates>|<actionCalls>|CreateAndUpdate/);
+test('manual unique-create is the only automatic dispatch entrypoint',()=>{
+  assert.match(reserve,/<name>Dispatch_Once<\/name>/);
+  assert.match(reserve,/<flowName>WDE_Run_Foreground_Audio_QA<\/flowName>/);
+  assert.match(reserve,/<name>Duplicate_Or_Fault<\/name>/);
+  assert.match(reserve,/<targetReference>Dispatch_Once<\/targetReference>/);
+  assert.match(reserve,/<name>Accept_Claim<\/name>/);
+  assert.match(worker,/<flowTransactionModel>Automatic<\/flowTransactionModel>/);
+  assert.doesNotMatch(trigger,/<scheduledPaths>|<pathType>AsyncAfterCommit<\/pathType>|<subflows>|<actionCalls>/);
+  assert.match(trigger,/<status>Draft<\/status>/);
 });
 
 test('foreground worker respects 30s rights, stable source, no retry or QA verdict',()=>{
@@ -87,10 +90,11 @@ test('production activation remains forbidden until async dispatch is proven ide
   for(const xml of [trigger,worker]) assert.match(xml,/SECURITY_REVIEW_REQUIRED/);
   for(const xml of [reserve,trigger,worker]) assert.match(xml,/<status>Draft<\/status>/);
   assert.match(worker,/<stringValue>RESERVED<\/stringValue>/);
+  assert.doesNotMatch(trigger,/<scheduledPaths>|<subflows>/);
+  assert.match(reserve,/SECURITY_REVIEW_REQUIRED/);
   assert.match(worker,/WDEGeminiVideo\.analyzeVideo/);
-  // Unique creation is not a fence on the subsequent provider POST.
-  // A code change removing this review gate must be accompanied by a
-  // separately reviewed durable dispatch protocol and no-retry proof.
+  // Manual unique Create blocks competing starts; direct worker invocation and
+  // platform continuation replay must be controlled before activation.
 });
 
 test('operator has read-only claim permissions, not claim state mutation',()=>{
