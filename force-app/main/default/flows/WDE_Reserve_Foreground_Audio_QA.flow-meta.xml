@@ -27,6 +27,7 @@
 <formulas><name>f_SourceValid</name><dataType>Boolean</dataType><expression>AND(LEN({!Get_Source.External_Video_Id__c})=11,REGEX({!Get_Source.External_Video_Id__c},"[A-Za-z0-9_-]{11}"))</expression></formulas>
 <formulas><name>f_TranscriptValid</name><dataType>Boolean</dataType><expression>AND(LEN(TRIM({!Get_Segment.Transcript_Text__c})) &gt; 0, LEN({!Get_Segment.Transcript_Text__c}) &lt;= 25000)</expression></formulas>
 <formulas><name>f_SourceSignature</name><dataType>String</dataType><expression>LEFT({!Get_Segment.Id} &amp; "-" &amp; TEXT({!Get_Segment.Start_Ms__c}) &amp; "-" &amp; TEXT({!f_EndMs}),64)</expression></formulas>
+<isAdditionalPermissionRequiredToRun>true</isAdditionalPermissionRequiredToRun>
 <interviewLabel>WDE Reserve Foreground Audio QA {!$Flow.CurrentDateTime}</interviewLabel>
 <label>WDE Reserve Foreground Audio QA</label>
 <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues>
