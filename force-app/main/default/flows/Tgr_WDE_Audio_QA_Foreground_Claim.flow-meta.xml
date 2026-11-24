@@ -9,8 +9,8 @@
 <filterLogic>and</filterLogic><filters><field>State__c</field><operator>EqualTo</operator><value><stringValue>RESERVED</stringValue></value></filters>
 <object>WDE_Audio_QA_Claim__c</object><recordTriggerType>Create</recordTriggerType>
 <scheduledPaths><connector><targetReference>Run_Foreground</targetReference></connector><pathType>AsyncAfterCommit</pathType></scheduledPaths><triggerType>RecordAfterSave</triggerType></start>
-<ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
-<subflows><name>Run_Foreground</name><label>One bounded claim-bound foreground attempt</label><locationX>0</locationX><locationY>0</locationY><flowName>WDE_Run_Foreground_Audio_QA</flowName>
+<ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends><ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+<subflows><name>Run_Foreground</name><label>One bounded claim-bound foreground attempt</label><locationX>0</locationX><locationY>0</locationY><connector><targetReference>END_ASYNC</targetReference></connector><flowName>WDE_Run_Foreground_Audio_QA</flowName>
 <inputAssignments><name>varS_ClaimId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments></subflows>
 <status>Draft</status>
 </Flow>
