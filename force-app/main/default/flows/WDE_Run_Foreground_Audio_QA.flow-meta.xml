@@ -7,7 +7,7 @@
 <variables><name>varS_ClaimId</name><dataType>String</dataType><isCollection>false</isCollection><isInput>true</isInput><isOutput>false</isOutput></variables>
 <variables><name>varT_ModelText</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 <variables><name>varT_FinishReason</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
-<variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isOutput></variables>
+<variables><name>varT_Error</name><dataType>String</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 <variables><name>varN_ResponseCode</name><dataType>Number</dataType><scale>0</scale><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 <variables><name>varA_VideoPart</name><apexClass>ExternalService__WDEGeminiVideo_analyzeVideo_IN_body_contents_parts</apexClass><dataType>Apex</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
 <variables><name>varA_PromptPart</name><apexClass>ExternalService__WDEGeminiVideo_analyzeVideo_IN_body_contents_parts</apexClass><dataType>Apex</dataType><isCollection>false</isCollection><isInput>false</isInput><isOutput>false</isOutput></variables>
