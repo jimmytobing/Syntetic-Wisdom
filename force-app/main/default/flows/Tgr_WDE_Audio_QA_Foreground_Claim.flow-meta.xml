@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
 <apiVersion>68.0</apiVersion><areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-<description>SECURITY_REVIEW_REQUIRED: Draft only. CREATE-ONLY claim trigger. Unique claim insertion is committed BEFORE async after-commit worker. One event per database-unique Claim_Key__c. No automatic retry; never update Sermon_Segment__c. Requires manual production approval. Duplicate async delivery or parallel manual invocation can re-send the provider POST because RESERVED is not atomically transitioned before the callout. DO NOT ACTIVATE until a safe durable dispatch boundary and idempotency/reconciliation are independently verified.</description>
+<description>SECURITY HOLD: inert Draft trigger retained solely for historical metadata compatibility. No async path, no subflow, no callout. Dispatcher now only runs in WDE_Reserve_Foreground_Audio_QA after unique claim creation.</description>
 <label>[Tgr] WDE Audio QA Foreground Claim</label><interviewLabel>WDE Audio QA Claim Trigger {!$Flow.CurrentDateTime}</interviewLabel><processType>AutoLaunchedFlow</processType>
 <processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues><processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
 <start><locationX>0</locationX><locationY>0</locationY>
 <connector><targetReference>END_SYNC</targetReference></connector>
 <filterLogic>and</filterLogic><filters><field>State__c</field><operator>EqualTo</operator><value><stringValue>RESERVED</stringValue></value></filters>
 <object>WDE_Audio_QA_Claim__c</object><recordTriggerType>Create</recordTriggerType>
-<scheduledPaths><connector><targetReference>Run_Foreground</targetReference></connector><pathType>AsyncAfterCommit</pathType></scheduledPaths><triggerType>RecordAfterSave</triggerType></start>
-<ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends><ends><name>END_ASYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
-<subflows><name>Run_Foreground</name><label>One bounded claim-bound foreground attempt</label><locationX>0</locationX><locationY>0</locationY><connector><targetReference>END_ASYNC</targetReference></connector><flowName>WDE_Run_Foreground_Audio_QA</flowName>
-<inputAssignments><name>varS_ClaimId</name><value><elementReference>$Record.Id</elementReference></value></inputAssignments></subflows>
+<triggerType>RecordAfterSave</triggerType></start>
+<ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+
 <status>Draft</status>
 </Flow>
