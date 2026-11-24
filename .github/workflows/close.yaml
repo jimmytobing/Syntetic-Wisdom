@@ -1,0 +1,157 @@
+name: Close linked issue (bidirectional)
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: read
+
+concurrency:
+  group: linked-issue-close-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  close-counterpart:
+    if: ${{ !github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      LOCAL_TOKEN: ${{ github.token }}
+      REMOTE_TOKEN: ${{ secrets.ISSUE_SYNC_TOKEN || secrets.PRIVATE_TOKEN }}
+    steps:
+      - name: Verify mapping and close only the linked counterpart
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const PUBLIC = 'bfipbf/WDE';
+          const PRIVATE = 'jimmytobing/Syntetic-Wisdom';
+          const local = process.env.GITHUB_REPOSITORY;
+          if (![PUBLIC, PRIVATE].includes(local)) throw Error('Unsupported repository');
+          const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const issue = event.issue;
+          if (event.action !== 'closed' || !issue || issue.pull_request) {
+            console.log('Not an issue.closed event; skipped');
+            process.exit(0);
+          }
+          if (!Number.isSafeInteger(issue.number) || issue.number < 1) {
+            throw Error('Invalid issue number');
+          }
+
+          async function api(repo, route, method='GET', data) {
+            const token = repo === local ? process.env.LOCAL_TOKEN : process.env.REMOTE_TOKEN;
+            if (!token) throw Error('BLOCKED: configure ISSUE_SYNC_TOKEN with Issues read/write access to the other repository');
+            const response = await fetch('https://api.github.com/repos/' + repo + route, {
+              method,
+              headers: {
+                Authorization: 'Bearer ' + token,
+                Accept: 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'User-Agent': 'wde-linked-issue-close'
+              },
+              ...(data === undefined ? {} : {body: JSON.stringify(data)})
+            });
+            if (!response.ok) {
+              throw Error('GitHub ' + method + ' ' + repo + route.split('?')[0] + ' HTTP ' + response.status);
+            }
+            return response.status === 204 ? null : response.json();
+          }
+
+          async function comments(repo, number) {
+            const collected = [];
+            for (let page=1; page<=20; page++) {
+              const result = await api(repo, '/issues/' + number + '/comments?per_page=100&page=' + page);
+              if (!Array.isArray(result)) throw Error('Invalid comments response');
+              collected.push(...result);
+              if (result.length < 100) return collected;
+            }
+            throw Error('Comment pagination exceeded safety limit');
+          }
+
+          function publicBacklink(items, number) {
+            const marker = '<!-- private-pbf-link:' + number + ' -->';
+            const matches = items.filter(c => c.user?.login === 'github-actions[bot]' &&
+              typeof c.body === 'string' && c.body.includes(marker));
+            if (matches.length === 0) return null;
+            if (matches.length !== 1) throw Error('Ambiguous public mirror backlink');
+            const text = matches[0].body.trim();
+            const prefix = 'Linked private RCA history: https://github.com/' + PRIVATE + '/issues/';
+            const suffix = '\n' + marker;
+            if (!text.startsWith(prefix) || !text.endsWith(suffix)) {
+              throw Error('Malformed trusted public backlink');
+            }
+            const value = text.slice(prefix.length, text.length - suffix.length);
+            if (!/^[1-9][0-9]*$/.test(value)) throw Error('Invalid linked private issue number');
+            const numberValue = Number(value);
+            if (!Number.isSafeInteger(numberValue)) throw Error('Invalid private issue number');
+            return numberValue;
+          }
+
+          function privateSource(body) {
+            const text = String(body ?? '').trim();
+            const markers = [...text.matchAll(/<!-- silent-pbf-issue:([1-9][0-9]*) -->/g)];
+            if (markers.length === 0) return null;
+            if (markers.length !== 1) throw Error('Ambiguous private source marker');
+            const value = Number(markers[0][1]);
+            if (!Number.isSafeInteger(value)) throw Error('Invalid public issue number');
+            const canonical = 'Source: [' + PUBLIC + '#' + value +
+              '](https://github.com/' + PUBLIC + '/issues/' + value +
+              ')\n\n<!-- silent-pbf-issue:' + value + ' -->';
+            if (text !== canonical) throw Error('Private issue source marker does not match canonical mirror');
+            return value;
+          }
+
+          let publicNumber;
+          let privateNumber;
+          let publicComments;
+          if (local === PUBLIC) {
+            publicNumber = issue.number;
+            publicComments = await comments(PUBLIC, publicNumber);
+            privateNumber = publicBacklink(publicComments, publicNumber);
+            if (privateNumber === null) {
+              console.log('No trusted mirror backlink; skipped');
+              process.exit(0);
+            }
+          } else {
+            privateNumber = issue.number;
+            publicNumber = privateSource(issue.body);
+            if (publicNumber === null) {
+              console.log('Not a mirrored private issue; skipped');
+              process.exit(0);
+            }
+          }
+
+          const [publicIssue, privateIssue] = await Promise.all([
+            api(PUBLIC, '/issues/' + publicNumber),
+            api(PRIVATE, '/issues/' + privateNumber)
+          ]);
+          if (publicIssue.pull_request || privateIssue.pull_request) {
+            throw Error('Refusing to close a pull request');
+          }
+          if (privateSource(privateIssue.body) !== publicNumber) {
+            throw Error('Reverse source marker mismatch; refusing closure');
+          }
+          publicComments ??= await comments(PUBLIC, publicNumber);
+          if (publicBacklink(publicComments, publicNumber) !== privateNumber) {
+            throw Error('Reverse public backlink mismatch; refusing closure');
+          }
+
+          const source = local === PUBLIC ? publicIssue : privateIssue;
+          const target = local === PUBLIC ? privateIssue : publicIssue;
+          const targetRepo = local === PUBLIC ? PRIVATE : PUBLIC;
+          const targetNumber = local === PUBLIC ? privateNumber : publicNumber;
+          if (source.state !== 'closed') {
+            console.log('Source was reopened before verification; skipped');
+            process.exit(0);
+          }
+          if (target.state === 'closed') {
+            console.log('Counterpart already closed; no action required');
+            process.exit(0);
+          }
+          if (target.state !== 'open') throw Error('Unexpected counterpart state');
+          await api(targetRepo, '/issues/' + targetNumber, 'PATCH', {state: 'closed'});
+          console.log('Closed linked counterpart: ' + targetRepo + '#' + targetNumber);
+          NODE
