@@ -14,4 +14,6 @@
   <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Response_Text__c</field><readable>true</readable></fieldPermissions>
   <objectPermissions><allowCreate>true</allowCreate><allowDelete>false</allowDelete><allowEdit>true</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>WDE_Audio_QA_Claim__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
   <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Source_Modified__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Source_Record_Modified__c</field><readable>true</readable></fieldPermissions>
+  <fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Video_Id__c</field><readable>true</readable></fieldPermissions>
 </PermissionSet>
