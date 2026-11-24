@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+<apiVersion>68.0</apiVersion><areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+<description>SECURITY HOLD: inert Draft trigger retained solely for historical metadata compatibility. No async path, no subflow, no callout. Dispatcher now only runs in WDE_Reserve_Foreground_Audio_QA after unique claim creation.</description>
+<label>[Tgr] WDE Audio QA Foreground Claim</label><interviewLabel>WDE Audio QA Claim Trigger {!$Flow.CurrentDateTime}</interviewLabel><processType>AutoLaunchedFlow</processType>
+<processMetadataValues><name>BuilderType</name><value><stringValue>LightningFlowBuilder</stringValue></value></processMetadataValues><processMetadataValues><name>CanvasMode</name><value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value></processMetadataValues>
+<start><locationX>0</locationX><locationY>0</locationY>
+<connector><targetReference>END_SYNC</targetReference></connector>
+<filterLogic>and</filterLogic><filters><field>State__c</field><operator>EqualTo</operator><value><stringValue>RESERVED</stringValue></value></filters>
+<object>WDE_Audio_QA_Claim__c</object><recordTriggerType>Create</recordTriggerType>
+<triggerType>RecordAfterSave</triggerType></start>
+<ends><name>END_SYNC</name><locationX>0</locationX><locationY>0</locationY></ends>
+
+<status>Draft</status>
+</Flow>

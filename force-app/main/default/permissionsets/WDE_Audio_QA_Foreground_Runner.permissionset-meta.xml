@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+<label>WDE Foreground Service Runner</label>
+<description>For dedicated reviewed service identity only, not general operator. Grants claim create/update and granular access exclusively to the parent one-time reservation Flow. No direct worker Flow access. Do not assign without separate security authorization.</description>
+<flowAccesses><enabled>true</enabled><flow>WDE_Reserve_Foreground_Audio_QA</flow></flowAccesses>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Segment__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Start_Ms__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.End_Ms__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Fence__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Result_Hash__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Error_Code__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Response_Text__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Source_Modified__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Source_Record_Modified__c</field><readable>true</readable></fieldPermissions>
+<fieldPermissions><editable>true</editable><field>WDE_Audio_QA_Claim__c.Video_Id__c</field><readable>true</readable></fieldPermissions>
+<objectPermissions><allowCreate>true</allowCreate><allowDelete>false</allowDelete><allowEdit>true</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>WDE_Audio_QA_Claim__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+</PermissionSet>

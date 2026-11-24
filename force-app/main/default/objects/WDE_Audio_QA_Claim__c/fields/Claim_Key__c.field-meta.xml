@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Claim_Key__c</fullName><label>Claim Key</label><type>Text</type><length>64</length><unique>true</unique><externalId>true</externalId><caseSensitive>false</caseSensitive><required>true</required><description>Database-unique one-time Salesforce segment Id. Duplicate create is rejected; no automatic retry for any source revision.</description></CustomField>

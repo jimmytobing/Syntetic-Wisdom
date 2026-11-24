@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Fingerprint__c</fullName><label>Source Fingerprint</label><type>Text</type><length>64</length><required>true</required><description>Bounded Flow-generated source signature. Freshness is additionally checked against segment/source LastModifiedDate; not a cryptographic digest.</description></CustomField>
