@@ -1,3 +1,9 @@
+## Validasi terbaru setelah perbaikan dispatch (24 November 2026)
+
+Gateway Issue #15 menjalankan **Sf Deploy mode=validate**, immutable source commit `cd121392009d2175c2753a64baa5834bfde42f4c` dan `manifest/wde-audio-qa-foreground-flow-combined-70.xml`: **SUCCESS**, `checkOnly=true`, 19 komponen, **0 error**, Salesforce deployment ID `0Affj00000aiH8VCAU`. [Actions run](https://github.com/bfipbf/WDE/actions/runs/45324969497) → [PRIVATE_REPO evidence](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7121846502). Validasi ini **tidak men-deploy** perubahan terbaru, **tidak mengaktifkan Flow**, **tidak meng-assign permission set** dan **tidak mengirim Gemini POST**.
+
+Tiga Flow masih Draft dalam source; postflight Salesforce sebelum perubahan menunjukkan semuanya `ActiveVersionId=null` ([bukti](https://github.com/jimmytobing/Syntetic-Wisdom/issues/69#issuecomment-7121468579)). Untuk mengubah metadata terbaru yang sudah lolos validasi menjadi versi Draft terpasang di Org, dibutuhkan **persetujuan deployment pasif baru** karena paket terbaru mencakup permission set runner baru dan perubahan alur internal. Aktivasi adalah keputusan terpisah, dan tidak dapat dijustifikasi hanya oleh CI atau validasi metadata. Tidak ada audit dari reviewer independen PR #70 pada pemeriksaan terakhir.
+
 ## Rancangan terbaru — dispatch manual setelah klaim unik (24 Nov 2026)
 
 **Menggantikan desain sebelumnya dengan trigger otomatis.** Source sekarang mempertahankan `Tgr_WDE_Audio_QA_Foreground_Claim` hanya sebagai Flow Draft **inert** (tanpa scheduled/async paths dan tanpa subflow). Entry yang direncanakan hanya `WDE_Reserve_Foreground_Audio_QA`. Setelah `Create_Claim` sukses dengan `Claim_Key__c` unik di database, Flow menjalankan `Dispatch_Once` sebagai subflow ke `WDE_Run_Foreground_Audio_QA`. Jalur duplicate-claim Create Records fault **tidak** memanggil provider.
