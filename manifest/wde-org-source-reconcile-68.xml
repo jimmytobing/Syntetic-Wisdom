@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Sermon_Source__c.Raw_Transcript_Text__c</members>
+        <members>Sermon_Source__c.Transcript_Caption_Count__c</members>
+        <members>Sermon_Source__c.Transcript_Character_Count__c</members>
+        <members>Sermon_Segment__c.WDE_Stitch_Open__c</members>
+        <members>WDE_Batch_Run__c.Auto_Next_Enabled__c</members>
+        <members>WDE_QA_Release__c.Authority_Reference__c</members>
+        <members>WDE_QA_Release__c.Batch_Claim_Key__c</members>
+        <members>WDE_QA_Release__c.Batch_Run__c</members>
+        <members>WDE_QA_Release__c.Consumed_At__c</members>
+        <members>WDE_QA_Release__c.Evidence_Digest__c</members>
+        <members>WDE_QA_Release__c.QA_Version__c</members>
+        <members>WDE_QA_Release__c.Release_Key__c</members>
+        <members>WDE_QA_Release__c.Release_Status__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>WDE_QA_Release__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>WDE_Get_Editorial_Audio_Context</members>
+        <members>WDE_Orchestrator_Weekly_Sermon</members>
+        <members>WDE_QA_OAuth_Commit_Release</members>
+        <name>Flow</name>
+    </types>
+    <types>
+        <members>WDE_QA_Release__c.Require_Actual_QA_Commit</members>
+        <name>ValidationRule</name>
+    </types>
+    <version>68.0</version>
+</Package>
