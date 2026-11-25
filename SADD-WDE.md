@@ -57,7 +57,7 @@ flowchart TB
   T --> A
   A --> QA
   H --> HIVE[("Audience Needs / Content Plan")]
-  AUDIT --> CLOSE
+  AUDIT -. "alurnya terpisah dari penutupan Issue" .-> CLOSE
 ```
 
 **Flow inti di source:** `WDE_Discover_Weekly_Sermon`, `WDE_Orchestrator_Weekly_Sermon`, `WDE_Persist_Raw_Transcript`, `WDE_Orchestrate_Stage_A`, `WDE_Orchestrate_Stage_B`, `WDE_Orchestrate_Stage_C`, `WDE_Daily_HIVE_Planning`, dan `WDE_Verify_Sermon_Segment_Audio`. Keberadaan metadata tidak memastikan status aktif pada Org.
@@ -133,8 +133,8 @@ flowchart TD
   VALID -- "Tidak" --> POLICY{"Masih boleh retry?"}
   POLICY -- "Ya" --> DELAY["Tgr_WDE_Retry_Stage_A / status RetryPending"]
   POLICY -- "Tidak" --> REVIEW["NeedsReview / Failed / System_Error"]
-  DELAY --> RECOVER["WDE_Recover_Groq_Format_Batch_53"]
-  RECOVER --> ORCH
+  DELAY -. "pemulihan terarah jika diotorisasi" .-> RECOVER["WDE_Recover_Groq_Format_Batch_53"]
+  RECOVER -. "tidak otomatis memanggil seluruh orchestrator" .-> ORCH
   REVIEW -. "manual, dengan verifikasi" .-> PART["WDE_Recover_Partial_Segmentation"]
   PART --> STAGEC["WDE_Recover_Verified_Stage_C"]
   STAGEC --> ADV
@@ -202,11 +202,11 @@ flowchart TB
   GATE -- "Ya" --> GEM["WDEGeminiVideo.analyzeVideo"]
   GEM --> RECEIPT["Result / error / UNKNOWN_DO_NOT_RETRY"]
   TRIG["Tgr_WDE_Audio_QA_Foreground_Claim (Draft / inert)"] -. "tidak menjadi pemicu otomatis" .-> RES
-  ASYNC["WDE_Start_Segment_Audio_Async_QA (Draft)"] -. "jalur desain terpisah" .-> GET["WDE_Get_Segment_Audio_Async_QA (Draft)"]
-  DELETE["WDE_Delete_Segment_Audio_Async_QA (Draft)"] -. "utilitas terpisah" .-> GET
+  ASYNC["WDE_Start_Segment_Audio_Async_QA (Draft)"] -. "jalur desain terpisah" .-> GET["WDE_Get_Segment_Audio_Async_QA (XML Active)"]
+  DELETE["WDE_Delete_Segment_Audio_Async_QA (XML Active)"] -. "utilitas terpisah" .-> GET
 ```
 
-**Nama Flow foreground:** `Tgr_WDE_Audio_QA_Foreground_Claim`, `WDE_Reserve_Foreground_Audio_QA`, `WDE_Run_Foreground_Audio_QA`. **Nama Flow asynchronous dalam source:** `WDE_Start_Segment_Audio_Async_QA`, `WDE_Get_Segment_Audio_Async_QA`, `WDE_Delete_Segment_Audio_Async_QA`. Garis putus-putus menunjukkan kelompok rancangan terpisah; aktivasi, runner permission, dan deduplikasi provider absolut masih **UNVERIFIED**.
+**Nama Flow foreground:** `Tgr_WDE_Audio_QA_Foreground_Claim` (XML Draft), `WDE_Reserve_Foreground_Audio_QA` (XML Draft), `WDE_Run_Foreground_Audio_QA` (XML Draft). **Flow asynchronous pada source:** `WDE_Start_Segment_Audio_Async_QA` (XML Draft), `WDE_Get_Segment_Audio_Async_QA` (XML Active), dan `WDE_Delete_Segment_Audio_Async_QA` (XML Active). Garis putus-putus menunjukkan kelompok rancangan terpisah; aktivasi, runner permission, dan deduplikasi provider absolut masih **UNVERIFIED**.
 
 ## 10 · Analisis Gemini sumber, bukan verifikasi audio segmen
 
@@ -220,8 +220,8 @@ flowchart TD
   GEM --> STATUS{"HTTP 200 / STOP / kontrak sederhana?"}
   STATUS -- "Ya" --> SAVE["Simpan Gemini_Video_Analysis_JSON__c"]
   STATUS -- "Tidak" --> FAIL["Tidak menandai sukses QA"]
-  SAVE --> SOURCEQA["WDE_Verify_YouTube_Gemini_Audio (Flow terpisah)"]
-  RETURN --> SOURCEQA
+  SAVE -. "jalur analisis yang terpisah; bukan pemanggilan otomatis" .-> SOURCEQA["WDE_Verify_YouTube_Gemini_Audio (XML Draft, Flow terpisah)"]
+  RETURN -. "tidak otomatis melakukan QA" .-> SOURCEQA
   SOURCEQA -. "bukan segmen QA" .-> SEGQA["WDE_Verify_Sermon_Segment_Audio"]
   TEST["Panggil_Gemini / WDE_Test_Gemini_Auth"] -. "Flow pengujian berbeda" .-> GEM
 ```
@@ -237,8 +237,8 @@ flowchart TB
   EVID --> CONCEPT[("Wisdom_Concept__c")]
   POC["WDE_Generate_Wisdom_POC"] -. "kandidat Groq" .-> CONCEPT
   CONCEPT --> REVIEW["Wisdom_Concept_Review"]
-  REVIEW --> REL[("Wisdom_Relation__c")]
-  REVIEW --> JOIN[("Wisdom_Insight_Concept__c")]
+  REVIEW -. "relasi konseptual" .-> REL[("Wisdom_Relation__c")]
+  REVIEW -. "penautan konseptual" .-> JOIN[("Wisdom_Insight_Concept__c")]
   JOIN --> INSIGHT[("Wisdom_Insight__c")]
   INSIGHT --> IR["Wisdom_Insight_Review"]
   IR --> GATE{"Approved dan Safety = Safe?"}
