@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import { authorizeRequest } from "../scripts/salesforce-rca-gate.mjs";
@@ -138,17 +137,7 @@ for (const eventName of ["issues", "workflow_dispatch"]) {
   });
 }
 
-test("RCA runtime GitHub Actions retired; trusted Salesforce API gateway preserved", async () => {
+test("Legacy RCA runtime stays retired; gateway workflows are owned by WDE", async () => {
   const { access } = await import("node:fs/promises");
   await assert.rejects(access(".github/workflows/salesforce-rca.yml"), /ENOENT/);
-  const workflow = await readFile(".github/workflows/sf.yaml", "utf8");
-  assert.match(workflow, /^  sf-request:/m);
-  assert.match(workflow, /^  sf-bash:/m);
-  assert.match(workflow, /^  sf-deploy:/m);
-  assert.doesNotMatch(workflow, /pull_request_target/);
-  assert.match(workflow, /github\.actor/);
-  assert.match(workflow, /github\.event\.issue\.user\.login/);
-  const jim = await readFile(".github/workflows/jim.yaml", "utf8");
-  assert.match(jim, /^  jim-request:/m);
-  assert.match(jim, /^  jim-bash:/m);
 });
