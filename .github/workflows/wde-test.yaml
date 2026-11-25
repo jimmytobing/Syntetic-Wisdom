@@ -3,7 +3,7 @@ name: WDE Static Metadata Tests
 on:
   pull_request:
     paths:
-      - '.github/workflows/wde-Test.yaml'
+      - '.github/workflows/wde-test.yaml'
       - 'tests/wde-flow-only-groq-gemini-54.test.mjs'
       - 'manifest/wde-flow-only-groq-gemini-54.xml'
       - 'force-app/main/default/flows/**'
@@ -15,7 +15,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/wde-Test.yaml'
+      - '.github/workflows/wde-test.yaml'
       - 'tests/wde-flow-only-groq-gemini-54.test.mjs'
       - 'manifest/wde-flow-only-groq-gemini-54.xml'
       - 'force-app/main/default/flows/**'
@@ -48,7 +48,7 @@ jobs:
           node-version: '22'
       - name: Validate only this workflow YAML
         shell: bash
-        run: ruby -e 'require "yaml"; YAML.parse_file(".github/workflows/wde-Test.yaml")'
+        run: ruby -e 'require "yaml"; YAML.parse_file(".github/workflows/wde-test.yaml")'
       - name: Check static test JavaScript syntax
         shell: bash
         run: node --check tests/wde-flow-only-groq-gemini-54.test.mjs
