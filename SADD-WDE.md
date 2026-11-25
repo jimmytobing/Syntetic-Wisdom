@@ -1,69 +1,66 @@
 # SADD–WDE — Arsitektur dan Riwayat Implementasi Visual
 
-**Wisdom Discovery Engine · Snapshot 25 November 2026 · Salesforce Developer Edition `hdbsf` · Org `00Dfj00000eVCOVEA4`**
+**Wisdom Discovery Engine · Snapshot 25 November 2026, sesudah PR #78 · Salesforce Developer Edition `hdbsf` · Org `00Dfj00000eVCOVEA4`**
 
 > **Format:** diagram Mermaid yang dirender sebagai gambar langsung di GitHub; sekitar 90% penyajian visual dan 10% narasi Bahasa Indonesia. Warna, panah, dan status menunjukkan alur konseptual; keberadaan source tidak sama dengan aktivasi Org.
 
 ## Cara membaca
 
-Diagram **aktif/terpasang**, **Draft**, **historis**, dan **belum terverifikasi** sengaja dibedakan. Metadata Git yang di-merge **tidak** otomatis ter-deploy. Jangan menggunakan diagram sebagai izin menjalankan Salesforce mutation.
+Diagram membedakan **status XML source** (`Active`/`Draft`), fakta sejarah PR, dan klaim runtime yang perlu readback Org. **Status source tidak sama dengan ActiveVersionId di Salesforce.** Setelah PR #78, workflow lokal hanya `close.yaml` dan `wde-test.yaml`; semua eksekusi gateway Salesforce/Jim dipusatkan di `bfipbf/WDE`. Tidak ada deployment Salesforce oleh perubahan dokumentasi ini.
 
-## 01 · Lanskap sistem
+## 01 · Lanskap sistem (sesuai YAML main)
 
 ```mermaid
 flowchart LR
-  U["Operator dan ChatGPT"] --> G["Issue gateway bfipbf/WDE"]
-  G --> A["GitHub Actions tepercaya"]
-  A --> S[("Salesforce Developer Edition hdbsf")]
-  A --> E["Issue audit di Syntetic-Wisdom"]
-  R["Repository Syntetic-Wisdom"] --> A
-  R --> CI["CI dan pengujian"]
-  Y["YouTube playlist dan komentar"] --> S
-  T["Supadata transcript"] --> S
-  Q["Groq segmentasi"] --> S
-  M["Gemini analisis dan Audio QA"] --> S
-  S --> H["Review editorial dan content plan"]
-  classDef source fill:#e7f1ff,stroke:#225ea8,color:#123;
-  classDef core fill:#fff0d5,stroke:#b46a00,color:#321;
-  class G,A,R,CI source;
-  class S core;
+  USER["Operator dan ChatGPT"] --> GW["bfipbf/WDE: Issue gateway tunggal"]
+  GW --> WDEACT["WDE GitHub Actions: sf.yaml / jim.yaml / sync.yaml"]
+  WDEACT --> ORG[("Salesforce Developer Edition hdbsf")]
+  WDEACT --> AUDIT["Audit di Issue Syntetic-Wisdom"]
+  SRC["Syntetic-Wisdom: metadata Flow dan manifest"] -. "candidate commit SHA" .-> WDEACT
+  SRC --> TEST["wde-test.yaml: CI statis tanpa Salesforce"]
+  SRC --> CLOSE["close.yaml: sinkronisasi penutupan Issue"]
+  Y["YouTube + Supadata + Groq + Gemini"] --> ORG
+  ORG --> FLOW["Bisnis dijalankan Salesforce Flow"]
+  classDef gateway fill:#e7f1ff,stroke:#1d5e96,color:#123;
+  classDef source fill:#f0f7ed,stroke:#37843e,color:#152e16;
+  class GW,WDEACT gateway;
+  class SRC,TEST,CLOSE source;
 ```
 
-_Batas: GitHub mengelola perubahan dan bukti; pemrosesan bisnis berlangsung di Salesforce Flow._
+**Batas repo:** `jimmytobing/Syntetic-Wisdom` hanya memiliki dua YAML: `close.yaml` dan `wde-test.yaml`. `sf.yaml`, `jim.yaml`, dan `sync.yaml` berada di `bfipbf/WDE`; **bukan** workflow aktif di repo source. Runtime konten: `WDE_Discover_Weekly_Sermon`, `WDE_Persist_Raw_Transcript`, dan `WDE_Orchestrate_Stage_A/B/C`.
 
-## 02 · Lapisan tanggung jawab
+## 02 · Pemisahan tanggung jawab dan daftar Flow utama
 
 ```mermaid
 flowchart TB
-  subgraph X["Kendali dan audit"]
-    G["bfipbf/WDE: issue, Actions, sync, close"]
-    P["Syntetic-Wisdom: source, manifest, tests, audit"]
+  subgraph G["bfipbf/WDE — eksekusi Salesforce"]
+    ISSUE["Satu Gateway Issue Chat"] --> SF["sf.yaml: Sf Request / Sf Bash / Sf Deploy"]
+    ISSUE --> JIM["jim.yaml: Jim Request / Jim Bash"]
+    SF --> AUDIT["sync.yaml: mirror evidence ke repo source"]
   end
-  subgraph O["Runtime Salesforce hdbsf"]
-    D["Discovery, transcript, Stage A/B/C"]
-    B["Objek sumber, batch, segmen"]
-    I["Audience Intelligence dan HIVE"]
-    Q["Gemini Audio QA terpilih"]
+  subgraph P["Syntetic-Wisdom — source dan dokumentasi"]
+    SRC["Flow XML, object, permissionset, manifest"]
+    TEST["wde-test.yaml — WDE Static Metadata Tests"]
+    CLOSE["close.yaml — close counterpart Issue"]
   end
-  subgraph V["Penyedia eksternal"]
-    Y["YouTube"]
-    U["Supadata"]
-    R["Groq"]
-    M["Gemini"]
+  subgraph S["Salesforce hdbsf — runtime Flow"]
+    D["WDE_Discover_Weekly_Sermon"]
+    T["WDE_Persist_Raw_Transcript"]
+    A["WDE_Orchestrate_Stage_A / B / C"]
+    H["WDE_Daily_HIVE_Planning"]
+    QA["WDE_Verify_Sermon_Segment_Audio"]
   end
-  G --> O
-  P -. "deploy eksplisit lewat commit SHA" .-> G
-  Y --> D
-  U --> D
-  R --> D
-  M --> Q
-  D --> B
-  B --> Q
-  B -. "tidak mengisi sinyal audiens" .-> I
-  Y --> I
+  SRC -. "SHA immutable + manifest eksplisit" .-> SF
+  SRC --> TEST
+  SF --> S
+  D --> T
+  T --> A
+  A --> QA
+  H --> HIVE[("Audience Needs / Content Plan")]
+  AUDIT --> CLOSE
 ```
 
-_Panah putus-putus menandai batas kebijakan atau proses yang memerlukan tindakan terpisah._
+**Flow inti di source:** `WDE_Discover_Weekly_Sermon`, `WDE_Orchestrator_Weekly_Sermon`, `WDE_Persist_Raw_Transcript`, `WDE_Orchestrate_Stage_A`, `WDE_Orchestrate_Stage_B`, `WDE_Orchestrate_Stage_C`, `WDE_Daily_HIVE_Planning`, dan `WDE_Verify_Sermon_Segment_Audio`. Keberadaan metadata tidak memastikan status aktif pada Org.
 
 ## 03 · Discovery khotbah mingguan
 
@@ -72,231 +69,246 @@ flowchart TD
   START["WDE_Discover_Weekly_Sermon"] --> ORCH["WDE_Orchestrator_Weekly_Sermon"]
   ORCH --> PL["WDEYouTubePlaylist.playlistItems"]
   PL --> VALID{"Video ID valid?"}
-  VALID -- "Tidak" --> SKIP["Lewati entri"]
-  VALID -- "Ya" --> EXISTS{"External_Video_Id sudah ada?"}
-  EXISTS -- "Ya" --> REUSE["Gunakan sumber eksisting"]
+  VALID -- "Tidak" --> SKIP["Abaikan item"]
+  VALID -- "Ya" --> EXISTS{"Sermon_Source__c ada berdasarkan External_Video_Id__c?"}
+  EXISTS -- "Ya" --> REUSE["Pakai sumber lama"]
   EXISTS -- "Tidak" --> CREATE["Create Sermon_Source__c"]
-  CREATE --> RIGHTS["Rights_Status__c dan Ingest_Status__c"]
-  RIGHTS --> INGEST["Tahap transcript"]
-  REUSE --> END["Tidak membuat duplikat"]
+  CREATE --> TRIGGER["Sermon_Source_Create_Transcript_Job"]
+  TRIGGER --> RIGHTS["Cek status rights / ingest sesuai entry Flow"]
+  RIGHTS --> JOB[("Transcript_Job__c jika memenuhi syarat")]
 ```
 
-_Video baru tidak otomatis berarti ada izin penggunaan ulang konten._
+**Nama Flow:** `WDE_Discover_Weekly_Sermon` memanggil `WDE_Orchestrator_Weekly_Sermon`; `Sermon_Source_Create_Transcript_Job` adalah trigger terpisah pada sumber. Video baru tidak otomatis mendapatkan izin penggunaan ulang.
 
-## 04 · Perolehan dan penyimpanan transcript
-
-```mermaid
-flowchart LR
-  SRC["Sermon_Source__c"] --> TJOB["Transcript_Job__c"]
-  SRC --> SUP["External Service Supadata"]
-  SUP --> RAW["Raw_Transcript_Text__c"]
-  RAW --> FORMAT["Caption: index;start_ms;duration_ms;text"]
-  FORMAT --> VALID{"Caption konsisten?"}
-  VALID -- "Tidak" --> HOLD["Error dan perbaikan sumber"]
-  VALID -- "Ya" --> PERSIST["WDE_Persist_Raw_Transcript"]
-  PERSIST --> BATCH["WDE_Batch_Run__c"]
-  BATCH --> A["Stage A"]
-```
-
-_Caption berindeks dipertahankan agar klaim editorial dapat ditelusuri ke sumber._
-
-## 05 · Mesin segmentasi tiga tahap
-
-```mermaid
-flowchart LR
-  B["WDE_Batch_Run__c"] --> A["Stage A: WDE_Orchestrate_Stage_A"]
-  A --> C1["WDE_Semantic_Segmentation_Batch"]
-  C1 --> V1{"Boundary Groq valid?"}
-  V1 -- "Ya" --> B2["Stage B: WDE_Orchestrate_Stage_B"]
-  V1 -- "Tidak" --> ERR["RetryPending / review / failure"]
-  B2 --> C2["WDE_Enrich_Approved_Boundaries"]
-  C2 --> V2{"Enrichment valid dan nonkosong?"}
-  V2 -- "Ya" --> C["Stage C: WDE_Orchestrate_Stage_C"]
-  V2 -- "Tidak" --> ERR
-  C --> P["WDE_Persist_Reviewed_Segments"]
-  P --> S[("Sermon_Segment__c")]
-  S --> SUM["Summary: hanya setelah gate QA yang berlaku"]
-```
-
-_Setiap tahap memvalidasi kontrak data sebelum melanjutkan; hasil salah tidak dianggap sukses._
-
-## 06 · Batch, retry, dan pemulihan terkendali
+## 04 · Transcript, caption, dan awal segmentasi
 
 ```mermaid
 flowchart TD
-  ENTRY["Tgr_WDE_Run_Stage_A / B / C"] --> GET["Ambil Batch_Run dan status"]
-  GET --> CHECK{"Tahap boleh berjalan?"}
-  CHECK -- "Tidak" --> STOP["Stop tanpa replay"]
-  CHECK -- "Ya" --> CALL["Orchestrator Stage"]
-  CALL --> OUT{"Hasil"}
-  OUT -- "Valid" --> NEXT["CommitApproved / Completed"]
-  OUT -- "429 / format / transient" --> BOUND{"Percobaan di bawah batas?"}
-  BOUND -- "Ya" --> RETRY["RetryPending dan Next_Retry_At"]
-  BOUND -- "Tidak" --> TERM["Failed / System_Error"]
-  OUT -- "Perlu penilaian" --> REVIEW["NeedsReview"]
-  RETRY --> SCHEDULE["Tgr_WDE_Retry_Stage_A / recovery terbatas"]
-  SCHEDULE --> GET
-  NEXT --> ADVANCE["WDE_Auto_Advance_Batch"]
+  SRC[("Sermon_Source__c")] --> JOB["Sermon_Source_Create_Transcript_Job"]
+  JOB --> TJOB[("Transcript_Job__c")]
+  SRC --> PERSIST["WDE_Persist_Raw_Transcript"]
+  PERSIST --> SERVICE["WDSupadataTranscript / Supadata External Service"]
+  SERVICE --> CAPTION[("Raw_Transcript_Caption__c")]
+  PERSIST --> RAW["Sermon_Source__c.Raw_Transcript_Text__c"]
+  RAW --> INDEX["Caption berindeks: index;start_ms;duration_ms;text"]
+  RAW --> TRIG["Tgr_WDE_Start_Segmentation_After_Transcript"]
+  TRIG --> BATCH[("WDE_Batch_Run__c")]
+  BATCH --> STAGE["Tgr_WDE_Run_Stage_A"]
+  TEST["WDE_Supadata_Callout_Test (test Flow)"] -. "diagnostik, bukan jalur otomatis" .-> SERVICE
 ```
 
-_Retry tidak boleh mengulang mutation yang hasil sebelumnya masih ambigu._
+**Nama Flow:** `Sermon_Source_Create_Transcript_Job`, `WDE_Persist_Raw_Transcript`, `Tgr_WDE_Start_Segmentation_After_Transcript`, `Tgr_WDE_Run_Stage_A`, serta `WDE_Supadata_Callout_Test` (uji). Caption dan source harus diverifikasi sebelum dianggap lengkap.
 
-## 07 · QA audio bersyarat per segmen
+## 05 · Stage A, B, dan C dengan nama Flow eksplisit
+
+```mermaid
+flowchart TB
+  BATCH[("WDE_Batch_Run__c")] --> TA["Tgr_WDE_Run_Stage_A"]
+  TA --> A["WDE_Orchestrate_Stage_A"]
+  A --> ASUB["WDE_Semantic_Segmentation_Batch"]
+  ASUB --> VALID_A{"Boundary dan format Groq valid?"}
+  VALID_A -- "Tidak" --> RETRY["Retry / review / terminal error"]
+  VALID_A -- "Ya" --> TB["Tgr_WDE_Run_Stage_B"]
+  TB --> B["WDE_Orchestrate_Stage_B"]
+  B --> BSUB["WDE_Enrich_Approved_Boundaries"]
+  BSUB --> VALID_B{"Enrichment nonkosong valid?"}
+  VALID_B -- "Tidak" --> RETRY
+  VALID_B -- "Ya" --> TC["Tgr_WDE_Run_Stage_C"]
+  TC --> C["WDE_Orchestrate_Stage_C"]
+  C --> CSUB["WDE_Persist_Reviewed_Segments"]
+  CSUB --> SEGS[("Sermon_Segment__c")]
+  SEGS --> SUM["Tgr_WDE_Auto_Finalize_Summary → WDE_Finalize_Segment_Summary"]
+```
+
+**Flow A:** `Tgr_WDE_Run_Stage_A` → `WDE_Orchestrate_Stage_A` → `WDE_Semantic_Segmentation_Batch`. **Flow B:** `Tgr_WDE_Run_Stage_B` → `WDE_Orchestrate_Stage_B` → `WDE_Enrich_Approved_Boundaries`. **Flow C:** `Tgr_WDE_Run_Stage_C` → `WDE_Orchestrate_Stage_C` → `WDE_Persist_Reviewed_Segments`. **Summary:** `Tgr_WDE_Auto_Finalize_Summary` → `WDE_Finalize_Segment_Summary`.
+
+## 06 · Retry, checkpoint, dan perbaikan batch
 
 ```mermaid
 flowchart TD
-  S["Sermon_Segment__c hasil Stage C"] --> REQUIRED{"Audio_QA_Required__c = true?"}
-  REQUIRED -- "Tidak" --> NOCALL["Tidak ada panggilan Gemini"]
-  REQUIRED -- "Ya" --> FRESH{"Closed, PENDING atau RETRY_PENDING, attempts < 3?"}
-  FRESH -- "Tidak" --> WAIT["Tidak diproses"]
-  FRESH -- "Ya" --> QA["WDE_Verify_Sermon_Segment_Audio"]
-  QA --> VIDEO["Gemini original video per Start_Ms / End_Ms"]
-  VIDEO --> VERDICT{"Evaluasi"}
-  VERDICT -- "PASS" --> PASS["PASS: boleh lanjut sesuai gate"]
-  VERDICT -- "FAIL" --> FAIL["FAIL: koreksi terbatas atau tetap FAIL"]
-  VERDICT -- "Kesalahan teknis" --> TECH["Retry terbatas lalu SYSTEM_ERROR"]
-  TECH --> REC["WDE_Daily_Segment_Audio_QA_Recovery"]
-  REC --> FRESH
-  PASS --> SUM["Finalisasi summary"]
+  START["Tgr_WDE_Run_Stage_A / Tgr_WDE_Run_Stage_B / Tgr_WDE_Run_Stage_C"] --> ORCH["WDE_Orchestrate_Stage_A / B / C"]
+  ORCH --> VALID{"Tahap valid?"}
+  VALID -- "Ya" --> AUTO["Tgr_WDE_Auto_Advance_Batch"]
+  AUTO --> ADV["WDE_Auto_Advance_Batch"]
+  VALID -- "Tidak" --> POLICY{"Masih boleh retry?"}
+  POLICY -- "Ya" --> DELAY["Tgr_WDE_Retry_Stage_A / status RetryPending"]
+  POLICY -- "Tidak" --> REVIEW["NeedsReview / Failed / System_Error"]
+  DELAY --> RECOVER["WDE_Recover_Groq_Format_Batch_53"]
+  RECOVER --> ORCH
+  REVIEW -. "manual, dengan verifikasi" .-> PART["WDE_Recover_Partial_Segmentation"]
+  PART --> STAGEC["WDE_Recover_Verified_Stage_C"]
+  STAGEC --> ADV
+  CREATE["Tgr_WDE_Create_Next_Batch"] --> ORCH
 ```
 
-_QA audio bukan sumber Audience Need, HIVE, ataupun izin penggunaan materi._
+**Nama Flow:** `Tgr_WDE_Retry_Stage_A`, `WDE_Recover_Groq_Format_Batch_53`, `WDE_Recover_Partial_Segmentation`, `WDE_Recover_Verified_Stage_C`, `Tgr_WDE_Auto_Advance_Batch`, `WDE_Auto_Advance_Batch`, dan `Tgr_WDE_Create_Next_Batch`. Panah pemulihan bersifat ilustrasi opsi terkontrol, **bukan** bukti semua Flow saling memanggil secara langsung.
 
-## 08 · Arti status QA
+## 07 · QA audio selektif dan status source
+
+```mermaid
+flowchart TD
+  SEG[("Sermon_Segment__c")] --> RESET["Tgr_WDE_Reset_Segment_Audio_QA"]
+  SEG --> REQUIRED{"Audio_QA_Required__c = true?"}
+  REQUIRED -- "Tidak" --> ZERO["Tidak ada panggilan Gemini"]
+  REQUIRED -- "Ya" --> TRIG["Tgr_WDE_Auto_Segment_Audio_QA"]
+  TRIG --> Q["WDE_Verify_Sermon_Segment_Audio — XML source Draft"]
+  Q --> RETRY["WDE_Audio_QA_Decide_Retry"]
+  Q --> GEM["WDEGeminiVideo.analyzeVideo"]
+  GEM --> VERDICT{"PASS / FAIL / galat teknis"}
+  VERDICT -- "PASS" --> FIN["Tgr_WDE_Auto_Finalize_Summary"]
+  FIN --> SUMMARY["WDE_Finalize_Segment_Summary"]
+  VERDICT -- "FAIL" --> FAIL["FAIL dan koreksi terbatas"]
+  VERDICT -- "Error" --> DAILY["WDE_Daily_Segment_Audio_QA_Recovery"]
+  DAILY -. "retry sesuai guard" .-> Q
+```
+
+**Nama Flow:** `Tgr_WDE_Reset_Segment_Audio_QA`, `Tgr_WDE_Auto_Segment_Audio_QA`, `WDE_Verify_Sermon_Segment_Audio`, `WDE_Audio_QA_Decide_Retry`, `WDE_Daily_Segment_Audio_QA_Recovery`, `Tgr_WDE_Auto_Finalize_Summary`, dan `WDE_Finalize_Segment_Summary`. **Perhatian:** XML `WDE_Verify_Sermon_Segment_Audio` saat snapshot adalah **Draft**. Bukti eksekusi historis tidak membuktikan versi source terbaru aktif.
+
+## 08 · Status QA dan Flow pemulihan
 
 ```mermaid
 stateDiagram-v2
   [*] --> PENDING
-  PENDING --> PASS: Bukti model memenuhi kontrak
-  PENDING --> FAIL: Mismatch atau klaim keliru
-  PENDING --> RETRY_PENDING: Gangguan teknis / koreksi
-  RETRY_PENDING --> PASS: Verifikasi ulang sukses
-  RETRY_PENDING --> FAIL: Verifikasi ulang gagal
-  RETRY_PENDING --> SYSTEM_ERROR: Batas upaya tercapai
-  PASS --> PENDING: Materi sumber berubah
-  FAIL --> PENDING: Materi sumber berubah
-  SYSTEM_ERROR --> PENDING: Reset terkendali setelah investigasi
+  PENDING --> PASS: WDE_Verify_Sermon_Segment_Audio
+  PENDING --> FAIL: WDE_Verify_Sermon_Segment_Audio
+  PENDING --> RETRY_PENDING: WDE_Audio_QA_Decide_Retry
+  RETRY_PENDING --> PASS: WDE_Daily_Segment_Audio_QA_Recovery
+  RETRY_PENDING --> FAIL: WDE_Daily_Segment_Audio_QA_Recovery
+  RETRY_PENDING --> SYSTEM_ERROR: batas upaya
+  PASS --> PENDING: Tgr_WDE_Reset_Segment_Audio_QA
+  FAIL --> PENDING: Tgr_WDE_Reset_Segment_Audio_QA
+  SYSTEM_ERROR --> PENDING: koreksi / reset terkontrol
   PASS --> [*]
   FAIL --> [*]
   SYSTEM_ERROR --> [*]
 ```
 
-_SYSTEM_ERROR tidak boleh disamakan dengan PASS, termasuk ketika ada pengecualian rilis._
+**Nama Flow keputusan:** `WDE_Verify_Sermon_Segment_Audio` dan `WDE_Audio_QA_Decide_Retry`. **Pemulihan:** `WDE_Daily_Segment_Audio_QA_Recovery`. **Reset:** `Tgr_WDE_Reset_Segment_Audio_QA`. Transisi adalah *model status*, bukan jaminan jalur otomatis aktif pada Org. `SYSTEM_ERROR` **bukan** `PASS`.
 
-## 09 · Fondasi Audio QA foreground (Draft / tidak aktif)
-
-```mermaid
-flowchart TD
-  HUMAN["Permintaan operator terotorisasi"] -. "manual" .-> RES["WDE_Reserve_Foreground_Audio_QA (Draft)"]
-  RES --> PRE{"Segmen, sumber, rights, durasi <= 30 s?"}
-  PRE -- "Tidak" --> DENY["Tolak"]
-  PRE -- "Ya" --> CLAIM["Create WDE_Audio_QA_Claim__c dengan Claim_Key unik"]
-  CLAIM --> UNIQUE{"Create berhasil?"}
-  UNIQUE -- "Duplikat" --> DENY2["Stop: tanpa POST"]
-  UNIQUE -- "Ya" --> WORK["WDE_Run_Foreground_Audio_QA (Draft)"]
-  WORK --> FENCE["RESERVED → CALLING + Fence"]
-  FENCE --> CHECK{"Ownership dan fingerprint cocok?"}
-  CHECK -- "Tidak" --> STALE["STALE_SOURCE / stop"]
-  CHECK -- "Ya" --> GEM["Gemini External Service"]
-  GEM --> RECEIPT["Receipt / error / UNKNOWN_DO_NOT_RETRY"]
-  NOTE["Tgr_WDE_Audio_QA_Foreground_Claim (Draft, inert)"] -.-> RES
-  classDef draft fill:#f3ebff,stroke:#6f42a1,color:#25123a;
-  class RES,WORK,NOTE draft;
-```
-
-_Fondasi telah masuk main lewat PR #70; aktivasi, assignment runner, dan jaminan exactly-once belum disetujui atau dibuktikan._
-
-## 10 · Gemini analisis sumber ≠ QA segmen
-
-```mermaid
-flowchart LR
-  Y["URL YouTube publik"] --> LOOK["Cari Sermon_Source berdasarkan Video ID"]
-  LOOK --> CACHE{"Gemini_Video_Analysis_JSON__c tersedia?"}
-  CACHE -- "Ya" --> RETURN["Kembalikan cache"]
-  CACHE -- "Tidak" --> GEM["WDE_Analyze_YouTube_Gemini"]
-  GEM --> FIRST["Analisis ringkas 0–20 detik"]
-  FIRST --> GATE{"HTTP 200 + STOP + kontrak respons?"}
-  GATE -- "Ya" --> STORE["Simpan JSON dan waktu validasi respons"]
-  GATE -- "Tidak" --> NO["Tidak menyatakan QA semantik"]
-  STORE -. "butuh bukti sumber independen" .-> HUMAN["Verifikasi manusia / bukti caption"]
-  RETURN --> HUMAN
-```
-
-_Timestamp validasi respons tidak membuktikan akurasi audio, kutipan, atau hak cipta._
-
-## 11 · Pengetahuan dan evidence lineage
-
-```mermaid
-flowchart TD
-  R["Raw caption terindeks"] --> SEGS["Sermon Segment"]
-  SEGS --> EVID["Wisdom_Concept_Evidence__c"]
-  EVID --> CONCEPT["Wisdom_Concept__c"]
-  CONCEPT --> REL["Wisdom_Relation__c"]
-  CONCEPT --> JOIN["Wisdom_Insight_Concept__c"]
-  JOIN --> INSIGHT["Wisdom_Insight__c"]
-  INSIGHT --> HUMAN{"Review dan Safety_Status?"}
-  HUMAN -- "Tidak lolos" --> HOLD["Draft / NeedsEdit / Rejected"]
-  HUMAN -- "Approved + Safe" --> PUBLISH["Wisdom_Insight_Publish"]
-  QA["scripts/wde-knowledge-qa.mjs"] -. "uji ketepatan indeks dan kutipan" .-> EVID
-  QA -. "bukan persetujuan editorial" .-> HUMAN
-```
-
-_Sumber bukti dan keputusan manusia tetap dipisahkan dari generasi AI._
-
-## 12 · Audience Intelligence terisolasi dari khotbah
-
-```mermaid
-flowchart LR
-  COMMENT["Komentar YouTube nyata"] --> FETCH["WDE_Fetch_YouTube_Comments"]
-  FETCH --> CLASS["Klasifikasi dengan bukti"]
-  CLASS --> SIG["WDE_Audience_Signal__c"]
-  SIG --> NEED["WDE_Audience_Need__c"]
-  NEED --> TREND["WDE_Audience_Trend__c"]
-  TREND --> HIVE["HIVE scoring"]
-  SOURCE["Audio, transcript, segment, Gemini video"] -. "TIDAK boleh mengisi sinyal" .-> SIG
-  SOURCE -. "TIDAK mengubah skor" .-> HIVE
-```
-
-_Peringkat kebutuhan audiens berasal dari komentar; topik khotbah bisa berbeda._
-
-## 13 · HIVE berbasis bukti
+## 09 · Fondasi Audio QA foreground (semua Draft)
 
 ```mermaid
 flowchart TB
-  SIG["Signal terverifikasi dan terdeduplikasi"] --> V["Volume 30%"]
-  SIG --> I["Intensity 25%"]
-  SIG --> G["Growth 20%"]
-  SIG --> R["Recency 15%"]
-  SIG --> Q["Quality 10%"]
-  V --> CHECK{"5 komponen valid 0–100 dan evidence cukup?"}
+  HUMAN["Operator terotorisasi"] -. "entry manual" .-> RES["WDE_Reserve_Foreground_Audio_QA (Draft)"]
+  RES --> CHECK{"Segmen, sumber, rights dan durasi <= 30 detik?"}
+  CHECK -- "Tidak" --> DENY["Tolak"]
+  CHECK -- "Ya" --> CLAIM[("WDE_Audio_QA_Claim__c: Claim_Key unik")]
+  CLAIM --> UNIQUE{"Create berhasil?"}
+  UNIQUE -- "Duplikat" --> DENY
+  UNIQUE -- "Ya" --> RUN["WDE_Run_Foreground_Audio_QA (Draft)"]
+  RUN --> FENCE["RESERVED → CALLING; Fence"]
+  FENCE --> GATE{"Fingerprint dan owner cocok?"}
+  GATE -- "Tidak" --> STALE["STALE_SOURCE / stop"]
+  GATE -- "Ya" --> GEM["WDEGeminiVideo.analyzeVideo"]
+  GEM --> RECEIPT["Result / error / UNKNOWN_DO_NOT_RETRY"]
+  TRIG["Tgr_WDE_Audio_QA_Foreground_Claim (Draft / inert)"] -. "tidak menjadi pemicu otomatis" .-> RES
+  ASYNC["WDE_Start_Segment_Audio_Async_QA (Draft)"] -. "jalur desain terpisah" .-> GET["WDE_Get_Segment_Audio_Async_QA (Draft)"]
+  DELETE["WDE_Delete_Segment_Audio_Async_QA (Draft)"] -. "utilitas terpisah" .-> GET
+```
+
+**Nama Flow foreground:** `Tgr_WDE_Audio_QA_Foreground_Claim`, `WDE_Reserve_Foreground_Audio_QA`, `WDE_Run_Foreground_Audio_QA`. **Nama Flow asynchronous dalam source:** `WDE_Start_Segment_Audio_Async_QA`, `WDE_Get_Segment_Audio_Async_QA`, `WDE_Delete_Segment_Audio_Async_QA`. Garis putus-putus menunjukkan kelompok rancangan terpisah; aktivasi, runner permission, dan deduplikasi provider absolut masih **UNVERIFIED**.
+
+## 10 · Analisis Gemini sumber, bukan verifikasi audio segmen
+
+```mermaid
+flowchart TD
+  Y["URL YouTube"] --> LOOK["Cari Sermon_Source__c berdasarkan Video ID"]
+  LOOK --> CACHE{"JSON Gemini sudah tersimpan?"}
+  CACHE -- "Ya" --> RETURN["Hasil cache"]
+  CACHE -- "Tidak" --> ANALYZE["WDE_Analyze_YouTube_Gemini"]
+  ANALYZE --> GEM["Gemini video (potongan 0–20 detik)"]
+  GEM --> STATUS{"HTTP 200 / STOP / kontrak sederhana?"}
+  STATUS -- "Ya" --> SAVE["Simpan Gemini_Video_Analysis_JSON__c"]
+  STATUS -- "Tidak" --> FAIL["Tidak menandai sukses QA"]
+  SAVE --> SOURCEQA["WDE_Verify_YouTube_Gemini_Audio (Flow terpisah)"]
+  RETURN --> SOURCEQA
+  SOURCEQA -. "bukan segmen QA" .-> SEGQA["WDE_Verify_Sermon_Segment_Audio"]
+  TEST["Panggil_Gemini / WDE_Test_Gemini_Auth"] -. "Flow pengujian berbeda" .-> GEM
+```
+
+**Nama Flow:** `WDE_Analyze_YouTube_Gemini`, `WDE_Verify_YouTube_Gemini_Audio`, `WDE_Verify_Sermon_Segment_Audio`, `Panggil_Gemini`, dan `WDE_Test_Gemini_Auth`. Hasil respons dan cache tidak otomatis membuktikan akurasi audio, semantik, kutipan, atau hak cipta.
+
+## 11 · Pengetahuan, konsep, insight dan review
+
+```mermaid
+flowchart TB
+  RAW["Raw caption berindeks"] --> SEG["Sermon_Segment__c"]
+  SEG --> EVID[("Wisdom_Concept_Evidence__c")]
+  EVID --> CONCEPT[("Wisdom_Concept__c")]
+  POC["WDE_Generate_Wisdom_POC"] -. "kandidat Groq" .-> CONCEPT
+  CONCEPT --> REVIEW["Wisdom_Concept_Review"]
+  REVIEW --> REL[("Wisdom_Relation__c")]
+  REVIEW --> JOIN[("Wisdom_Insight_Concept__c")]
+  JOIN --> INSIGHT[("Wisdom_Insight__c")]
+  INSIGHT --> IR["Wisdom_Insight_Review"]
+  IR --> GATE{"Approved dan Safety = Safe?"}
+  GATE -- "Tidak" --> HOLD["Draft / NeedsEdit / Rejected"]
+  GATE -- "Ya" --> PUB["Wisdom_Insight_Publish"]
+  QA["scripts/wde-knowledge-qa.mjs"] -. "validasi lokal bukti indeks" .-> EVID
+```
+
+**Nama Flow:** `WDE_Generate_Wisdom_POC`, `Wisdom_Concept_Review`, `Wisdom_Insight_Review`, `Wisdom_Insight_Publish`. Flow review tetap berbeda dari test `scripts/wde-knowledge-qa.mjs`; otomasi tidak boleh menggantikan persetujuan editorial.
+
+## 12 · Audience Intelligence dari komentar nyata
+
+```mermaid
+flowchart TD
+  C["Komentar YouTube asli"] --> FETCH["WDE_Fetch_YouTube_Comments"]
+  FETCH --> EXT["YouTubeApiCallout.commentThreads + WDEGroqService"]
+  EXT --> SIGNAL[("WDE_Audience_Signal__c")]
+  SIGNAL --> NEED[("WDE_Audience_Need__c")]
+  NEED --> TREND[("WDE_Audience_Trend__c")]
+  NEED --> DAILY["WDE_Daily_HIVE_Planning"]
+  DAILY --> REC["WDE_Recalculate_HIVE"]
+  DAILY --> PLAN["WDE_Propose_Content_Plan"]
+  SOURCE["Audio / transcript / segment / Gemini source QA"] -. "tidak menulis Audience Signal" .-> SIGNAL
+```
+
+**Nama Flow:** `WDE_Fetch_YouTube_Comments`, `WDE_Daily_HIVE_Planning`, `WDE_Recalculate_HIVE`, dan `WDE_Propose_Content_Plan`. HIVE bersumber pada sinyal komentar, bukan dari isi khotbah atau verdict Audio QA.
+
+## 13 · Perhitungan HIVE dari evidence
+
+```mermaid
+flowchart TB
+  DAILY["WDE_Daily_HIVE_Planning"] --> CALC["WDE_Recalculate_HIVE"]
+  CALC --> SIGNAL["WDE_Audience_Signal__c terdeduplikasi"]
+  SIGNAL --> V["Volume: 30%"]
+  SIGNAL --> I["Intensity: 25%"]
+  SIGNAL --> G["Growth: 20%"]
+  SIGNAL --> R["Recency: 15%"]
+  SIGNAL --> Q["Quality: 10%"]
+  V --> CHECK{"Semua komponen dan bukti valid?"}
   I --> CHECK
   G --> CHECK
   R --> CHECK
   Q --> CHECK
-  CHECK -- "Ya" --> SCORE["HIVE = 0.30 V + 0.25 I + 0.20 G + 0.15 R + 0.10 Q"]
-  CHECK -- "Tidak" --> INCOMP["Incomplete / Insufficient Data"]
-  SCORE --> READY["WDE_Recalculate_HIVE → Ready"]
+  CHECK -- "Tidak" --> INC["Incomplete / Insufficient Data"]
+  CHECK -- "Ya" --> SCORE["HIVE = .30 V + .25 I + .20 G + .15 R + .10 Q"]
+  SCORE --> READY[("WDE_Audience_Need__c: Ready")]
+  READY --> PLAN["WDE_Propose_Content_Plan"]
 ```
 
-_Nilai tanpa bukti tidak diam-diam ditafsirkan sebagai skor rendah._
+**Nama Flow:** `WDE_Daily_HIVE_Planning` adalah scheduler/orchestrator; `WDE_Recalculate_HIVE` menghitung komponen, kemudian `WDE_Propose_Content_Plan` menguji kelayakan perencanaan. Nilai tanpa bukti tidak boleh dianggap skor yang valid.
 
-## 14 · Content plan dan gerbang publikasi
+## 14 · Content Plan, threshold, dan review
 
 ```mermaid
 flowchart TD
-  NEED["Audience Need: Ready"] --> SCORE{"HIVE >= 60?"}
-  SCORE -- "Tidak" --> DENY["Jangan buat plan"]
-  SCORE -- "Ya" --> UNIQUE{"Plan_Key mingguan sudah ada?"}
-  UNIQUE -- "Ya" --> EXIST["Gunakan plan yang ada"]
-  UNIQUE -- "Tidak" --> FLOW["WDE_Propose_Content_Plan"]
-  FLOW --> PLAN[("WDE_Content_Plan__c: Proposed")]
-  PLAN --> EDIT["Review manusia: topik, hook, skrip, bukti"]
-  EDIT --> RIGHTS{"Review, rights, aset siap?"}
-  RIGHTS -- "Belum" --> HOLD["Tahan publikasi"]
-  RIGHTS -- "Ya" --> APPROVED["Layak untuk langkah penerbitan terpisah"]
+  DAILY["WDE_Daily_HIVE_Planning"] --> REC["WDE_Recalculate_HIVE"]
+  REC --> NEED[("WDE_Audience_Need__c")]
+  NEED --> PLAN["WDE_Propose_Content_Plan"]
+  PLAN --> SCORE{"Ready dan HIVE >= 60?"}
+  SCORE -- "Tidak" --> HOLD["Tidak membuat proposal"]
+  SCORE -- "Ya" --> UNIQUE{"Plan_Key unik untuk periode?"}
+  UNIQUE -- "Sudah ada" --> REUSE["Gunakan proposal lama"]
+  UNIQUE -- "Belum" --> CREATE[("WDE_Content_Plan__c: Proposed")]
+  CREATE --> HUMAN["Review topik, skrip, rights, aset"]
+  HUMAN --> PUBLISH{"Approval manusia?"}
+  PUBLISH -- "Belum" --> WAIT["Tahan publikasi"]
+  PUBLISH -- "Ya" --> NEXT["Proses distribusi terpisah"]
 ```
 
-_Flow perencanaan tidak membuat video atau memublikasikan konten secara otomatis._
+**Nama Flow:** `WDE_Daily_HIVE_Planning`, `WDE_Recalculate_HIVE`, `WDE_Propose_Content_Plan`. Flow ini mengusulkan rancangan, **bukan** menerbitkan video secara otomatis.
 
 ## 15 · Model data operasional
 
@@ -345,130 +357,123 @@ erDiagram
 
 _External key dipakai untuk deduplikasi dan pelacakan sumber._
 
-## 17 · Integrasi dan perimeter kredensial
-
-```mermaid
-flowchart TB
-  subgraph V["Penyedia / input"]
-    Y["YouTube API"]
-    SU["Supadata"]
-    GR["Groq"]
-    GE["Gemini"]
-  end
-  subgraph N["Metadata Salesforce"]
-    YN["WDEYouTubePlaylist / WDEYouTubePublic"]
-    SN["WDE_Supadata_API + External Service"]
-    GN["WDE_Groq_API + WDEGroqService"]
-    MN["GeminiNmCred + WDEGeminiVideo / Interactions"]
-  end
-  subgraph C["Kontrol"]
-    EXT["External Credential + principal"]
-    PS["PermissionSet minimal"]
-    SRC["Jangan commit secret literal"]
-  end
-  Y --> YN
-  SU --> SN
-  GR --> GN
-  GE --> MN
-  EXT --> SN
-  EXT --> GN
-  EXT --> MN
-  PS --> EXT
-  SRC --> EXT
-  YN --> SALES[("Salesforce Flow")]
-  SN --> SALES
-  GN --> SALES
-  MN --> SALES
-```
-
-_Secret disimpan di konfigurasi aman; pergantian key historis membutuhkan tindakan tersendiri._
-
-## 18 · Satu Issue Chat, tiga jalur Salesforce
+## 17 · Kredensial External Service dan Flow pemakai
 
 ```mermaid
 flowchart TD
-  CHAT["ChatGPT → satu Issue bfipbf/WDE"] --> ROUTE{"Jenis operasi"}
-  ROUTE -- "REST / SOQL / Tooling / readback" --> REQ["### Sf Request"]
-  ROUTE -- "CLI benar-benar diperlukan" --> BASH["### Sf Bash"]
-  ROUTE -- "Metadata validate / deploy" --> DEP["### Sf Deploy"]
-  REQ --> API["Salesforce API"]
-  BASH --> CLI["Salesforce CLI hdbsf"]
-  DEP --> PIN["Commit SHA 40 karakter + manifest eksplisit"]
-  PIN --> VERIFY["Preflight org dan candidate"]
-  VERIFY --> METADATA["Validate checkOnly atau deploy terotorisasi"]
-  API --> AUDIT["Actions evidence"]
-  CLI --> AUDIT
-  METADATA --> AUDIT
-  AUDIT --> MIRROR["Issue audit di Syntetic-Wisdom"]
+  subgraph API["Penyedia"]
+    Y["YouTube"]
+    S["Supadata"]
+    G["Groq"]
+    M["Gemini"]
+  end
+  subgraph NC["Salesforce External Service + Named Credential"]
+    YNC["WDEYouTubePlaylist / YouTubeApiCallout"]
+    SNC["WDSupadataTranscript / WDE_Supadata_API"]
+    GNC["WDEGroqService / WDE_Groq_API"]
+    MNC["WDEGeminiVideo / GeminiNmCred"]
+  end
+  Y --> YNC --> D["WDE_Orchestrator_Weekly_Sermon / WDE_Fetch_YouTube_Comments"]
+  S --> SNC --> T["WDE_Persist_Raw_Transcript"]
+  G --> GNC --> A["WDE_Semantic_Segmentation_Batch / WDE_Enrich_Approved_Boundaries"]
+  M --> MNC --> QA["WDE_Analyze_YouTube_Gemini / WDE_Verify_Sermon_Segment_Audio"]
+  AUTH["External Credential + PermissionSet"] --> SNC
+  AUTH --> GNC
+  AUTH --> MNC
 ```
 
-_Mengedit body Issue saat payload deploy aktif dapat memicu ulang Actions; komentar audit tidak boleh dipakai sebagai perintah eksekusi._
+**Flow pemakai:** `WDE_Orchestrator_Weekly_Sermon`, `WDE_Fetch_YouTube_Comments`, `WDE_Persist_Raw_Transcript`, `WDE_Semantic_Segmentation_Batch`, `WDE_Enrich_Approved_Boundaries`, `WDE_Analyze_YouTube_Gemini`, dan `WDE_Verify_Sermon_Segment_Audio`. Credential dan principal harus dikonfigurasi aman; tidak ada kredensial yang diekspos dalam SADD.
 
-## 19 · Jejak audit dari permintaan sampai bukti
+## 18 · Gateway Salesforce hanya di bfipbf/WDE
+
+```mermaid
+flowchart TB
+  CHAT["ChatGPT → satu Issue bfipbf/WDE"] --> ROUTE{"Jenis permintaan"}
+  ROUTE -- "REST / SOQL / Tooling / readback" --> REQ["WDE/sf.yaml → ### Sf Request"]
+  ROUTE -- "CLI khusus" --> BASH["WDE/sf.yaml → ### Sf Bash"]
+  ROUTE -- "Metadata validate / deploy" --> DEP["WDE/sf.yaml → ### Sf Deploy"]
+  ROUTE -- "Integrasi Jim" --> JIM["WDE/jim.yaml → Jim Request / Bash"]
+  DEP --> SHA["40-char SHA source Syntetic-Wisdom + manifest"]
+  SHA --> VERIFY["Preflight: actor, Org ID, manifest"]
+  VERIFY --> ORG[("Salesforce hdbsf")]
+  REQ --> ORG
+  BASH --> ORG
+  JIM --> PROVIDER["Jim API / CLI terisolasi"]
+  ORG --> EVID["Evidence tersanitasi"]
+  EVID --> SYNC["WDE/sync.yaml → Issue audit di Syntetic-Wisdom"]
+  SRC["Syntetic-Wisdom: close.yaml + wde-test.yaml SAJA"] -. "tidak mengeksekusi gateway" .-> ROUTE
+```
+
+**Bukan lagi berada di repo source:** `.github/workflows/sf.yaml`, `.github/workflows/jim.yaml`, `.github/workflows/salesforce-rca-ci.yml` dan executor `.github/mjs/sf-*.mjs` / `jim-*.mjs` yang telah dipensiunkan. Jalur Salesforce berada di `bfipbf/WDE`; tidak ada keterkaitan langsung dengan runtime Flow `WDE_Orchestrate_Stage_A/B/C` kecuali deployment atau API eksplisit.
+
+## 19 · Jejak audit berbasis gateway dan mirror
 
 ```mermaid
 sequenceDiagram
   autonumber
-  actor C as Operator / ChatGPT
+  actor C as ChatGPT / operator
   participant G as bfipbf/WDE Issue
-  participant A as GitHub Actions
+  participant A as WDE/sf.yaml
   participant S as Salesforce hdbsf
-  participant M as PRIVATE_REPO mirror
-  C->>G: Satu heading dan satu payload
+  participant M as WDE/sync.yaml
+  participant P as Syntetic-Wisdom Issue
+  C->>G: Satu heading dan payload terarah
   G->>A: issues.opened / edited
-  A->>A: Validasi actor, body, SHA, org
-  alt Permintaan Salesforce valid
-    A->>S: API atau CLI terarah
-    S-->>A: Status dan ID operasi
-    A->>M: Komentar evidence tersanitasi
-  else Gagal preflight
-    A->>M: Error dan alasan yang aman
+  A->>A: Validasi actor, Org, request, SHA bila deploy
+  alt Lolos preflight
+    A->>S: API / CLI / metadata validate / deploy
+    S-->>A: Status nyata dan deployment ID jika ada
+    A->>M: Hasil aman dan run ID
+    M->>P: Mirror evidence dan link
+  else Tidak lolos
+    A->>M: BLOCKED / FAILED ter-sanitasi
+    M->>P: Audit kegagalan
   end
-  C->>M: Audit hasil dan run ID
-  C->>G: Readback baru bila dibutuhkan
+  C->>P: Audit dan tindak lanjut
+  C->>G: Readback baru bila perlu
 ```
 
-_`Actions success` saja bukan bukti Salesforce berhasil; baca hasil operasi dan readback._
+**Sumber eksekusi:** `bfipbf/WDE/.github/workflows/sf.yaml` dan `sync.yaml`, bukan YAML yang dihapus dari `Syntetic-Wisdom`. **Penutupan Issue:** `close.yaml` dipertahankan di kedua repository. `Actions success` tidak menggantikan bukti hasil Salesforce atau readback.
 
-## 20 · Source, pengujian, dan deployment
+## 20 · Pengujian statis pasca-penghapusan YAML
+
+```mermaid
+flowchart TD
+  DEV["Perubahan source metadata atau workflow"] --> FILTER{"Path termasuk filter wde-test.yaml?"}
+  FILTER -- "Tidak, contoh SADD-WDE.md" --> SKIP["CI statis tidak auto-trigger oleh perubahan dokumen"]
+  FILTER -- "Ya atau workflow_dispatch" --> TEST["Syntetic-Wisdom/.github/workflows/wde-test.yaml"]
+  TEST --> NODE["Node.js 22; YAML.parse_file self-check"]
+  NODE --> SYNTAX["node --check tests/wde-flow-only-groq-gemini-54.test.mjs"]
+  SYNTAX --> STATIC["node --test tests/wde-flow-only-groq-gemini-54.test.mjs"]
+  STATIC --> RESULT["Bukti CI statis; tanpa autentikasi Salesforce"]
+  RESULT --> PR["Review source PR / main"]
+  PR -. "mutation terpisah dan eksplisit" .-> GATE["bfipbf/WDE/sf.yaml → Sf Deploy"]
+  GATE --> READ["Readback Org jika deploy terotorisasi"]
+```
+
+**Workflow lokal yang aktif untuk CI:** `.github/workflows/wde-test.yaml`, job `wde-static`. Pengujian memeriksa kontrak metadata Groq, Gemini, dan Audio QA secara **offline**; tidak menjalankan Flow pada Salesforce. `SADD-WDE.md` tidak termasuk path trigger otomatis. Flow terkait uji: `WDE_Semantic_Segmentation_Batch`, `WDE_Enrich_Approved_Boundaries`, dan `WDE_Verify_Sermon_Segment_Audio`.
+
+## 21 · Evolusi implementasi sampai pembersihan YAML
 
 ```mermaid
 flowchart LR
-  DEV["Perubahan source / branch"] --> XML["Flow, objects, credentials, permission sets"]
-  DEV --> SCRIPT["scripts dan modul .github/mjs"]
-  DEV --> TESTS["tests/*.test.mjs"]
-  XML --> MAN["manifest/*.xml"]
-  SCRIPT --> UNIT["gw-unit-test / salesforce-rca-ci"]
-  TESTS --> UNIT
-  UNIT --> REVIEW{"Review dan approval?"}
-  REVIEW -- "Belum" --> HOLD["Tahan merge / deploy"]
-  REVIEW -- "Ya" --> MERGE["Merge source ke main"]
-  MERGE -. "tidak otomatis deploy" .-> SFDEP["Sf Deploy dengan SHA dan manifest"]
-  MAN --> SFDEP
-  SFDEP --> READBACK["Verifikasi Org + audit"]
+  MOCK["PoC #1–#8: RCA mock / read-only"] --> GW["Gateway Sf Request / Bash / Deploy"]
+  GW --> HIVE["PR #36: HIVE dan Content Plan"]
+  HIVE --> QA["PR #52: segmentasi, Gemini QA"]
+  QA --> HIST["PR #62: ditutup tanpa merge"]
+  HIST --> F70["PR #70: fondasi QA Draft, merged"]
+  F70 --> F68["PR #68: 18 metadata Org disimpan, merged"]
+  F68 --> ISSUE["PR #73–#74: mirror close, merged"]
+  ISSUE --> CI["PR #77: wde-Test.yaml, merged"]
+  CI --> CLEAN["PR #78: dua YAML tersisa; wde-test.yaml, merged"]
+  CLEAN --> MAIN["main 44d66f267545: source-only + CI statis"]
+  classDef good fill:#e7f7eb,stroke:#238043,color:#14361f;
+  classDef old fill:#ffecec,stroke:#b42318,color:#411;
+  class HIVE,QA,F70,F68,ISSUE,CI,CLEAN,MAIN good;
+  class HIST old;
 ```
 
-_Merge dokumentasi atau metadata di GitHub tidak mengubah status Salesforce secara otomatis._
-
-## 21 · Evolusi pekerjaan dan PR penting
-
-```mermaid
-flowchart LR
-  POC["PoC Issues #1–#8: mock dan RCA"] --> API["REST/Tooling, Metadata read"]
-  API --> WF["Gateway Sf Request / Bash / Deploy"]
-  WF --> HIV["PR #36: HIVE dan content planning"]
-  HIV --> SEG["PR #52: segmentasi dan QA bersyarat"]
-  SEG --> DRAFT["PR #62: ditutup tanpa merge"]
-  DRAFT --> F70["PR #70: fondasi QA Draft, merged"]
-  F70 --> F68["PR #68: snapshot 18 metadata Org, merged"]
-  F68 --> SYNC["PR #73 / #74: sinkronisasi penutupan Issue, merged"]
-  classDef merged fill:#e4f7e8,stroke:#238043,color:#153c1f;
-  classDef closed fill:#f7e4e4,stroke:#b42318,color:#411;
-  class HIV,SEG,F70,F68,SYNC merged;
-  class DRAFT closed;
-```
-
-_Snapshot ini mencerminkan pemeriksaan GitHub 25 November 2026, bukan penegasan semua runtime sudah accepted._
+**Flow terkait evolusi:** `WDE_Recalculate_HIVE`, `WDE_Propose_Content_Plan`, `WDE_Orchestrate_Stage_A/B/C`, `WDE_Verify_Sermon_Segment_Audio`, dan `WDE_Reserve_Foreground_Audio_QA`. PR #77 dan #78 memindahkan/meniadakan eksekusi gateway di repo source **tanpa deployment Salesforce**.
 
 ## 22 · Status bukti dan risiko yang harus dipisah
 
@@ -493,49 +498,50 @@ flowchart TB
 
 _Pemisahan status mencegah klaim keliru tentang aktivasi, QA, dan kesetaraan Org–Git._
 
-## 23 · Peta komponen repository
-
-```mermaid
-flowchart TB
-  REPO["Syntetic-Wisdom / main"] --> FORCE["force-app/main/default"]
-  REPO --> ACTIONS[".github/workflows"]
-  REPO --> MOD[".github/mjs"]
-  REPO --> MAN["manifest"]
-  REPO --> SCRIPT["scripts"]
-  REPO --> TEST["tests"]
-  REPO --> DOC["docs"]
-  REPO --> SAMPLE["ai-source"]
-  FORCE --> FLOW["57 Flow XML"]
-  FORCE --> OBJ["15 definisi CustomObject XML + field Sermon_Segment"]
-  FORCE --> CONNECT["NamedCredential, ExternalCredential, ExternalService"]
-  FORCE --> PERM["PermissionSet"]
-  ACTIONS --> SF["sf.yaml"]
-  ACTIONS --> JIM["jim.yaml"]
-  ACTIONS --> CI["gw-unit-test.yaml, salesforce-rca-ci.yml"]
-  ACTIONS --> CLOSE["close.yaml"]
-  MAN --> PACK["Manifest scoped untuk tiap release"]
-```
-
-_Jumlah file adalah inventaris source pada main, bukan jumlah versi atau komponen aktif dalam Org._
-
-## 24 · Keamanan dan pemulihan
+## 23 · Struktur repo source saat ini: dua YAML
 
 ```mermaid
 flowchart TD
-  START["Operasi memiliki efek samping?"] --> CHANGE{"Source-only atau Salesforce mutation?"}
-  CHANGE -- "Source-only" --> CHECK["Review PR, tests, tidak ada credential"]
-  CHANGE -- "Salesforce mutation" --> AUTH["Persetujuan eksplisit + org hdbsf"]
-  AUTH --> PRE["Readback keadaan awal"]
-  PRE --> SCOPE["Manifest/record scope terukur"]
-  SCOPE --> EXEC["Gateway trusted dengan run ID"]
-  EXEC --> OUT{"Hasil pasti?"}
-  OUT -- "Ya" --> POST["Readback dan audit"]
-  OUT -- "Tidak / timeout" --> HALT["STOP, investigasi efek sebelumnya"]
-  HALT -. "tanpa blind retry" .-> PRE
-  CHECK --> MERGE["Commit atau merge source"]
+  R["Syntetic-Wisdom / main"] --> W[".github/workflows"]
+  W --> CLOSE["close.yaml: sinkronisasi penutupan issue"]
+  W --> TEST["wde-test.yaml: CI statis metadata"]
+  R --> FORCE["force-app/main/default"]
+  FORCE --> FLOWS["57 *.flow-meta.xml"]
+  FORCE --> OBJ["CustomObject + field Salesforce"]
+  FORCE --> CONN["Named / External Credential dan External Service"]
+  FORCE --> PERM["PermissionSet"]
+  R --> MAN["manifest/*.xml — scope deploy"]
+  R --> SCRIPTS["scripts/*.mjs — alat QA lokal yang tersisa"]
+  R --> TESTS["tests/*.test.mjs — regresi / statis"]
+  R --> DOCS["docs + SADD-WDE.md"]
+  R --> SOURCE["ai-source"]
+  OLD["sf.yaml / jim.yaml / salesforce-rca-ci.yml / gw-unit-test.yaml"] -. "DIHAPUS dari repo source" .-> W
+  GATE["bfipbf/WDE: sf.yaml, jim.yaml, sync.yaml, close.yaml"] -. "gateway berada di repo berbeda" .-> R
+  classDef gone fill:#f6e5e5,stroke:#a33,color:#411;
+  class OLD gone;
 ```
 
-_Dilarang menganggap kegagalan jaringan berarti mutasi pasti tidak terjadi._
+**Inventaris aktual main setelah PR #78:** tepat **2 YAML/YML**, yaitu `close.yaml` dan `wde-test.yaml`; tetap ada **57 file Flow XML**. `gw-unit-test.yaml` lebih dulu diganti PR #77, lalu `wde-Test.yaml` menjadi `wde-test.yaml` pada PR #78. Test gateway lama dan modul `sf-*` / `jim-*` privat juga dihapus. Tidak ada perubahan Salesforce akibat cleanup.
+
+## 24 · Safety gate, verifikasi Flow, dan retry
+
+```mermaid
+flowchart TD
+  SOURCE["Source XML Flow ada?"] --> STATUS["Periksa status XML: Active atau Draft"]
+  STATUS --> LIVE{"Akan mengubah Salesforce?"}
+  LIVE -- "Tidak" --> GIT["Review diff, dokumentasi, CI statis bila dipicu"]
+  LIVE -- "Ya" --> AUTH["Otorisasi eksplisit dan target Org hdbsf"]
+  AUTH --> PRE["Readback status/versi Flow dan data awal"]
+  PRE --> SHA["Commit SHA 40 karakter + manifest eksplisit"]
+  SHA --> DEP["bfipbf/WDE/sf.yaml → Sf Deploy"]
+  DEP --> OUT{"Hasil dan deployment ID jelas?"}
+  OUT -- "Ya" --> POST["Readback metadata dan audit"]
+  OUT -- "Timeout atau ambigu" --> HALT["STOP; periksa efek sebelumnya sebelum retry"]
+  POST --> QA["Uji runtime terarah jika diotorisasi"]
+  QA --> DONE["Catat PASS / FAIL / UNVERIFIED sesuai bukti"]
+```
+
+**Contoh Flow wajib diperlakukan sesuai status source dan bukti Org:** `WDE_Verify_Sermon_Segment_Audio` (XML `Draft`), `WDE_Reserve_Foreground_Audio_QA` (`Draft`), `WDE_Run_Foreground_Audio_QA` (`Draft`), serta `WDE_Orchestrate_Stage_A` (XML `Active`). Source Git dan aktivasi Org adalah dua bukti berbeda.
 
 ## 25 · Inventaris Flow: sumber dan pengetahuan
 
@@ -570,7 +576,9 @@ flowchart LR
   ROOT --- F12
 ```
 
-_Indeks source; tidak menyiratkan seluruh Flow aktif atau dipanggil oleh jalur produksi._
+**Daftar nama API Flow (13):** `Panggil_Gemini` · `Sermon_Source_Create_Transcript_Job` · `Tgr_Sample` · `WDE_Discover_Weekly_Sermon` · `WDE_Orchestrator_Weekly_Sermon` · `WDE_Persist_Raw_Transcript` · `WDE_Supadata_Callout_Test` · `WDE_Analyze_YouTube_Gemini` · `WDE_Fetch_YouTube_Comments` · `WDE_Generate_Wisdom_POC` · `Wisdom_Concept_Review` · `Wisdom_Insight_Review` · `Wisdom_Insight_Publish`.
+
+**Catatan:** ini indeks semua Flow yang ada sebagai XML di `main`, termasuk Flow eksperimen, historis, Draft, dan trigger. Status runtime Salesforce harus diperiksa tersendiri.
 
 ## 26 · Inventaris Flow: orchestrator dan batch
 
@@ -619,7 +627,9 @@ flowchart LR
   ROOT --- F19
 ```
 
-_Indeks source; tidak menyiratkan seluruh Flow aktif atau dipanggil oleh jalur produksi._
+**Daftar nama API Flow (20):** `Tgr_WDE_Auto_Advance_Batch` · `Tgr_WDE_Create_Next_Batch` · `Tgr_WDE_Retry_Stage_A` · `Tgr_WDE_Run_Stage_A` · `Tgr_WDE_Run_Stage_B` · `Tgr_WDE_Run_Stage_C` · `Tgr_WDE_Start_Segmentation_After_Transcript` · `WDE_Auto_Advance_Batch` · `WDE_Enrich_Approved_Boundaries` · `WDE_Orchestrate_Stage_A` · `WDE_Orchestrate_Stage_B` · `WDE_Orchestrate_Stage_C` · `WDE_Persist_Reviewed_Segments` · `WDE_Recover_Groq_Format_Batch_53` · `WDE_Recover_Partial_Segmentation` · `WDE_Recover_Verified_Stage_C` · `WDE_Semantic_Review_Batch` · `WDE_Semantic_Review_Batch_v2` · `WDE_Semantic_Segmentation_Batch` · `WDE_Semantic_Segmentation_POC`.
+
+**Catatan:** ini indeks semua Flow yang ada sebagai XML di `main`, termasuk Flow eksperimen, historis, Draft, dan trigger. Status runtime Salesforce harus diperiksa tersendiri.
 
 ## 27 · Inventaris Flow: audio dan quality gate
 
@@ -662,7 +672,9 @@ flowchart LR
   ROOT --- F16
 ```
 
-_Indeks source; tidak menyiratkan seluruh Flow aktif atau dipanggil oleh jalur produksi._
+**Daftar nama API Flow (17):** `Tgr_WDE_Audio_QA_Foreground_Claim` · `Tgr_WDE_Auto_Finalize_Summary` · `Tgr_WDE_Auto_Segment_Audio_QA` · `Tgr_WDE_Reset_Segment_Audio_QA` · `WDE_Audio_QA_Decide_Retry` · `WDE_Daily_Segment_Audio_QA_Recovery` · `WDE_Delete_Segment_Audio_Async_QA` · `WDE_Finalize_Segment_Summary` · `WDE_Get_Editorial_Audio_Context` · `WDE_Get_Segment_Audio_Async_QA` · `WDE_QA_OAuth_Commit_Release` · `WDE_Reserve_Foreground_Audio_QA` · `WDE_Run_Foreground_Audio_QA` · `WDE_Start_Segment_Audio_Async_QA` · `WDE_Verify_Isolated_Test5_Segment` · `WDE_Verify_Sermon_Segment_Audio` · `WDE_Verify_YouTube_Gemini_Audio`.
+
+**Catatan:** ini indeks semua Flow yang ada sebagai XML di `main`, termasuk Flow eksperimen, historis, Draft, dan trigger. Status runtime Salesforce harus diperiksa tersendiri.
 
 ## 28 · Inventaris Flow: audiens dan eksperimen
 
@@ -685,10 +697,12 @@ flowchart LR
   ROOT --- F6
 ```
 
-_Indeks source; tidak menyiratkan seluruh Flow aktif atau dipanggil oleh jalur produksi._
+**Daftar nama API Flow (7):** `WDE_Daily_HIVE_Planning` · `WDE_Propose_Content_Plan` · `WDE_Recalculate_HIVE` · `WDE_Test_Audience_Context_AB` · `WDE_Test_Audio_QA_Recovery` · `WDE_Test_Gemini_Async_Text` · `WDE_Test_Gemini_Auth`.
+
+**Catatan:** ini indeks semua Flow yang ada sebagai XML di `main`, termasuk Flow eksperimen, historis, Draft, dan trigger. Status runtime Salesforce harus diperiksa tersendiri.
 
 ## Bukti utama
 
-[Gateway Chat #21](https://github.com/bfipbf/WDE/issues/21) · [PR #52](https://github.com/jimmytobing/Syntetic-Wisdom/pull/52) · [PR #70](https://github.com/jimmytobing/Syntetic-Wisdom/pull/70) · [PR #68](https://github.com/jimmytobing/Syntetic-Wisdom/pull/68) · [PR #73](https://github.com/jimmytobing/Syntetic-Wisdom/pull/73) · [PR #74](https://github.com/jimmytobing/Syntetic-Wisdom/pull/74) · [Audit metadata](docs/wde-org-git-reconciliation-2026-11-22.md) · [Desain QA Draft](docs/wde-audio-qa-flow-only-70.md) · [HIVE](docs/wde-hive-content-planning.md) · [Gateway deploy](docs/sf-deploy.md).
+[Gateway Chat #21](https://github.com/bfipbf/WDE/issues/21) · [PR #77](https://github.com/jimmytobing/Syntetic-Wisdom/pull/77) · [PR #78](https://github.com/jimmytobing/Syntetic-Wisdom/pull/78) · [main setelah cleanup](https://github.com/jimmytobing/Syntetic-Wisdom/commit/44d66f2675456d1ed203c526f30b4ea631038b79) · [wde-test.yaml](.github/workflows/wde-test.yaml) · [close.yaml](.github/workflows/close.yaml) · [PR #52](https://github.com/jimmytobing/Syntetic-Wisdom/pull/52) · [PR #70](https://github.com/jimmytobing/Syntetic-Wisdom/pull/70) · [PR #68](https://github.com/jimmytobing/Syntetic-Wisdom/pull/68) · [PR #73](https://github.com/jimmytobing/Syntetic-Wisdom/pull/73) · [PR #74](https://github.com/jimmytobing/Syntetic-Wisdom/pull/74) · [Audit metadata](docs/wde-org-git-reconciliation-2026-11-22.md) · [Desain QA Draft](docs/wde-audio-qa-flow-only-70.md) · [HIVE](docs/wde-hive-content-planning.md) · [Gateway deploy](docs/sf-deploy.md).
 
-**Batas bukti:** Full Org–Git equivalence, aktivasi QA foreground, dan keakuratan seluruh segmen audio tetap **UNVERIFIED** kecuali ada bukti tersendiri. Tidak ada deployment atau perubahan Salesforce saat dokumen ini ditulis.
+**Batas bukti:** Full Org–Git equivalence, aktivasi QA foreground, dan keakuratan seluruh segmen audio tetap **UNVERIFIED** kecuali ada bukti tersendiri. Cleanup PR #78 dan perubahan SADD adalah **source-only**; tidak ada operasi/deployment Salesforce yang dipicu oleh revisi dokumen ini.
